@@ -113,6 +113,8 @@
   #ovBand .barrow{grid-template-columns:140px 1fr 60px}
   .barrow[data-decade],.barrow[data-band]{cursor:pointer;border-radius:7px;padding:2px 6px;margin-left:-6px;transition:background .12s}
   .barrow[data-decade]:hover,.barrow[data-band]:hover{background:var(--card)}
+  .lk{cursor:pointer;border-bottom:1px dotted transparent}
+  .lk:hover{color:var(--ink);border-bottom-color:currentColor}
   .jlist{columns:2;column-gap:24px;font-size:13px}
   .jlist div{break-inside:avoid;padding:3px 0;color:var(--ink2);display:flex;justify-content:space-between;gap:10px;cursor:pointer;border-radius:6px}
   .jlist div:hover{color:var(--ink);background:var(--chip)}
@@ -380,7 +382,9 @@ function band(p){if(p.scopusPercentile==null)return '';const v=p.scopusPercentil
   if(v>=50)return '<span class="badge b-mid">'+v+'th</span>';
   return '<span class="badge" style="background:var(--chip);color:var(--ink3)">'+v+'th</span>';}
 function typeBadge(p){if(p.type==='dataset')return '<span class="badge" style="background:rgba(100,116,139,.22);color:#94a3b8">dataset</span>';if(p.type==='preprint')return '<span class="badge b-mid">preprint</span>';if(p.type==='proceedings')return '<span class="badge" style="background:var(--chip);color:var(--ink3)">proceedings</span>';return '';}
-function authors(a){if(!a||!a.length)return '';return a.length>3?esc(a.slice(0,3).join(', '))+' <span class="dot">+'+(a.length-3)+'</span>':esc(a.join(', '));}
+function authorLink(n){return `<span class="lk" data-author="${esc(n)}" title="Show this author's papers">${esc(n)}</span>`;}
+function authors(a){if(!a||!a.length)return '';const show=a.slice(0,3).map(authorLink).join(', ');return a.length>3?show+' <span class="dot">+'+(a.length-3)+'</span>':show;}
+function journalLink(j){return j?`<span class="lk" data-journal="${esc(j)}" title="Show this journal's papers">${esc(j)}</span>`:'<span>—</span>';}
 function renderList(){
   const total=S.filtered.length, pages=Math.max(1,Math.ceil(total/PAGE));
   if(S.page>=pages)S.page=0;
@@ -391,7 +395,7 @@ function renderList(){
       <div class="pmeta">
         ${authors(p.authors)} ${p.authors&&p.authors.length?'<span class="dot">·</span>':''}
         <span>${p.year||'—'}</span><span class="dot">·</span>
-        <span>${esc(p.journal||'—')}</span>
+        ${journalLink(p.journal)}
         ${band(p)} ${p.openAccess?'<span class="badge b-oa">OA</span>':''} ${typeBadge(p)}
         ${p.citations?'<span class="dot">·</span><span>'+p.citations+' cites</span>':''}
       </div>
@@ -403,8 +407,12 @@ function renderList(){
 $('#prev').onclick=()=>{if(S.page>0){S.page--;renderList();window.scrollTo(0,0);}};
 $('#next').onclick=()=>{S.page++;renderList();window.scrollTo(0,0);};
 
-/* clicks: open paper / filter by construct chip */
+/* clicks: filter by author / journal / construct chip, else open the paper */
 $('#list').onclick=e=>{
+  const au=e.target.closest('[data-author]');
+  if(au){F.author=au.dataset.author;$('#fAuthor').value=au.dataset.author;S.page=0;applyAndRender();window.scrollTo(0,0);return;}
+  const jr=e.target.closest('[data-journal]');
+  if(jr){F.journal=jr.dataset.journal;$('#fJournal').value=jr.dataset.journal;S.page=0;applyAndRender();window.scrollTo(0,0);return;}
   const chip=e.target.closest('.chip[data-code]');
   if(chip){F.construct=chip.dataset.code;$('#fConstruct').value=chip.dataset.code;S.page=0;applyAndRender();window.scrollTo(0,0);return;}
   const card=e.target.closest('.pcard'); if(card)openDetail(card.dataset.id);
@@ -445,7 +453,7 @@ async function openDetail(id){
       <div class="mrow">${authors(p.authors)}</div>
       <div class="mrow">
         <span>${p.year||'—'}</span><span class="dot">·</span>
-        <span>${esc(p.journal||'—')}</span>
+        ${journalLink(p.journal)}
         ${p.publisher?'<span class="dot">·</span><span>'+esc(p.publisher)+'</span>':''}
         ${band(p)} ${p.openAccess?'<span class="badge b-oa">Open access</span>':''} ${typeBadge(p)}
         ${p.citations!=null?'<span class="dot">·</span><span>'+p.citations+' citations</span>':''}
@@ -474,7 +482,12 @@ async function openDetail(id){
 function closeModal(){$('#ov').classList.remove('on');document.body.style.overflow='';}
 $('#mclose').onclick=closeModal;
 $('#ov').onclick=e=>{if(e.target.id==='ov')closeModal();};
-$('#mcontent').onclick=e=>{const chip=e.target.closest('.chip[data-code]');if(!chip)return;
+$('#mcontent').onclick=e=>{
+  const au=e.target.closest('[data-author]');
+  if(au){closeModal();F.author=au.dataset.author;$('#fAuthor').value=au.dataset.author;S.page=0;applyAndRender();setView('library');return;}
+  const jr=e.target.closest('[data-journal]');
+  if(jr){closeModal();F.journal=jr.dataset.journal;$('#fJournal').value=jr.dataset.journal;S.page=0;applyAndRender();setView('library');return;}
+  const chip=e.target.closest('.chip[data-code]');if(!chip)return;
   closeModal();F.construct=chip.dataset.code;$('#fConstruct').value=chip.dataset.code;S.page=0;applyAndRender();setView('library');};
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
