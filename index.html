@@ -204,6 +204,7 @@
       </select>
       <label class="oa"><input type="checkbox" id="fOa"> Open access</label>
       <label class="oa"><input type="checkbox" id="fArt"> Articles only</label>
+      <label class="oa" id="fAbsBox" title="Also match abstract text (loads abstracts on first use, ~9 MB)"><input type="checkbox" id="fAbs"> <span id="fAbsLbl">Search abstracts</span></label>
     </div>
     <div class="resbar">
       <div class="count"><b id="resCount">0</b> papers</div>
@@ -274,7 +275,7 @@ const TOOLS={
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PAGE=50;
-const S={papers:[],constructs:[],byCode:{},abstracts:null,absLoading:null,view:'library',page:0,filtered:[]};
+const S={papers:[],constructs:[],byCode:{},abstracts:null,absLoading:null,absIndexed:false,view:'library',page:0,filtered:[]};
 
 /* ---------- theme ---------- */
 (function(){const t=localStorage.getItem('syed-theme');if(t)document.documentElement.dataset.theme=t;})();
@@ -354,7 +355,7 @@ function buildYearSelect(){
     const o=document.createElement('option');o.value=y;o.textContent=`${y} (${yc[y]})`;sel.appendChild(o);
   });
 }
-const F={q:'',construct:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,sort:'year'};
+const F={q:'',construct:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false,sort:'year'};
 let qTimer;
 $('#q').oninput=e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();S.page=0;applyAndRender();},180);};
 $('#fConstruct').onchange=e=>{F.construct=e.target.value;S.page=0;applyAndRender();};
@@ -367,12 +368,30 @@ $('#fBand').onchange=e=>{F.band=e.target.value;S.page=0;applyAndRender();};
 $('#fSort').onchange=e=>{F.sort=e.target.value;applyAndRender();};
 $('#fOa').onchange=e=>{F.oa=e.target.checked;S.page=0;applyAndRender();};
 $('#fArt').onchange=e=>{F.art=e.target.checked;S.page=0;applyAndRender();};
-$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false});
-  $('#q').value='';$('#fConstruct').value='';$('#fJournal').value='';$('#fAuthor').value='';$('#fYear').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;S.page=0;applyAndRender();};
+$('#fAbs').onchange=async e=>{
+  F.searchAbs=e.target.checked;
+  if(F.searchAbs&&!S.absIndexed){
+    const lbl=$('#fAbsLbl'),box=$('#fAbsBox');
+    if(lbl)lbl.textContent='loading abstracts…'; if(box)box.style.opacity='.55';
+    try{
+      const a=await ensureAbstracts();
+      S.papers.forEach(p=>{const t=a[p.id];if(t)p._sa=p._s+' '+t.toLowerCase();});
+      S.absIndexed=true;
+    }catch(err){
+      F.searchAbs=false; e.target.checked=false;
+      if(lbl){lbl.textContent='abstracts unavailable'; setTimeout(()=>{lbl.textContent='Search abstracts';},2500);}
+      if(box)box.style.opacity=''; return;
+    }
+    if(lbl)lbl.textContent='Search abstracts'; if(box)box.style.opacity='';
+  }
+  S.page=0; applyAndRender();
+};
+$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false});
+  $('#q').value='';$('#fConstruct').value='';$('#fJournal').value='';$('#fAuthor').value='';$('#fYear').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;$('#fAbs').checked=false;S.page=0;applyAndRender();};
 
 function applyAndRender(){
   let r=S.papers;
-  if(F.q)r=r.filter(p=>p._s.includes(F.q));
+  if(F.q)r=r.filter(p=>(F.searchAbs&&p._sa||p._s).includes(F.q));
   if(F.construct)r=r.filter(p=>p.constructCodes.includes(F.construct));
   if(F.journal)r=r.filter(p=>p.journal===F.journal);
   if(F.author)r=r.filter(p=>p.authors&&p.authors.includes(F.author));
