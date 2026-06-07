@@ -23,13 +23,18 @@ cd syeds-research-book ; python -m http.server 8000   # then open http://localho
   year · Scopus tier · OA · sort, paginated), **Constructs** taxonomy, **Overview** (stats, by-decade,
   Scopus bands, top journals), paper detail modal with **PaperCards** handoff + DOI/OA/RG/CP/Sci-Hub
   links. Verified headlessly (boots, 9,388 papers, filters, modal, all views).
-- **Next:** publish (GitHub Pages) · construct co-occurrence map + per-construct time-flow (Phase 2) ·
-  deeper suite handoffs + catalog-grounding for ResearchFlow (Phase 3–4) · DOI-based abstract enrichment
-  for the ~56% without an in-sheet abstract.
+- **Phase 2 — DONE:** record-type cleaning + **Map** (construct co-occurrence force graph) + **Trends**
+  (construct × year surge heatmap). **Published** → GitHub Pages, live below.
+- **Next:** deeper suite handoffs + catalog-grounding for ResearchFlow (Phase 3–4) · DOI-based abstract
+  enrichment for the ~56% without an in-sheet abstract.
+
+**Live:** https://syahmedu.github.io/syeds-research-book/
 
 ## App views
 - **Library** — the full 9,388-paper corpus; client-side filter/sort over an in-memory index; 50/page.
 - **Constructs** — the 167-construct taxonomy with keyword vocabularies; click → Library filtered to it.
+- **Map** — construct co-occurrence force graph (edges = papers shared between two constructs); click a node → Library filtered to it.
+- **Trends** — construct × year surge heatmap (rows = busiest constructs, columns = years, darker = more papers); click a row → its papers.
 - **Overview** — counts + by-decade + Scopus-band distributions + top journals (computed live from the data).
 
 ## Data (`data/`)
