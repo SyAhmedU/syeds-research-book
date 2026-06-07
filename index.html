@@ -59,7 +59,7 @@
 
   /* filters */
   .filters{position:sticky;top:54px;z-index:30;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(8px);
-    display:grid;grid-template-columns:1.4fr 1.2fr repeat(5,auto);gap:10px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+    display:grid;grid-template-columns:1.4fr 1.2fr 1.2fr repeat(5,auto);gap:10px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
   .filters input[type=text],.filters input[type=number],.filters select{
     font:inherit;font-size:13.5px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%}
   .filters input::placeholder{color:var(--ink3)}
@@ -110,7 +110,9 @@
   .barrow .n{text-align:right;color:var(--ink2);font-family:var(--mono);font-size:12px}
   #ovBand .barrow{grid-template-columns:140px 1fr 60px}
   .jlist{columns:2;column-gap:24px;font-size:13px}
-  .jlist div{break-inside:avoid;padding:3px 0;color:var(--ink2);display:flex;justify-content:space-between;gap:10px}
+  .jlist div{break-inside:avoid;padding:3px 0;color:var(--ink2);display:flex;justify-content:space-between;gap:10px;cursor:pointer;border-radius:6px}
+  .jlist div:hover{color:var(--ink);background:var(--chip)}
+  .jlist div:hover span{padding-left:4px}
   .jlist b{color:var(--ink);font-family:var(--mono);font-size:12px}
 
   /* modal */
@@ -175,6 +177,7 @@
     <div class="filters">
       <input type="text" id="q" placeholder="Search title, author, journal…" autocomplete="off">
       <select id="fConstruct"><option value="">All constructs</option></select>
+      <select id="fJournal" title="Journals, ordered by number of articles"><option value="">All journals</option></select>
       <div class="yr"><input type="number" id="yMin" placeholder="from"> – <input type="number" id="yMax" placeholder="to"></div>
       <select id="fBand">
         <option value="">Any Scopus tier</option>
@@ -276,7 +279,7 @@ Promise.all([
   papers.forEach(p=>{p._s=((p.title||'')+' '+(p.briefTitle||'')+' '+(p.authors||[]).join(' ')+' '+(p.journal||'')).toLowerCase();});
   // year bounds
   const ys=papers.map(p=>p.year).filter(Boolean); S.yMin=Math.min(...ys); S.yMax=Math.max(...ys);
-  buildConstructSelect();
+  buildConstructSelect(); buildJournalSelect();
   $('#loading').classList.add('hidden'); $('#app').classList.remove('hidden');
   applyAndRender(); renderOverview();
 }).catch(e=>{$('#loading').innerHTML='Could not load data. Run on a server (file:// blocks fetch).<br><small>'+esc(e.message)+'</small>';});
@@ -300,23 +303,33 @@ function buildConstructSelect(){
     const o=document.createElement('option');o.value=c.code;o.textContent=`${c.name} (${c.paperCount})`;sel.appendChild(o);
   });
 }
-const F={q:'',construct:'',yMin:null,yMax:null,band:'',oa:false,art:false,sort:'year'};
+function buildJournalSelect(){
+  const sel=$('#fJournal');
+  const jc={}; S.papers.forEach(p=>{if(p.journal)jc[p.journal]=(jc[p.journal]||0)+1;});
+  // sorted by number of articles (article share), most first, then A–Z
+  Object.entries(jc).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).forEach(([j,n])=>{
+    const o=document.createElement('option');o.value=j;o.textContent=`${j} (${n})`;sel.appendChild(o);
+  });
+}
+const F={q:'',construct:'',journal:'',yMin:null,yMax:null,band:'',oa:false,art:false,sort:'year'};
 let qTimer;
 $('#q').oninput=e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();S.page=0;applyAndRender();},180);};
 $('#fConstruct').onchange=e=>{F.construct=e.target.value;S.page=0;applyAndRender();};
+$('#fJournal').onchange=e=>{F.journal=e.target.value;S.page=0;applyAndRender();};
 $('#yMin').onchange=e=>{F.yMin=e.target.value?+e.target.value:null;S.page=0;applyAndRender();};
 $('#yMax').onchange=e=>{F.yMax=e.target.value?+e.target.value:null;S.page=0;applyAndRender();};
 $('#fBand').onchange=e=>{F.band=e.target.value;S.page=0;applyAndRender();};
 $('#fSort').onchange=e=>{F.sort=e.target.value;applyAndRender();};
 $('#fOa').onchange=e=>{F.oa=e.target.checked;S.page=0;applyAndRender();};
 $('#fArt').onchange=e=>{F.art=e.target.checked;S.page=0;applyAndRender();};
-$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',yMin:null,yMax:null,band:'',oa:false,art:false});
-  $('#q').value='';$('#fConstruct').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;S.page=0;applyAndRender();};
+$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',journal:'',yMin:null,yMax:null,band:'',oa:false,art:false});
+  $('#q').value='';$('#fConstruct').value='';$('#fJournal').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;S.page=0;applyAndRender();};
 
 function applyAndRender(){
   let r=S.papers;
   if(F.q)r=r.filter(p=>p._s.includes(F.q));
   if(F.construct)r=r.filter(p=>p.constructCodes.includes(F.construct));
+  if(F.journal)r=r.filter(p=>p.journal===F.journal);
   if(F.yMin!=null)r=r.filter(p=>p.year&&p.year>=F.yMin);
   if(F.yMax!=null)r=r.filter(p=>p.year&&p.year<=F.yMax);
   if(F.oa)r=r.filter(p=>p.openAccess);
@@ -329,7 +342,7 @@ function applyAndRender(){
   r=r.slice().sort(dir);
   S.filtered=r;
   $('#resCount').textContent=r.length.toLocaleString();
-  const active=F.q||F.construct||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art;
+  const active=F.q||F.construct||F.journal||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art;
   $('#clearBtn').classList.toggle('hidden',!active);
   renderList();
 }
@@ -457,8 +470,11 @@ function renderOverview(){
   // journals
   const jc={};ps.forEach(p=>{if(p.journal)jc[p.journal]=(jc[p.journal]||0)+1;});
   const top=Object.entries(jc).sort((a,b)=>b[1]-a[1]).slice(0,30);
-  $('#ovJournals').innerHTML=top.map(([j,n])=>`<div><span>${esc(j)}</span><b>${n}</b></div>`).join('');
+  $('#ovJournals').innerHTML=top.map(([j,n])=>`<div data-journal="${esc(j)}" title="Show these papers"><span>${esc(j)}</span><b>${n}</b></div>`).join('');
 }
+/* click a top journal → filter the Library by it */
+$('#ovJournals').onclick=e=>{const d=e.target.closest('[data-journal]');if(!d)return;
+  F.journal=d.dataset.journal;$('#fJournal').value=d.dataset.journal;S.page=0;applyAndRender();setView('library');};
 
 /* ---------- co-occurrence map ---------- */
 function coocPairs(){
