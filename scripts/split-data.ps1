@@ -55,6 +55,7 @@ foreach($p in $papers){
   [void]$ib.Append(',"bibtexUrl":'+(J $p.bibtexUrl))
   [void]$ib.Append(',"constructCodes":'+(Jarr $p.constructCodes))
   [void]$ib.Append(',"hasAbstract":'+(Jbool ([bool]$p.abstract)))
+  [void]$ib.Append(',"absSrc":'+(J $p.absSrc))
   [void]$ib.Append('}')
   if($p.abstract){ if(-not $f2){[void]$ab.Append(',')}; $f2=$false; [void]$ab.Append((J $p.id)+':'+(J $p.abstract)); $nAbs++ }
 }

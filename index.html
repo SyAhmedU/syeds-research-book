@@ -464,6 +464,7 @@ async function openDetail(id){
   const doiUrl=p.doi?('https://doi.org/'+p.doi):null;
   const cChips=p.constructCodes.map(c=>{const cc=S.byCode[c]||{name:c};
     return `<span class="chip" data-code="${esc(c)}">${esc(cc.name||c)}</span>`;}).join('');
+  const absProv=p.hasAbstract?({sheet:'from review coding',openalex:'via OpenAlex',crossref:'via Crossref'}[p.absSrc]||''):'';
   $('#mcontent').innerHTML=`
     <div class="mhead">
       <p class="mtitle">${esc(p.title||'Untitled')}</p>
@@ -479,7 +480,7 @@ async function openDetail(id){
     </div>
     <div class="mbody">
       ${p.briefTitle?'<div class="secttl">Your keyword tags</div><div style="font-size:13px;color:var(--ink2)">'+esc(p.briefTitle)+'</div>':''}
-      <div class="secttl">Abstract</div>
+      <div class="secttl">Abstract${absProv?' <span style="font-weight:400;font-size:11px;color:var(--ink3)">· '+absProv+'</span>':''}</div>
       <div class="abs" id="absBox">${p.hasAbstract?'Loading abstract…':'No abstract on file — open via DOI to read it.'}</div>
       <div class="secttl">Open</div>
       <div class="links">
