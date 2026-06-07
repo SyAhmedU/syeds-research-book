@@ -1,0 +1,9 @@
+# local test artifacts
+_smoke_*.png
+*.local
+# os / editor
+Thumbs.db
+.DS_Store
+.vscode/
+# source workbook is never committed (27 MB, lives in Google Drive)
+*.xlsx
