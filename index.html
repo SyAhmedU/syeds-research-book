@@ -59,9 +59,11 @@
 
   /* filters */
   .filters{position:sticky;top:54px;z-index:30;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(8px);
-    display:grid;grid-template-columns:1.4fr 1.2fr 1.2fr repeat(5,auto);gap:10px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
   .filters input[type=text],.filters input[type=number],.filters select{
-    font:inherit;font-size:13.5px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%}
+    font:inherit;font-size:13.5px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+  .filters #q{flex:1 1 220px;min-width:190px}
+  .filters select{flex:0 1 auto;min-width:140px;max-width:280px}
   .filters input::placeholder{color:var(--ink3)}
   .yr{display:flex;align-items:center;gap:6px;color:var(--ink3);font-size:12px}
   .yr input{width:74px}
@@ -148,7 +150,7 @@
   .hm td.lbl:hover{color:var(--ink)}
   .hm td.cell{width:22px;height:18px;border-radius:4px}
   footer{border-top:1px solid var(--line);color:var(--ink3);font-size:12px;padding:22px 0;text-align:center}
-  @media(max-width:760px){.filters{grid-template-columns:1fr 1fr}.jlist{columns:1}.brand{font-size:16px}}
+  @media(max-width:760px){.filters #q{flex-basis:100%}.filters select{flex:1 1 44%;max-width:none}.jlist{columns:1}.brand{font-size:16px}}
 </style>
 </head>
 <body>
@@ -178,6 +180,8 @@
       <input type="text" id="q" placeholder="Search title, author, journal…" autocomplete="off">
       <select id="fConstruct"><option value="">All constructs</option></select>
       <select id="fJournal" title="Journals, ordered by number of articles"><option value="">All journals</option></select>
+      <select id="fAuthor" title="Authors with 2+ papers, ordered by number of articles (search finds the rest)"><option value="">All authors</option></select>
+      <select id="fYear" title="Pick a single year"><option value="">All years</option></select>
       <div class="yr"><input type="number" id="yMin" placeholder="from"> – <input type="number" id="yMax" placeholder="to"></div>
       <select id="fBand">
         <option value="">Any Scopus tier</option>
@@ -279,7 +283,7 @@ Promise.all([
   papers.forEach(p=>{p._s=((p.title||'')+' '+(p.briefTitle||'')+' '+(p.authors||[]).join(' ')+' '+(p.journal||'')).toLowerCase();});
   // year bounds
   const ys=papers.map(p=>p.year).filter(Boolean); S.yMin=Math.min(...ys); S.yMax=Math.max(...ys);
-  buildConstructSelect(); buildJournalSelect();
+  buildConstructSelect(); buildJournalSelect(); buildAuthorSelect(); buildYearSelect();
   $('#loading').classList.add('hidden'); $('#app').classList.remove('hidden');
   applyAndRender(); renderOverview();
 }).catch(e=>{$('#loading').innerHTML='Could not load data. Run on a server (file:// blocks fetch).<br><small>'+esc(e.message)+'</small>';});
@@ -311,25 +315,45 @@ function buildJournalSelect(){
     const o=document.createElement('option');o.value=j;o.textContent=`${j} (${n})`;sel.appendChild(o);
   });
 }
-const F={q:'',construct:'',journal:'',yMin:null,yMax:null,band:'',oa:false,art:false,sort:'year'};
+function buildAuthorSelect(){
+  const sel=$('#fAuthor');
+  const ac={}; S.papers.forEach(p=>{(p.authors||[]).forEach(a=>{a=(a||'').trim();if(a)ac[a]=(ac[a]||0)+1;});});
+  // authors with 2+ papers, ordered by number of articles (most first), then A–Z; the rest stay searchable
+  Object.entries(ac).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).forEach(([a,n])=>{
+    const o=document.createElement('option');o.value=a;o.textContent=`${a} (${n})`;sel.appendChild(o);
+  });
+}
+function buildYearSelect(){
+  const sel=$('#fYear');
+  const yc={}; S.papers.forEach(p=>{if(p.year)yc[p.year]=(yc[p.year]||0)+1;});
+  // each year with its paper count, newest first
+  Object.keys(yc).map(Number).sort((a,b)=>b-a).forEach(y=>{
+    const o=document.createElement('option');o.value=y;o.textContent=`${y} (${yc[y]})`;sel.appendChild(o);
+  });
+}
+const F={q:'',construct:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,sort:'year'};
 let qTimer;
 $('#q').oninput=e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();S.page=0;applyAndRender();},180);};
 $('#fConstruct').onchange=e=>{F.construct=e.target.value;S.page=0;applyAndRender();};
 $('#fJournal').onchange=e=>{F.journal=e.target.value;S.page=0;applyAndRender();};
+$('#fAuthor').onchange=e=>{F.author=e.target.value;S.page=0;applyAndRender();};
+$('#fYear').onchange=e=>{F.yearExact=e.target.value?+e.target.value:null;S.page=0;applyAndRender();};
 $('#yMin').onchange=e=>{F.yMin=e.target.value?+e.target.value:null;S.page=0;applyAndRender();};
 $('#yMax').onchange=e=>{F.yMax=e.target.value?+e.target.value:null;S.page=0;applyAndRender();};
 $('#fBand').onchange=e=>{F.band=e.target.value;S.page=0;applyAndRender();};
 $('#fSort').onchange=e=>{F.sort=e.target.value;applyAndRender();};
 $('#fOa').onchange=e=>{F.oa=e.target.checked;S.page=0;applyAndRender();};
 $('#fArt').onchange=e=>{F.art=e.target.checked;S.page=0;applyAndRender();};
-$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',journal:'',yMin:null,yMax:null,band:'',oa:false,art:false});
-  $('#q').value='';$('#fConstruct').value='';$('#fJournal').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;S.page=0;applyAndRender();};
+$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false});
+  $('#q').value='';$('#fConstruct').value='';$('#fJournal').value='';$('#fAuthor').value='';$('#fYear').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;S.page=0;applyAndRender();};
 
 function applyAndRender(){
   let r=S.papers;
   if(F.q)r=r.filter(p=>p._s.includes(F.q));
   if(F.construct)r=r.filter(p=>p.constructCodes.includes(F.construct));
   if(F.journal)r=r.filter(p=>p.journal===F.journal);
+  if(F.author)r=r.filter(p=>p.authors&&p.authors.includes(F.author));
+  if(F.yearExact!=null)r=r.filter(p=>p.year===F.yearExact);
   if(F.yMin!=null)r=r.filter(p=>p.year&&p.year>=F.yMin);
   if(F.yMax!=null)r=r.filter(p=>p.year&&p.year<=F.yMax);
   if(F.oa)r=r.filter(p=>p.openAccess);
@@ -342,7 +366,7 @@ function applyAndRender(){
   r=r.slice().sort(dir);
   S.filtered=r;
   $('#resCount').textContent=r.length.toLocaleString();
-  const active=F.q||F.construct||F.journal||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art;
+  const active=F.q||F.construct||F.journal||F.author||F.yearExact!=null||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art;
   $('#clearBtn').classList.toggle('hidden',!active);
   renderList();
 }

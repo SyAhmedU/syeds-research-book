@@ -63,6 +63,9 @@ Pure transforms, no dependencies (uses .NET `System.IO.Compression`).
 - Dedup by normalized DOI; rows with no DOI dropped (4; logged in `summary.droppedNoDoi`).
 - Years kept only if 1900–2026 (219 impossible values nulled).
 - `Abstract Not Found` → null abstract; `Journal Name Not Found` → null journal.
+- Author placeholders cleaned: `Authors Not Found` / `undefined undefined` dropped, and a leading
+  `undefined ` artifact stripped from real names (e.g. `undefined Seokhwa Yun` → `Seokhwa Yun`,
+  which then merges with the genuine entry). No author name is invented.
 - Journal names normalized: spelling variants of the **same** journal (case / whitespace / trailing
   punctuation) merge to one canonical spelling — the most common real form already in the corpus,
   preferring proper case (e.g. `INTERNATIONAL BUSINESS REVIEW` → `International Business Review`).

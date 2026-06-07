@@ -159,7 +159,10 @@ function CleanAbstract($s){ if(-not $s){return $null}; if($s -match '(?i)abstrac
 function CleanJournal($s){ if(-not $s){return $null}; if($s -match '(?i)journal\s*name\s*not\s*found'){return $null}; $s.Trim() }
 function CleanPct($s){ if($s -match '(\d+)'){ return [int]$matches[1] }; return $null }
 function RealUrl($u){ if($u -and $u -match '^https?://'){ return $u }; return $null }
-function Authors($s){ if(-not $s){return @()}; $s.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ } }
+# clean one author: strip leading "undefined " artifacts (JS undefined prepended in source), drop pure placeholders
+function CleanAuthor($a){ $t=([string]$a).Trim(); while($t -cmatch '^undefined\s+'){ $t=($t -creplace '^undefined\s+','').Trim() }; if($t -match '(?i)^(authors?\s+not\s+found|undefined|n/a|not\s+found)$'){ return '' }; $t }
+# split authors on commas, clean each, drop the empties
+function Authors($s){ if(-not $s){return @()}; $s.Split(',') | ForEach-Object { CleanAuthor $_ } | Where-Object { $_ } }
 # null literal placeholder values ("N/A", "No Link Available", "-", …)
 function Nullish($s){ if($null -eq $s){return $null}; $t=([string]$s).Trim(); if($t -eq ''){return $null}; if($t -match '^(n/?a|na|none|null|nil|unknown|-+|—+|not\s*available|no\s+.*available|not\s*found)$'){return $null}; $t }
 # classify record kind from the source name (datasets & preprints are not journal articles)
