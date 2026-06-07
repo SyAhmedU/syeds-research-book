@@ -268,7 +268,8 @@ const TOOLS={
   dissection:'https://paper-dissection.vercel.app/',
   theoryscope:'https://theoryscope.vercel.app/',
   scalescope:'https://scalescope.vercel.app/',
-  wordmap:'https://syahmedu.github.io/wordmap/'
+  wordmap:'https://syahmedu.github.io/wordmap/',
+  researchflow:'https://researchflow-syahmedus-projects.vercel.app/'
 };
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -278,6 +279,20 @@ const S={papers:[],constructs:[],byCode:{},abstracts:null,absLoading:null,view:'
 /* ---------- theme ---------- */
 (function(){const t=localStorage.getItem('syed-theme');if(t)document.documentElement.dataset.theme=t;})();
 $('#themeBtn').onclick=()=>{const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.setItem('syed-theme',d.dataset.theme);};
+
+/* ---------- inbound deep links (suite handoffs): ?q ?construct ?journal ?author ?year ?doi ---------- */
+function applyUrlParams(){
+  const u=new URLSearchParams(location.search);
+  if(![...u.keys()].length) return null;
+  const q=u.get('q'); if(q){F.q=q.toLowerCase();$('#q').value=q;}
+  const c=u.get('construct'); if(c&&S.byCode[c]){F.construct=c;$('#fConstruct').value=c;}
+  const j=u.get('journal'); if(j){F.journal=j;$('#fJournal').value=j;}
+  const a=u.get('author'); if(a){F.author=a;$('#fAuthor').value=a;}
+  const y=u.get('year'); if(y&&/^\d{4}$/.test(y)){F.yearExact=+y;$('#fYear').value=y;}
+  const doi=u.get('doi');
+  history.replaceState({},'',location.pathname);   // clean the URL after consuming params
+  return doi?doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i,'').toLowerCase():null;
+}
 
 /* ---------- load ---------- */
 Promise.all([
@@ -291,7 +306,9 @@ Promise.all([
   const ys=papers.map(p=>p.year).filter(Boolean); S.yMin=Math.min(...ys); S.yMax=Math.max(...ys);
   buildConstructSelect(); buildJournalSelect(); buildAuthorSelect(); buildYearSelect();
   $('#loading').classList.add('hidden'); $('#app').classList.remove('hidden');
+  const openDoi=applyUrlParams();
   applyAndRender(); renderOverview();
+  if(openDoi)openDetail(openDoi);
 }).catch(e=>{$('#loading').innerHTML='Could not load data. Run on a server (file:// blocks fetch).<br><small>'+esc(e.message)+'</small>';});
 
 /* ---------- nav ---------- */
@@ -467,6 +484,7 @@ async function openDetail(id){
       <div class="secttl">Open</div>
       <div class="links">
         ${doiUrl?`<a class="lnk primary" href="${esc(TOOLS.papercards)}#seed=${encodeURIComponent(p.doi)}" target="_blank" rel="noopener">📇 Open in PaperCards</a>`:''}
+        ${p.title?`<a class="lnk" href="${esc(TOOLS.researchflow)}?idea=${encodeURIComponent(p.title)}" target="_blank" rel="noopener">🧭 Start in ResearchFlow</a>`:''}
         ${doiUrl?`<a class="lnk" href="${esc(doiUrl)}" target="_blank" rel="noopener">DOI ↗</a>`:''}
         ${p.oaUrl?`<a class="lnk" href="${esc(p.oaUrl)}" target="_blank" rel="noopener">Open access ↗</a>`:''}
         ${p.rgUrl?`<a class="lnk" href="${esc(p.rgUrl)}" target="_blank" rel="noopener">ResearchGate ↗</a>`:''}

@@ -1,6 +1,9 @@
 # local test artifacts
 _smoke_*.png
 *.local
+# abstract-enrichment fetch cache + log (regenerable; not part of the dataset)
+data/_abstract-cache.json
+data/_enrich.log
 # os / editor
 Thumbs.db
 .DS_Store
