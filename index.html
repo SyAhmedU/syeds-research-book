@@ -155,6 +155,33 @@
   .hm td.cell{width:22px;height:18px;border-radius:4px}
   footer{border-top:1px solid var(--line);color:var(--ink3);font-size:12px;padding:22px 0;text-align:center}
   @media(max-width:760px){.filters #q{flex-basis:100%}.filters select{flex:1 1 44%;max-width:none}.jlist{columns:1}.brand{font-size:16px}}
+
+  /* term trends (treemap folded in from Wordmap) */
+  .tt-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
+  .tt-play{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;display:grid;place-items:center}
+  .tt-play:hover{border-color:var(--accent2)}
+  .tt-scrub{flex:1;min-width:150px;max-width:420px;accent-color:var(--accent)}
+  .tt-year{font-family:var(--mono);font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px;min-width:118px}
+  .tt-yearnow{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:5px}
+  .tt-yearnow.real{color:#22c55e;border:1px solid color-mix(in srgb,#22c55e 42%,transparent)}
+  .tt-yearnow.proj{color:var(--warm);border:1px solid color-mix(in srgb,var(--warm) 45%,transparent)}
+  .tt-speed{font:inherit;font-size:12px;font-weight:700;color:var(--ink2);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer}
+  .tt-speed.on{color:#fff;background:var(--grad);border-color:transparent}
+  .tt-search{font:inherit;font-size:13px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 11px;width:150px}
+  .tt-stat{font-family:var(--mono);font-size:12px;color:var(--ink3);margin-left:auto}
+  .tt-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+  .tt-lchip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink2)}
+  .tt-ldot{width:9px;height:9px;border-radius:3px}
+  .tt-wrap{position:relative;width:100%;height:min(64vh,620px);background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .tt-loading{padding:60px;text-align:center;color:var(--ink3)}
+  #tt-map .group-label{font-family:var(--mono);font-size:11px;font-weight:600;opacity:.92}
+  #tt-map g.cell rect{stroke:var(--bg2);stroke-width:1}
+  #tt-map .term-name{fill:#fff;font-size:12px;font-weight:600;pointer-events:none}
+  .tt-foot{font-size:12px;color:var(--ink3);margin:12px 0 40px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .tt-foot kbd{font-family:var(--mono);font-size:10px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:1px 5px;margin:0 1px}
+  .tt-csv{font:inherit;font-size:11px;color:var(--ink2);background:var(--card);border:1px solid var(--line);border-radius:7px;padding:5px 9px;cursor:pointer}
+  .tt-tip{position:fixed;z-index:60;display:none;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.5;padding:8px 11px;border-radius:9px;box-shadow:var(--shadow);max-width:250px}
+  .tt-tip b{font-weight:700}
 </style>
 </head>
 <body>
@@ -165,6 +192,7 @@
   <button class="navbtn" data-view="constructs">Constructs</button>
   <button class="navbtn" data-view="map">Map</button>
   <button class="navbtn" data-view="trends">Trends</button>
+  <button class="navbtn" data-view="termtrends">Term Trends</button>
   <button class="navbtn" data-view="overview">Overview</button>
   <div class="sp"></div>
   <a class="ghost" href="https://syahmedu.github.io/research-suite/" target="_blank" rel="noopener">↗ Suite</a>
@@ -258,6 +286,22 @@
     <div id="trendsWrap" style="margin:14px 0 40px;overflow-x:auto"></div>
   </section>
 
+  <section id="v-termtrends" class="wrap hidden">
+    <div class="hero"><h1>Term Trends</h1><p>Fifty years of social-science research vocabulary from the OpenAlex corpus — <span id="tt-termcount">—</span> terms, sized by how often they appear in the literature and coloured by subfield. Scrub or play through the years; click a term to search this corpus for it. <b>Folded in from Wordmap.</b></p></div>
+    <div class="tt-controls">
+      <button class="tt-play" id="tt-play" aria-label="Play / pause"><svg width="13" height="14" viewBox="0 0 13 14"><path id="tt-play-icon" d="M0 0 L13 7 L0 14 Z" fill="currentColor"/></svg></button>
+      <input class="tt-scrub" id="tt-scrub" type="range" min="0" max="0" value="0" aria-label="Year">
+      <div class="tt-year"><span id="tt-year">—</span><span class="tt-yearnow" id="tt-yearnow"></span></div>
+      <button class="tt-speed" id="tt-speed">1×</button>
+      <input class="tt-search" id="tt-search" type="text" placeholder="Filter terms…" autocomplete="off">
+      <span class="tt-stat" id="tt-stat"></span>
+    </div>
+    <div class="tt-legend" id="tt-legend"></div>
+    <div class="tt-wrap" id="tt-wrap"><svg id="tt-map"></svg></div>
+    <div class="tt-tip" id="tt-tip"></div>
+    <div class="tt-foot"><span>Real OpenAlex doc-frequency through <b id="tt-realmax">2024</b>, logistic projection beyond (badged). <kbd>←</kbd><kbd>→</kbd> year · <kbd>Space</kbd> play.</span><button class="tt-csv" id="tt-csv">⬇ CSV (this year)</button></div>
+  </section>
+
   <footer>Syed's Research Book · 9,388 papers · 167 constructs · a 24-month systematic-review corpus · <b>no fabrication — all hand-coded</b></footer>
 </main>
 
@@ -269,7 +313,6 @@ const TOOLS={
   dissection:'https://paper-dissection.vercel.app/',
   theoryscope:'https://theoryscope.vercel.app/',
   scalescope:'https://scalescope.vercel.app/',
-  wordmap:'https://syahmedu.github.io/wordmap/',
   researchflow:'https://researchflow-syahmedus-projects.vercel.app/'
 };
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -291,6 +334,7 @@ function applyUrlParams(){
   const a=u.get('author'); if(a){F.author=a;$('#fAuthor').value=a;}
   const y=u.get('year'); if(y&&/^\d{4}$/.test(y)){F.yearExact=+y;$('#fYear').value=y;}
   const doi=u.get('doi');
+  const vw=u.get('view'); if(vw)S.initView=vw;   // e.g. ?view=termtrends (the folded-in Wordmap redirect lands here)
   history.replaceState({},'',location.pathname);   // clean the URL after consuming params
   return doi?doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i,'').toLowerCase():null;
 }
@@ -309,17 +353,20 @@ Promise.all([
   $('#loading').classList.add('hidden'); $('#app').classList.remove('hidden');
   const openDoi=applyUrlParams();
   applyAndRender(); renderOverview();
+  if(S.initView&&VIEWS.includes(S.initView))setView(S.initView);   // deep-link to a view (?view=termtrends)
   if(openDoi)openDetail(openDoi);
 }).catch(e=>{$('#loading').innerHTML='Could not load data. Run on a server (file:// blocks fetch).<br><small>'+esc(e.message)+'</small>';});
 
 /* ---------- nav ---------- */
-const VIEWS=['library','constructs','map','trends','overview'];
+const VIEWS=['library','constructs','map','trends','termtrends','overview'];
 function setView(v){
   S.view=v; $$('.navbtn').forEach(x=>x.classList.toggle('on',x.dataset.view===v));
   VIEWS.forEach(x=>$('#v-'+x).classList.toggle('hidden',x!==v));
+  if(v!=='termtrends')ttStop();   // pause the year animation when leaving Term Trends
   if(v==='constructs')renderConstructs();
   if(v==='map')renderMap();
   if(v==='trends')renderTrends();
+  if(v==='termtrends')renderTermTrends();
   window.scrollTo(0,0);
 }
 $$('.navbtn').forEach(b=>b.onclick=()=>setView(b.dataset.view));
@@ -634,6 +681,104 @@ function renderTrends(){
   $('#trendsWrap').innerHTML=h+'</tbody></table>';
 }
 $('#trendsWrap').onclick=e=>{const l=e.target.closest('.lbl');if(!l)return;F.construct=l.dataset.code;$('#fConstruct').value=l.dataset.code;S.page=0;applyAndRender();setView('library');};
+
+/* ───────── Term Trends — animated 50-year term treemap, folded in from Wordmap ─────────
+   Pure client-side over data/words.json (425 OpenAlex social-science terms, 1970–2054;
+   real ≤2024 + logistic projection, badged). d3 + words.json lazy-loaded on first open. */
+const TT={data:null,year:0,playing:false,timer:null,speed:1,search:'',wired:false,loaded:false};
+const TT_SPEEDS=[0.5,1,2,4], TT_TICK=900;
+let _ttD3=null;
+function ttEnsureD3(){ if(window.d3)return Promise.resolve(window.d3); if(!_ttD3)_ttD3=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';s.onload=()=>res(window.d3);s.onerror=()=>rej(new Error('could not load d3'));document.head.appendChild(s);}); return _ttD3; }
+const ttGroups=()=>Object.fromEntries((TT.data.meta.groups||[]).map(g=>[g.id,g]));
+function renderTermTrends(){
+  if(TT.loaded){ ttApplyAll(); return; }
+  const wrap=$('#tt-wrap'); wrap.innerHTML='<div class="tt-loading">Loading 50 years of term data…</div>';
+  Promise.all([ttEnsureD3(),fetch('./data/words.json').then(r=>r.json())]).then(([_d3,data])=>{
+    TT.data=data; const m=data.meta;
+    TT.year=m.real_year_max||Math.min(2024,m.year_max);
+    wrap.innerHTML='<svg id="tt-map"></svg>';
+    const sc=$('#tt-scrub'); sc.min=m.year_min; sc.max=m.year_max; sc.value=TT.year;
+    $('#tt-termcount').textContent=data.terms.length; $('#tt-realmax').textContent=m.real_year_max;
+    ttLegend(); if(!TT.wired){ ttWire(); TT.wired=true; } TT.loaded=true; ttApplyAll();
+  }).catch(e=>{ wrap.innerHTML='<div class="tt-loading">Could not load term data: '+esc(e.message)+'</div>'; });
+}
+function ttLegend(){ const gs=TT.data.meta.groups||[]; $('#tt-legend').innerHTML=gs.map(g=>`<span class="tt-lchip"><span class="tt-ldot" style="background:${g.color}"></span>${esc(g.label)}</span>`).join(''); }
+function ttHierarchy(){
+  const y=String(TT.year), gm=ttGroups(), byGroup={};
+  for(const t of TT.data.terms){
+    const v=t.by_year[y]; if(!v||v.s<=0)continue;
+    if(TT.search && !t.term.toLowerCase().includes(TT.search))continue;
+    (byGroup[t.group]=byGroup[t.group]||[]).push({term:t.term,gColor:(gm[t.group]||{}).color||'#888',gLabel:(gm[t.group]||{}).label||t.group,v,value:Math.max(v.s,0.0005)});
+  }
+  return {name:'root',children:Object.entries(byGroup).map(([gid,kids])=>({name:(gm[gid]||{}).label||gid,color:(gm[gid]||{}).color||'#888',children:kids}))};
+}
+function ttRender(){
+  const d3=window.d3, wrap=$('#tt-wrap'), W=wrap.clientWidth, H=wrap.clientHeight;
+  if(!W||!H)return;
+  const svg=d3.select('#tt-map').attr('width',W).attr('height',H).attr('viewBox',`0 0 ${W} ${H}`);
+  const root=d3.hierarchy(ttHierarchy()).sum(d=>d.value||0).sort((a,b)=>b.value-a.value);
+  d3.treemap().size([W,H]).paddingInner(2).paddingTop(d=>d.depth===1?20:0).paddingOuter(2).round(true)(root);
+  const DUR=window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:240, ease=d3.easeCubicInOut;
+  const groups=svg.selectAll('g.group').data(root.children||[],d=>d.data.name);
+  groups.exit().remove();
+  const gE=groups.enter().append('g').attr('class','group').attr('transform',d=>`translate(${d.x0},${d.y0})`);
+  gE.append('text').attr('class','group-label').attr('x',5).attr('y',14);
+  const gA=gE.merge(groups);
+  gA.transition().duration(DUR).ease(ease).attr('transform',d=>`translate(${d.x0},${d.y0})`);
+  gA.select('text.group-label').attr('fill',d=>d.data.color).text(d=>d.data.name);
+  const cells=svg.selectAll('g.cell').data(root.leaves(),d=>d.data.term);
+  cells.exit().remove();
+  const cE=cells.enter().append('g').attr('class','cell').style('cursor','pointer').attr('transform',d=>`translate(${d.x0},${d.y0})`)
+    .on('mousemove',(e,d)=>ttTip(e,d)).on('mouseleave',ttHideTip).on('click',(e,d)=>ttPick(d.data.term));
+  cE.append('rect').attr('rx',2);
+  cE.append('text').attr('class','term-name').attr('x',5).attr('y',15);
+  const cA=cE.merge(cells);
+  cA.transition().duration(DUR).ease(ease).attr('transform',d=>`translate(${d.x0},${d.y0})`);
+  cA.select('rect').transition().duration(DUR).ease(ease).attr('width',d=>Math.max(0,d.x1-d.x0)).attr('height',d=>Math.max(0,d.y1-d.y0)).attr('fill',d=>d.data.gColor);
+  cA.select('text.term-name').text(d=>{const w=d.x1-d.x0,h=d.y1-d.y0; if(w<46||h<20)return ''; const n=d.data.term,max=Math.floor(w/7.2); return n.length>max?n.slice(0,Math.max(1,max-1))+'…':n;});
+}
+function ttApplyAll(){
+  if(!TT.data)return; ttRender();
+  const m=TT.data.meta, real=TT.year<=m.real_year_max;
+  $('#tt-year').textContent=TT.year;
+  const tag=$('#tt-yearnow'); tag.textContent=real?'real':'projected'; tag.className='tt-yearnow '+(real?'real':'proj');
+  $('#tt-scrub').value=TT.year;
+  const y=String(TT.year), shown=TT.data.terms.filter(t=>{const v=t.by_year[y];return v&&v.s>0&&(!TT.search||t.term.toLowerCase().includes(TT.search));}).length;
+  $('#tt-stat').textContent=shown+' terms active';
+}
+function ttStop(){ TT.playing=false; if(TT.timer){clearInterval(TT.timer);TT.timer=null;} const ic=$('#tt-play-icon'); if(ic)ic.setAttribute('d','M0 0 L13 7 L0 14 Z'); }
+function ttPlay(){
+  TT.playing=!TT.playing; if(TT.timer){clearInterval(TT.timer);TT.timer=null;}
+  const ic=$('#tt-play-icon');
+  if(TT.playing){ if(ic)ic.setAttribute('d','M0 0 H4 V14 H0 Z M9 0 H13 V14 H9 Z'); TT.timer=setInterval(()=>{const m=TT.data.meta;TT.year++;if(TT.year>m.year_max)TT.year=m.year_min;ttApplyAll();},Math.round(TT_TICK/TT.speed)); }
+  else if(ic)ic.setAttribute('d','M0 0 L13 7 L0 14 Z');
+}
+function ttPick(term){ ttStop(); F.q=term.toLowerCase(); $('#q').value=term; S.page=0; applyAndRender(); setView('library'); }
+function ttTip(e,d){ const tip=$('#tt-tip'),v=d.data.v; tip.style.display='block'; tip.style.left=(e.clientX+13)+'px'; tip.style.top=(e.clientY+13)+'px';
+  tip.innerHTML=`<b>${esc(d.data.term)}</b> · ${esc(d.data.gLabel)}<br>${(v.s*100).toFixed(3)}% doc share · ${(v.c||0).toLocaleString()} papers<br>CAGR ${Math.round((v.g||0)*100)}% · novelty ${Math.round((v.n||0)*100)}%`; }
+function ttHideTip(){ const t=$('#tt-tip'); if(t)t.style.display='none'; }
+function ttWire(){
+  $('#tt-play').onclick=ttPlay;
+  $('#tt-scrub').oninput=e=>{ ttStop(); TT.year=+e.target.value; ttApplyAll(); };
+  $('#tt-speed').onclick=()=>{ const i=TT_SPEEDS.indexOf(TT.speed); TT.speed=TT_SPEEDS[(i+1)%TT_SPEEDS.length]; const b=$('#tt-speed'); b.textContent=(TT.speed===0.5?'½':TT.speed)+'×'; b.classList.toggle('on',TT.speed!==1); if(TT.playing){TT.playing=false;ttPlay();} };
+  let tq; $('#tt-search').oninput=e=>{ clearTimeout(tq); tq=setTimeout(()=>{TT.search=e.target.value.trim().toLowerCase();ttApplyAll();},150); };
+  $('#tt-csv').onclick=ttCsv;
+  window.addEventListener('resize',()=>{ if(S.view==='termtrends'&&TT.data)ttRender(); });
+  window.addEventListener('keydown',e=>{
+    if(S.view!=='termtrends'||!TT.data)return; const tag=(e.target.tagName||'').toLowerCase(); if(tag==='input'||tag==='textarea')return; const m=TT.data.meta;
+    if(e.key==='ArrowRight'){e.preventDefault();ttStop();TT.year=Math.min(TT.year+1,m.year_max);ttApplyAll();}
+    else if(e.key==='ArrowLeft'){e.preventDefault();ttStop();TT.year=Math.max(TT.year-1,m.year_min);ttApplyAll();}
+    else if(e.key==='Home'){e.preventDefault();ttStop();TT.year=m.year_min;ttApplyAll();}
+    else if(e.key==='End'){e.preventDefault();ttStop();TT.year=m.year_max;ttApplyAll();}
+    else if(e.code==='Space'){e.preventDefault();ttPlay();}
+  });
+}
+function ttCsv(){
+  if(!TT.data)return; const y=String(TT.year), q=s=>/[",\n]/.test(String(s))?'"'+String(s).replace(/"/g,'""')+'"':String(s);
+  const rows=[['term','subfield','year','share_s','cagr_g','novelty_n','count_c']];
+  for(const t of TT.data.terms){const v=t.by_year[y];if(!v)continue;rows.push([t.term,t.group,y,v.s,v.g,v.n,v.c]);}
+  const blob=new Blob([rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'}), u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download='term-trends-'+y+'.csv'; a.click(); URL.revokeObjectURL(u);
+}
 </script>
 </body>
 </html>
