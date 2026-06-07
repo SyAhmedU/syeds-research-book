@@ -71,7 +71,7 @@ if(MERGE){
   }
   // mark in-sheet abstracts so provenance is explicit
   for(const p of papers){ if(p.abstract && !p.absSrc) p.absSrc = 'sheet'; }
-  fs.writeFileSync(PAPERS, JSON.stringify(papers)); // NOTE: re-serialized by node; run split-data.ps1 next
+  fs.writeFileSync(PAPERS, '﻿' + JSON.stringify(papers)); // leading BOM to match the converter; run split-data.ps1 next
   console.log(`MERGE: filled ${filled} abstracts (crossref ${bySrc.crossref}, openalex ${bySrc.openalex}). papers.json rewritten.`);
   process.exit(0);
 }
