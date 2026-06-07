@@ -160,6 +160,10 @@ function CleanJournal($s){ if(-not $s){return $null}; if($s -match '(?i)journal\
 function CleanPct($s){ if($s -match '(\d+)'){ return [int]$matches[1] }; return $null }
 function RealUrl($u){ if($u -and $u -match '^https?://'){ return $u }; return $null }
 function Authors($s){ if(-not $s){return @()}; $s.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ } }
+# null literal placeholder values ("N/A", "No Link Available", "-", …)
+function Nullish($s){ if($null -eq $s){return $null}; $t=([string]$s).Trim(); if($t -eq ''){return $null}; if($t -match '^(n/?a|na|none|null|nil|unknown|-+|—+|not\s*available|no\s+.*available|not\s*found)$'){return $null}; $t }
+# classify record kind from the source name (datasets & preprints are not journal articles)
+function PaperType($j){ if(-not $j){return 'article'}; $x=$j.ToLower(); if($x -match 'psyctests|psycextra' -or $x -match 'dataset$'){return 'dataset'}; if($x -match 'ssrn|preprint|arxiv|biorxiv|osf preprints'){return 'preprint'}; if($x -match 'proceedings'){return 'proceedings'}; 'article' }
 
 # ---- parse all cluster sheets, dedup by DOI ----
 Write-Host "parsing cluster sheets..."
@@ -185,18 +189,20 @@ foreach($c in $constructs){
     $rn=$row['_r']
     if(-not $papers.Contains($key)){
       $yr=CleanYear $row['F']; if(-not $yr -and $row['F']){ $dirtyYear++ }
+      $jr = Nullish (CleanJournal $row['H'])
       $p=[ordered]@{
         id        = if($doi){$doi}else{$key}
         doi       = $doi
         title     = $title
-        briefTitle= if($row['C']){$row['C'].Trim()}else{$null}
+        briefTitle= Nullish $row['C']
         authors   = Authors $row['D']
         year      = $yr
         citations = if($row['E'] -match '^\d+$'){[int]$row['E']}else{$null}
-        journal   = CleanJournal $row['H']
-        scopusCategory   = if($row['I']){$row['I'].Trim()}else{$null}
+        journal   = $jr
+        type      = PaperType $jr
+        scopusCategory   = Nullish $row['I']
         scopusPercentile = CleanPct $row['J']
-        publisher = if($row['K']){$row['K'].Trim()}else{$null}
+        publisher = Nullish $row['K']
         openAccess= ($row['L'] -match '(?i)^open access')
         oaStatus  = if($row['L']){$row['L'].Trim()}else{$null}
         oaUrl     = RealUrl $sh.links["M$rn"]
@@ -213,7 +219,9 @@ foreach($c in $constructs){
       $p=$papers[$key]
       if(-not $p.abstract){ $p.abstract = CleanAbstract $row['N'] }
       if(-not $p.year){ $p.year = CleanYear $row['F'] }
-      if(-not $p.journal){ $p.journal = CleanJournal $row['H'] }
+      if(-not $p.journal){ $j2=Nullish (CleanJournal $row['H']); if($j2){ $p.journal=$j2; $p.type=PaperType $j2 } }
+      if(-not $p.publisher){ $p.publisher = Nullish $row['K'] }
+      if(-not $p.scopusCategory){ $p.scopusCategory = Nullish $row['I'] }
       if(-not $p.oaUrl){ $p.oaUrl = RealUrl $sh.links["M$rn"] }
       if(($p.authors).Count -eq 0){ $p.authors = Authors $row['D'] }
     }
@@ -263,6 +271,7 @@ foreach($k in $order){
   [void]$pb.Append(',"year":'+(Jnum $p.year))
   [void]$pb.Append(',"citations":'+(Jnum $p.citations))
   [void]$pb.Append(',"journal":'+(J $p.journal))
+  [void]$pb.Append(',"type":'+(J $p.type))
   [void]$pb.Append(',"scopusCategory":'+(J $p.scopusCategory))
   [void]$pb.Append(',"scopusPercentile":'+(Jnum $p.scopusPercentile))
   [void]$pb.Append(',"publisher":'+(J $p.publisher))

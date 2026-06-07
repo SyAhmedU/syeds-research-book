@@ -43,6 +43,7 @@ foreach($p in $papers){
   [void]$ib.Append(',"year":'+(Jnum $p.year))
   [void]$ib.Append(',"citations":'+(Jnum $p.citations))
   [void]$ib.Append(',"journal":'+(J $p.journal))
+  [void]$ib.Append(',"type":'+(J $p.type))
   [void]$ib.Append(',"scopusCategory":'+(J $p.scopusCategory))
   [void]$ib.Append(',"scopusPercentile":'+(Jnum $p.scopusPercentile))
   [void]$ib.Append(',"publisher":'+(J $p.publisher))

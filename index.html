@@ -59,7 +59,7 @@
 
   /* filters */
   .filters{position:sticky;top:54px;z-index:30;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(8px);
-    display:grid;grid-template-columns:1.6fr 1.4fr repeat(4,auto);gap:10px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+    display:grid;grid-template-columns:1.4fr 1.2fr repeat(5,auto);gap:10px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
   .filters input[type=text],.filters input[type=number],.filters select{
     font:inherit;font-size:13.5px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%}
   .filters input::placeholder{color:var(--ink3)}
@@ -133,6 +133,18 @@
   .spin{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 14px}
   @keyframes sp{to{transform:rotate(360deg)}}
   .hidden{display:none!important}
+  /* map */
+  #mapSvg .node{cursor:pointer}
+  #mapSvg .node circle{stroke:var(--bg);stroke-width:1.5px;transition:opacity .12s}
+  #mapSvg .node text{font-family:var(--mono);font-size:9.5px;fill:var(--ink2)}
+  #mapSvg .edge{stroke:var(--line2)}
+  #mapTip{position:absolute;pointer-events:none;display:none;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-size:12px;box-shadow:var(--shadow);z-index:5;max-width:240px}
+  /* heatmap */
+  .hm{border-collapse:separate;border-spacing:2px;font-size:11px}
+  .hm th{font-weight:600;color:var(--ink3);font-size:10px;font-family:var(--mono);padding:2px 0;text-align:center;width:22px}
+  .hm td.lbl{color:var(--ink2);padding:2px 10px 2px 0;cursor:pointer;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hm td.lbl:hover{color:var(--ink)}
+  .hm td.cell{width:22px;height:18px;border-radius:4px}
   footer{border-top:1px solid var(--line);color:var(--ink3);font-size:12px;padding:22px 0;text-align:center}
   @media(max-width:760px){.filters{grid-template-columns:1fr 1fr}.jlist{columns:1}.brand{font-size:16px}}
 </style>
@@ -143,6 +155,8 @@
   <div class="brand">Syed's <b>Research Book</b></div>
   <button class="navbtn on" data-view="library">Library</button>
   <button class="navbtn" data-view="constructs">Constructs</button>
+  <button class="navbtn" data-view="map">Map</button>
+  <button class="navbtn" data-view="trends">Trends</button>
   <button class="navbtn" data-view="overview">Overview</button>
   <div class="sp"></div>
   <a class="ghost" href="https://syahmedu.github.io/research-suite/" target="_blank" rel="noopener">↗ Suite</a>
@@ -177,6 +191,7 @@
         <option value="title">Title A–Z</option>
       </select>
       <label class="oa"><input type="checkbox" id="fOa"> Open access</label>
+      <label class="oa"><input type="checkbox" id="fArt"> Articles only</label>
     </div>
     <div class="resbar">
       <div class="count"><b id="resCount">0</b> papers</div>
@@ -207,6 +222,26 @@
     <div class="panel"><h3>Papers by decade</h3><div id="ovDecade"></div></div>
     <div class="panel"><h3>Scopus percentile bands</h3><div id="ovBand"></div></div>
     <div class="panel"><h3>Top journals</h3><div class="jlist" id="ovJournals"></div></div>
+  </section>
+
+  <!-- MAP -->
+  <section id="v-map" class="wrap hidden">
+    <div class="hero"><h1>Construct co-occurrence</h1><p>Two constructs are linked when papers belong to both — the real shape of the field. Bigger node = more papers; thicker link = more shared. Hover to focus; click a node for its papers.</p></div>
+    <div class="filters" style="grid-template-columns:auto auto 1fr;position:static">
+      <label class="yr">Min shared papers <input type="range" id="mapMin" min="2" max="40" value="8" style="width:160px"></label>
+      <span id="mapMinV" style="font-size:13px;font-weight:600">8</span>
+      <span id="mapInfo" style="font-size:12px;color:var(--ink3);text-align:right"></span>
+    </div>
+    <div id="mapWrap" style="position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin:14px 0 40px;overflow:hidden">
+      <svg id="mapSvg" width="100%" height="640" style="display:block"></svg>
+      <div id="mapTip"></div>
+    </div>
+  </section>
+
+  <!-- TRENDS -->
+  <section id="v-trends" class="wrap hidden">
+    <div class="hero"><h1>Trends</h1><p>When each construct surged. Rows = the busiest constructs, columns = years, darker = more papers. Click a row to see its papers.</p></div>
+    <div id="trendsWrap" style="margin:14px 0 40px;overflow-x:auto"></div>
   </section>
 
   <footer>Syed's Research Book · 9,388 papers · 167 constructs · a 24-month systematic-review corpus · <b>no fabrication — all hand-coded</b></footer>
@@ -247,12 +282,16 @@ Promise.all([
 }).catch(e=>{$('#loading').innerHTML='Could not load data. Run on a server (file:// blocks fetch).<br><small>'+esc(e.message)+'</small>';});
 
 /* ---------- nav ---------- */
-$$('.navbtn').forEach(b=>b.onclick=()=>{
-  S.view=b.dataset.view; $$('.navbtn').forEach(x=>x.classList.toggle('on',x===b));
-  ['library','constructs','overview'].forEach(v=>$('#v-'+v).classList.toggle('hidden',v!==S.view));
-  if(S.view==='constructs')renderConstructs();
+const VIEWS=['library','constructs','map','trends','overview'];
+function setView(v){
+  S.view=v; $$('.navbtn').forEach(x=>x.classList.toggle('on',x.dataset.view===v));
+  VIEWS.forEach(x=>$('#v-'+x).classList.toggle('hidden',x!==v));
+  if(v==='constructs')renderConstructs();
+  if(v==='map')renderMap();
+  if(v==='trends')renderTrends();
   window.scrollTo(0,0);
-});
+}
+$$('.navbtn').forEach(b=>b.onclick=()=>setView(b.dataset.view));
 
 /* ---------- filters ---------- */
 function buildConstructSelect(){
@@ -261,7 +300,7 @@ function buildConstructSelect(){
     const o=document.createElement('option');o.value=c.code;o.textContent=`${c.name} (${c.paperCount})`;sel.appendChild(o);
   });
 }
-const F={q:'',construct:'',yMin:null,yMax:null,band:'',oa:false,sort:'year'};
+const F={q:'',construct:'',yMin:null,yMax:null,band:'',oa:false,art:false,sort:'year'};
 let qTimer;
 $('#q').oninput=e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();S.page=0;applyAndRender();},180);};
 $('#fConstruct').onchange=e=>{F.construct=e.target.value;S.page=0;applyAndRender();};
@@ -270,8 +309,9 @@ $('#yMax').onchange=e=>{F.yMax=e.target.value?+e.target.value:null;S.page=0;appl
 $('#fBand').onchange=e=>{F.band=e.target.value;S.page=0;applyAndRender();};
 $('#fSort').onchange=e=>{F.sort=e.target.value;applyAndRender();};
 $('#fOa').onchange=e=>{F.oa=e.target.checked;S.page=0;applyAndRender();};
-$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',yMin:null,yMax:null,band:'',oa:false});
-  $('#q').value='';$('#fConstruct').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;S.page=0;applyAndRender();};
+$('#fArt').onchange=e=>{F.art=e.target.checked;S.page=0;applyAndRender();};
+$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',yMin:null,yMax:null,band:'',oa:false,art:false});
+  $('#q').value='';$('#fConstruct').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;S.page=0;applyAndRender();};
 
 function applyAndRender(){
   let r=S.papers;
@@ -280,6 +320,7 @@ function applyAndRender(){
   if(F.yMin!=null)r=r.filter(p=>p.year&&p.year>=F.yMin);
   if(F.yMax!=null)r=r.filter(p=>p.year&&p.year<=F.yMax);
   if(F.oa)r=r.filter(p=>p.openAccess);
+  if(F.art)r=r.filter(p=>p.type!=='dataset'&&p.type!=='preprint');
   if(F.band){r=F.band==='lt50'?r.filter(p=>p.scopusPercentile!=null&&p.scopusPercentile<50)
     :r.filter(p=>p.scopusPercentile!=null&&p.scopusPercentile>=+F.band);}
   const dir={year:(a,b)=>(b.year||0)-(a.year||0),yearAsc:(a,b)=>(a.year||9e9)-(b.year||9e9),
@@ -288,7 +329,7 @@ function applyAndRender(){
   r=r.slice().sort(dir);
   S.filtered=r;
   $('#resCount').textContent=r.length.toLocaleString();
-  const active=F.q||F.construct||F.yMin!=null||F.yMax!=null||F.band||F.oa;
+  const active=F.q||F.construct||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art;
   $('#clearBtn').classList.toggle('hidden',!active);
   renderList();
 }
@@ -297,6 +338,7 @@ function band(p){if(p.scopusPercentile==null)return '';const v=p.scopusPercentil
   if(v>=75)return '<span class="badge b-hi">'+v+'th</span>';
   if(v>=50)return '<span class="badge b-mid">'+v+'th</span>';
   return '<span class="badge" style="background:var(--chip);color:var(--ink3)">'+v+'th</span>';}
+function typeBadge(p){if(p.type==='dataset')return '<span class="badge" style="background:rgba(100,116,139,.22);color:#94a3b8">dataset</span>';if(p.type==='preprint')return '<span class="badge b-mid">preprint</span>';if(p.type==='proceedings')return '<span class="badge" style="background:var(--chip);color:var(--ink3)">proceedings</span>';return '';}
 function authors(a){if(!a||!a.length)return '';return a.length>3?esc(a.slice(0,3).join(', '))+' <span class="dot">+'+(a.length-3)+'</span>':esc(a.join(', '));}
 function renderList(){
   const total=S.filtered.length, pages=Math.max(1,Math.ceil(total/PAGE));
@@ -309,7 +351,7 @@ function renderList(){
         ${authors(p.authors)} ${p.authors&&p.authors.length?'<span class="dot">·</span>':''}
         <span>${p.year||'—'}</span><span class="dot">·</span>
         <span>${esc(p.journal||'—')}</span>
-        ${band(p)} ${p.openAccess?'<span class="badge b-oa">OA</span>':''}
+        ${band(p)} ${p.openAccess?'<span class="badge b-oa">OA</span>':''} ${typeBadge(p)}
         ${p.citations?'<span class="dot">·</span><span>'+p.citations+' cites</span>':''}
       </div>
       <div class="chips">${p.constructCodes.slice(0,6).map(c=>`<span class="chip" data-code="${esc(c)}">${esc((S.byCode[c]||{}).name||c)}</span>`).join('')}${p.constructCodes.length>6?'<span class="chip" style="border:0">+'+(p.constructCodes.length-6)+'</span>':''}</div>
@@ -343,9 +385,7 @@ function renderConstructs(){
 }
 $('#cq').oninput=renderConstructs; $('#cSort').onchange=renderConstructs;
 $('#cgrid').onclick=e=>{const c=e.target.closest('.ccard');if(!c)return;
-  F.construct=c.dataset.code;$('#fConstruct').value=c.dataset.code;S.page=0;applyAndRender();
-  $$('.navbtn').forEach(x=>x.classList.toggle('on',x.dataset.view==='library'));
-  ['library','constructs','overview'].forEach(v=>$('#v-'+v).classList.toggle('hidden',v!=='library'));S.view='library';window.scrollTo(0,0);};
+  F.construct=c.dataset.code;$('#fConstruct').value=c.dataset.code;S.page=0;applyAndRender();setView('library');};
 
 /* ---------- detail modal ---------- */
 async function ensureAbstracts(){
@@ -366,7 +406,7 @@ async function openDetail(id){
         <span>${p.year||'—'}</span><span class="dot">·</span>
         <span>${esc(p.journal||'—')}</span>
         ${p.publisher?'<span class="dot">·</span><span>'+esc(p.publisher)+'</span>':''}
-        ${band(p)} ${p.openAccess?'<span class="badge b-oa">Open access</span>':''}
+        ${band(p)} ${p.openAccess?'<span class="badge b-oa">Open access</span>':''} ${typeBadge(p)}
         ${p.citations!=null?'<span class="dot">·</span><span>'+p.citations+' citations</span>':''}
       </div>
       ${p.scopusCategory?'<div class="mrow" style="font-size:12px;color:var(--ink3)">'+esc(p.scopusCategory)+'</div>':''}
@@ -394,10 +434,7 @@ function closeModal(){$('#ov').classList.remove('on');document.body.style.overfl
 $('#mclose').onclick=closeModal;
 $('#ov').onclick=e=>{if(e.target.id==='ov')closeModal();};
 $('#mcontent').onclick=e=>{const chip=e.target.closest('.chip[data-code]');if(!chip)return;
-  closeModal();F.construct=chip.dataset.code;$('#fConstruct').value=chip.dataset.code;S.page=0;
-  $$('.navbtn').forEach(x=>x.classList.toggle('on',x.dataset.view==='library'));
-  ['library','constructs','overview'].forEach(v=>$('#v-'+v).classList.toggle('hidden',v!=='library'));S.view='library';
-  applyAndRender();window.scrollTo(0,0);};
+  closeModal();F.construct=chip.dataset.code;$('#fConstruct').value=chip.dataset.code;S.page=0;applyAndRender();setView('library');};
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
 /* ---------- overview ---------- */
@@ -422,6 +459,72 @@ function renderOverview(){
   const top=Object.entries(jc).sort((a,b)=>b[1]-a[1]).slice(0,30);
   $('#ovJournals').innerHTML=top.map(([j,n])=>`<div><span>${esc(j)}</span><b>${n}</b></div>`).join('');
 }
+
+/* ---------- co-occurrence map ---------- */
+function coocPairs(){
+  if(S.cooc)return S.cooc;
+  const m=new Map();
+  for(const p of S.papers){const cs=p.constructCodes;for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){const a=cs[i],b=cs[j];const k=a<b?a+'|'+b:b+'|'+a;m.set(k,(m.get(k)||0)+1);}}
+  S.cooc=[...m.entries()].map(([k,w])=>{const x=k.split('|');return{a:x[0],b:x[1],w};});
+  return S.cooc;
+}
+function lerpColor(t){const c1=[255,150,86],c2=[241,69,117],c3=[146,112,244],mix=(a,b,u)=>a.map((v,i)=>Math.round(v+(b[i]-v)*u));const c=t<0.5?mix(c1,c2,t*2):mix(c2,c3,(t-0.5)*2);return`rgb(${c[0]},${c[1]},${c[2]})`;}
+function renderMap(){
+  const svg=$('#mapSvg'),minW=+$('#mapMin').value; $('#mapMinV').textContent=minW;
+  const edges=coocPairs().filter(e=>e.w>=minW);
+  const codes=new Set();edges.forEach(e=>{codes.add(e.a);codes.add(e.b);});
+  const nodes=[...codes].map(code=>({code,name:(S.byCode[code]||{}).name||code,pc:(S.byCode[code]||{}).paperCount||1}));
+  const by={};nodes.forEach(n=>by[n.code]=n);
+  $('#mapInfo').textContent=`${nodes.length} constructs · ${edges.length} links`;
+  if(!nodes.length){svg.innerHTML='<text x="20" y="40" fill="var(--ink3)">No links at this threshold — lower it.</text>';return;}
+  const W=Math.max(320,$('#mapWrap').clientWidth),H=640,pad=46;
+  nodes.forEach((n,i)=>{const a=i/nodes.length*Math.PI*2;n.x=W/2+Math.cos(a)*Math.min(W,H)*0.34;n.y=H/2+Math.sin(a)*Math.min(W,H)*0.34;});
+  const E=edges.map(e=>({s:by[e.a],t:by[e.b],w:e.w}));
+  const k=Math.sqrt(W*H/nodes.length)*0.8;let temp=W*0.10;
+  for(let it=0;it<300;it++){
+    nodes.forEach(n=>{n.dx=0;n.dy=0;});
+    for(let i=0;i<nodes.length;i++){const a=nodes[i];for(let j=i+1;j<nodes.length;j++){const b=nodes[j];let dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy)||0.01,f=k*k/d,ux=dx/d,uy=dy/d;a.dx+=ux*f;a.dy+=uy*f;b.dx-=ux*f;b.dy-=uy*f;}}
+    for(const e of E){let dx=e.s.x-e.t.x,dy=e.s.y-e.t.y,d=Math.hypot(dx,dy)||0.01,f=d*d/k*(0.5+0.18*Math.log(1+e.w)),ux=dx/d,uy=dy/d;e.s.dx-=ux*f;e.s.dy-=uy*f;e.t.dx+=ux*f;e.t.dy+=uy*f;}
+    nodes.forEach(n=>{let d=Math.hypot(n.dx,n.dy)||0.01,m=Math.min(d,temp);n.x=Math.max(pad,Math.min(W-pad,n.x+n.dx/d*m));n.y=Math.max(pad,Math.min(H-pad,n.y+n.dy/d*m));});
+    temp*=0.97;
+  }
+  const maxPc=Math.max(...nodes.map(n=>n.pc)),maxW=Math.max(...E.map(e=>e.w));
+  const rad=pc=>4+Math.sqrt(pc/maxPc)*20;
+  const labeled=new Set(nodes.slice().sort((a,b)=>b.pc-a.pc).slice(0,28).map(n=>n.code));
+  let s='';
+  for(const e of E)s+=`<line class="edge" x1="${e.s.x.toFixed(1)}" y1="${e.s.y.toFixed(1)}" x2="${e.t.x.toFixed(1)}" y2="${e.t.y.toFixed(1)}" stroke-width="${(0.4+e.w/maxW*2.6).toFixed(2)}" stroke-opacity="${(0.10+e.w/maxW*0.4).toFixed(2)}" data-a="${esc(e.s.code)}" data-b="${esc(e.t.code)}"></line>`;
+  for(const n of nodes){const r=rad(n.pc);s+=`<g class="node" data-code="${esc(n.code)}" transform="translate(${n.x.toFixed(1)},${n.y.toFixed(1)})"><circle r="${r.toFixed(1)}" fill="${lerpColor(n.pc/maxPc)}"></circle>${labeled.has(n.code)?`<text x="${(r+3).toFixed(1)}" y="3">${esc(n.code)}</text>`:''}</g>`;}
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.innerHTML=s;
+}
+(function mapEvents(){
+  const svg=$('#mapSvg'),tip=$('#mapTip');
+  svg.addEventListener('mouseover',e=>{const g=e.target.closest('.node');if(!g)return;const code=g.dataset.code,nb=new Set([code]);
+    svg.querySelectorAll('line').forEach(l=>{const on=l.dataset.a===code||l.dataset.b===code;l.style.stroke=on?'var(--accent2)':'';l.style.strokeOpacity=on?'.9':'.04';if(on){nb.add(l.dataset.a);nb.add(l.dataset.b);}});
+    svg.querySelectorAll('.node').forEach(n=>{n.style.opacity=nb.has(n.dataset.code)?'1':'.16';});
+    const c=S.byCode[code]||{};tip.innerHTML=`<b>${esc(c.name||code)}</b><br>${(c.paperCount||0)} papers`;tip.style.display='block';});
+  svg.addEventListener('mousemove',e=>{const w=$('#mapWrap').getBoundingClientRect();tip.style.left=(e.clientX-w.left+14)+'px';tip.style.top=(e.clientY-w.top+14)+'px';});
+  svg.addEventListener('mouseout',e=>{if(e.relatedTarget&&e.relatedTarget.closest&&e.relatedTarget.closest('.node'))return;
+    svg.querySelectorAll('line').forEach(l=>{l.style.stroke='';l.style.strokeOpacity='';});svg.querySelectorAll('.node').forEach(n=>{n.style.opacity='';});tip.style.display='none';});
+  svg.addEventListener('click',e=>{const g=e.target.closest('.node');if(!g)return;F.construct=g.dataset.code;$('#fConstruct').value=g.dataset.code;S.page=0;applyAndRender();setView('library');});
+})();
+$('#mapMin').onchange=renderMap;
+
+/* ---------- trends heatmap ---------- */
+function renderTrends(){
+  const top=S.constructs.slice().sort((a,b)=>b.paperCount-a.paperCount).slice(0,40);
+  const y0=Math.max(2005,S.yMin),years=[];for(let y=y0;y<=S.yMax;y++)years.push(y);
+  const cnt={};top.forEach(c=>cnt[c.code]={});
+  for(const p of S.papers){if(!p.year||p.year<y0)continue;for(const code of p.constructCodes)if(cnt[code])cnt[code][p.year]=(cnt[code][p.year]||0)+1;}
+  let mx=1;top.forEach(c=>years.forEach(y=>{if((cnt[c.code][y]||0)>mx)mx=cnt[c.code][y];}));
+  let h='<table class="hm"><thead><tr><th></th>'+years.map(y=>`<th>'${String(y).slice(2)}</th>`).join('')+'</tr></thead><tbody>';
+  for(const c of top){
+    h+=`<tr><td class="lbl" data-code="${esc(c.code)}" title="${esc(c.name)} (${c.paperCount})">${esc(c.name)}</td>`;
+    for(const y of years){const v=cnt[c.code][y]||0,t=v/mx,bg=v?`background:rgba(241,69,117,${(0.10+t*0.85).toFixed(3)})`:'background:var(--chip)';h+=`<td class="cell" style="${bg}" title="${esc(c.name)} · ${y}: ${v}"></td>`;}
+    h+='</tr>';
+  }
+  $('#trendsWrap').innerHTML=h+'</tbody></table>';
+}
+$('#trendsWrap').onclick=e=>{const l=e.target.closest('.lbl');if(!l)return;F.construct=l.dataset.code;$('#fConstruct').value=l.dataset.code;S.page=0;applyAndRender();setView('library');};
 </script>
 </body>
 </html>
