@@ -63,6 +63,10 @@ Pure transforms, no dependencies (uses .NET `System.IO.Compression`).
 - Dedup by normalized DOI; rows with no DOI dropped (4; logged in `summary.droppedNoDoi`).
 - Years kept only if 1900–2026 (219 impossible values nulled).
 - `Abstract Not Found` → null abstract; `Journal Name Not Found` → null journal.
+- Journal names normalized: spelling variants of the **same** journal (case / whitespace / trailing
+  punctuation) merge to one canonical spelling — the most common real form already in the corpus,
+  preferring proper case (e.g. `INTERNATIONAL BUSINESS REVIEW` → `International Business Review`).
+  Distinct journals never merge and no name is invented (`summary.journalVariantsMerged`, `.distinctJournals`).
 - HTML entities fully decoded (handles double-encoded `&amp;amp;`).
 - Master tabs verified to add no papers beyond the clusters (`summary.masterOrphanDois = 0`).
 

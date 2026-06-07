@@ -164,6 +164,10 @@ function Authors($s){ if(-not $s){return @()}; $s.Split(',') | ForEach-Object { 
 function Nullish($s){ if($null -eq $s){return $null}; $t=([string]$s).Trim(); if($t -eq ''){return $null}; if($t -match '^(n/?a|na|none|null|nil|unknown|-+|—+|not\s*available|no\s+.*available|not\s*found)$'){return $null}; $t }
 # classify record kind from the source name (datasets & preprints are not journal articles)
 function PaperType($j){ if(-not $j){return 'article'}; $x=$j.ToLower(); if($x -match 'psyctests|psycextra' -or $x -match 'dataset$'){return 'dataset'}; if($x -match 'ssrn|preprint|arxiv|biorxiv|osf preprints'){return 'preprint'}; if($x -match 'proceedings'){return 'proceedings'}; 'article' }
+# journal-name normalization helpers (merge SAME journal across case/space/trailing-punct variants)
+function JournalKey($s){ if(-not $s){return $null}; $t=[string]$s; $t=$t -replace '\s+',' '; $t=$t.Trim(); $t=$t -replace '[.,;:]+$',''; $t=$t.Trim(); $t.ToLowerInvariant() }
+# prefer mixed/proper case over ALL-CAPS or all-lowercase when choosing the canonical spelling
+function CaseScore($s){ $lo=$s -cmatch '[a-z]'; $up=$s -cmatch '[A-Z]'; if($lo -and $up){2}elseif($up){1}else{0} }
 
 # ---- parse all cluster sheets, dedup by DOI ----
 Write-Host "parsing cluster sheets..."
@@ -247,6 +251,26 @@ if(-not $SkipMasterCheck){
   Write-Host "  master orphan DOIs (not in any cluster): $masterOrphans"
 }
 
+# ---- journal-name normalization ----
+# Merge spelling variants of the SAME journal (case / whitespace / trailing punctuation).
+# Canonical = the most common real spelling already present in the corpus; tie-break prefers
+# proper (mixed) case, then ordinal. No name is invented and distinct journals never merge.
+Write-Host "normalizing journal names..."
+$jFreq = New-Object 'System.Collections.Generic.Dictionary[string,int]' ([System.StringComparer]::Ordinal)
+foreach($k in $order){ $jn=$papers[$k].journal; if($jn){ if($jFreq.ContainsKey($jn)){$jFreq[$jn]++}else{$jFreq[$jn]=1} } }
+$jGroups = New-Object 'System.Collections.Generic.Dictionary[string,System.Collections.Generic.List[string]]' ([System.StringComparer]::Ordinal)
+foreach($raw in $jFreq.Keys){ $nk=JournalKey $raw; if(-not $jGroups.ContainsKey($nk)){ $jGroups[$nk]=New-Object System.Collections.Generic.List[string] }; $jGroups[$nk].Add($raw) }
+$jCanon = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::Ordinal)
+$journalMerges = 0
+foreach($nk in $jGroups.Keys){
+  $variants = $jGroups[$nk]
+  $canon = ($variants | Sort-Object @{Expression={$jFreq[$_]};Descending=$true}, @{Expression={CaseScore $_};Descending=$true}, @{Expression={$_};Descending=$false} | Select-Object -First 1)
+  foreach($v in $variants){ $jCanon[$v]=$canon }
+  if($variants.Count -gt 1){ $journalMerges += ($variants.Count - 1) }
+}
+foreach($k in $order){ $p=$papers[$k]; if($p.journal -and $jCanon.ContainsKey($p.journal) -and $jCanon[$p.journal] -ne $p.journal){ $p.journal=$jCanon[$p.journal]; $p.type=PaperType $p.journal } }
+Write-Host "  journals: $($jFreq.Count) raw -> $($jGroups.Count) canonical ($journalMerges variant(s) merged)"
+
 # ---- write JSON ----
 Write-Host "writing JSON..."
 # constructs.json
@@ -317,6 +341,8 @@ $sb2=New-Object System.Text.StringBuilder
 [void]$sb2.Append(',"droppedNoDoi":'+$noDoi)
 [void]$sb2.Append(',"dirtyYears":'+$dirtyYear)
 [void]$sb2.Append(',"masterOrphanDois":'+$masterOrphans)
+[void]$sb2.Append(',"distinctJournals":'+$jGroups.Count)
+[void]$sb2.Append(',"journalVariantsMerged":'+$journalMerges)
 [void]$sb2.Append(',"byDecade":{'+(($byYear.GetEnumerator()|Sort-Object Name|ForEach-Object{ (J $_.Name)+':'+$_.Value }) -join ',')+'}')
 [void]$sb2.Append(',"byScopusBand":{'+(($byBand.GetEnumerator()|Sort-Object Name|ForEach-Object{ (J $_.Name)+':'+$_.Value }) -join ',')+'}')
 [void]$sb2.Append(',"topJournals":['+(($topJ|ForEach-Object{ '{"journal":'+(J $_.Name)+',"papers":'+$_.Value+'}' }) -join ',')+']')
