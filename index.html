@@ -229,6 +229,7 @@
     <div class="panel"><h3>Papers by decade</h3><div id="ovDecade"></div></div>
     <div class="panel"><h3>Scopus percentile bands</h3><div id="ovBand"></div></div>
     <div class="panel"><h3>Top journals</h3><div class="jlist" id="ovJournals"></div></div>
+    <div class="panel"><h3>Top authors</h3><div class="jlist" id="ovAuthors"></div></div>
   </section>
 
   <!-- MAP -->
@@ -495,10 +496,17 @@ function renderOverview(){
   const jc={};ps.forEach(p=>{if(p.journal)jc[p.journal]=(jc[p.journal]||0)+1;});
   const top=Object.entries(jc).sort((a,b)=>b[1]-a[1]).slice(0,30);
   $('#ovJournals').innerHTML=top.map(([j,n])=>`<div data-journal="${esc(j)}" title="Show these papers"><span>${esc(j)}</span><b>${n}</b></div>`).join('');
+  // authors
+  const acc={};ps.forEach(p=>{(p.authors||[]).forEach(a=>{a=(a||'').trim();if(a)acc[a]=(acc[a]||0)+1;});});
+  const topA=Object.entries(acc).sort((a,b)=>b[1]-a[1]).slice(0,30);
+  $('#ovAuthors').innerHTML=topA.map(([a,n])=>`<div data-author="${esc(a)}" title="Show these papers"><span>${esc(a)}</span><b>${n}</b></div>`).join('');
 }
 /* click a top journal → filter the Library by it */
 $('#ovJournals').onclick=e=>{const d=e.target.closest('[data-journal]');if(!d)return;
   F.journal=d.dataset.journal;$('#fJournal').value=d.dataset.journal;S.page=0;applyAndRender();setView('library');};
+/* click a top author → filter the Library by it */
+$('#ovAuthors').onclick=e=>{const d=e.target.closest('[data-author]');if(!d)return;
+  F.author=d.dataset.author;$('#fAuthor').value=d.dataset.author;S.page=0;applyAndRender();setView('library');};
 
 /* ---------- co-occurrence map ---------- */
 function coocPairs(){
