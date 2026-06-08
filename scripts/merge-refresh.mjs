@@ -30,7 +30,7 @@ for (const p of readJsonSafe(path.join(DATA, 'papers.index.json'), [])) handCode
 const merged = new Map();   // doi → record
 const abstracts = {};
 
-for (const mode of ['construct', 'journal']) {
+for (const mode of ['construct', 'journal', 'author']) {
   const recs = readJsonSafe(path.join(REF, `${mode}.papers.json`), {});
   const abs = readJsonSafe(path.join(REF, `${mode}.abstracts.json`), {});
   for (const [doi, rec] of Object.entries(recs)) {
