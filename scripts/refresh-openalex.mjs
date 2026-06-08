@@ -105,6 +105,75 @@ async function main() {
   for (const k of Object.keys(stagedRecs)) existing.add(k.toLowerCase());
   console.log(`[refresh] corpus+staged DOIs known: ${existing.size}`);
 
+  // ── Journal-by-DOI mode: resolve each corpus journal to its EXACT OpenAlex
+  // source via a DOI we already hold (reliable — no fuzzy name matching), then
+  // fetch that source's recent works. Stages into the same journal.* files.
+  if (MODE === 'journal-doi') {
+    Object.assign(stagedRecs, loadStaged('journal.papers.json'));
+    Object.assign(stagedAbs, loadStaged('journal.abstracts.json'));
+    for (const k of Object.keys(stagedRecs)) existing.add(k.toLowerCase());
+
+    const jDoi = new Map(); // journal → one representative bare DOI
+    for (const p of readJson('papers.index.json')) {
+      const j = (p.journal || '').trim();
+      const d = (p.doi || '').replace(/^https?:\/\/doi\.org\//i, '').trim();
+      if (j && d && !jDoi.has(j)) jDoi.set(j, d);
+    }
+    const entries = [...jDoi.entries()];
+    console.log(`[refresh] ${entries.length} journals with a representative DOI — resolving sources…`);
+
+    // Batch-resolve DOIs → source ids (40 per request).
+    const jSource = new Map(); // journal → { id, name }
+    for (let i = 0; i < entries.length; i += 40) {
+      const chunk = entries.slice(i, i + 40);
+      const filter = 'doi:' + chunk.map(([, d]) => encodeURIComponent(d)).join('|');
+      try {
+        const data = await oa(`https://api.openalex.org/works?filter=${filter}&select=doi,primary_location&per-page=50`);
+        const byDoi = new Map();
+        for (const w of data.results || []) {
+          const wd = (w.doi || '').replace(/^https?:\/\/doi\.org\//i, '').toLowerCase();
+          const s = w.primary_location?.source;
+          if (wd && s?.id) byDoi.set(wd, s);
+        }
+        for (const [j, d] of chunk) { const s = byDoi.get(d.toLowerCase()); if (s) jSource.set(j, { id: String(s.id).split('/').pop(), name: s.display_name }); }
+      } catch { /* skip chunk */ }
+      if (i % 400 === 0) console.log(`  resolving ${i}/${entries.length}… (${jSource.size} resolved)`);
+      await sleep(DELAY);
+    }
+    console.log(`[refresh] resolved ${jSource.size}/${entries.length} journals to OpenAlex sources`);
+
+    let processed = 0, added = 0, withAbs = 0;
+    const t0 = Date.now();
+    for (const [, src] of jSource) {
+      if (processed >= LIMIT) break;
+      processed++;
+      try {
+        const data = await oa(`https://api.openalex.org/works?filter=from_publication_date:${SINCE},primary_location.source.id:${src.id}&sort=publication_date:desc&per-page=${PER}`);
+        for (const w of data.results || []) {
+          const built = workToRecord(w, null);
+          if (!built) continue;
+          const doi = built.rec.doi;
+          if (existing.has(doi)) continue;
+          existing.add(doi);
+          if (!built.rec.journal) built.rec.journal = src.name;
+          stagedRecs[doi] = built.rec;
+          if (built.abstract) { stagedAbs[doi] = built.abstract; withAbs++; }
+          added++;
+        }
+      } catch { /* skip */ }
+      if (processed % 20 === 0) {
+        console.log(`  [${processed}/${jSource.size}] +${added} new (${(processed / ((Date.now() - t0) / 1000)).toFixed(1)} j/s)`);
+        fs.writeFileSync(path.join(OUT, 'journal.papers.json'), JSON.stringify(stagedRecs));
+        fs.writeFileSync(path.join(OUT, 'journal.abstracts.json'), JSON.stringify(stagedAbs));
+      }
+      await sleep(DELAY);
+    }
+    fs.writeFileSync(path.join(OUT, 'journal.papers.json'), JSON.stringify(stagedRecs));
+    fs.writeFileSync(path.join(OUT, 'journal.abstracts.json'), JSON.stringify(stagedAbs));
+    console.log(`[refresh] journal-doi done: resolved ${jSource.size} sources · ${added} new papers staged (${withAbs} w/ abstract) · total ${Object.keys(stagedRecs).length}`);
+    return;
+  }
+
   // ── Journal mode: recent works from each journal already in the corpus ──────
   if (MODE === 'journal') {
     const counts = new Map();

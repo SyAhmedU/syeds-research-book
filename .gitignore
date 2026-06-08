@@ -10,3 +10,6 @@ Thumbs.db
 .vscode/
 # source workbook is never committed (27 MB, lives in Google Drive)
 *.xlsx
+# OpenAlex-refresh staged scratch (large, resumable; merged into recent.* which
+# IS committed). Regenerable via scripts/refresh-openalex.mjs + merge-refresh.mjs.
+data/openalex-refresh/

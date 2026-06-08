@@ -548,12 +548,16 @@ async function ensureAbstracts(){
   if(!S.absLoading)S.absLoading=fetch('./data/abstracts.json').then(r=>r.json()).then(a=>S.abstracts=a);
   return S.absLoading;
 }
-/* Recent-tier abstracts live in their own file, lazy-loaded only when a recent
-   paper's detail is opened (so hand-coded papers never pull the ~43 MB set). */
-async function ensureRecentAbs(){
-  if(S.recentAbs)return S.recentAbs;
-  if(!S._recentAbsLoading)S._recentAbsLoading=fetch('./data/recent.abstracts.json').then(r=>r.ok?r.json():{}).then(a=>S.recentAbs=a).catch(()=>S.recentAbs={});
-  return S._recentAbsLoading;
+/* Recent-tier abstracts are sharded by DOI hash (data/recent.abstracts/<NN>.json)
+   so opening a recent paper fetches only its small shard, not the whole set.
+   recentShardOf MUST match scripts/merge-refresh.mjs. */
+const RECENT_ABS_SHARDS=16;
+function recentShardOf(doi){let h=0;for(let i=0;i<doi.length;i++)h=(h*31+doi.charCodeAt(i))>>>0;return String(h%RECENT_ABS_SHARDS).padStart(2,'0');}
+const _recentAbsCache={};
+async function recentAbstract(doi){
+  const sh=recentShardOf(doi);
+  if(!_recentAbsCache[sh])_recentAbsCache[sh]=fetch('./data/recent.abstracts/'+sh+'.json').then(r=>r.ok?r.json():{}).catch(()=>({}));
+  const m=await _recentAbsCache[sh];return m[doi]||'';
 }
 async function openDetail(id){
   const p=S.papers.find(x=>x.id===id); if(!p)return;
@@ -593,7 +597,7 @@ async function openDetail(id){
       <div class="chips">${cChips}</div>
     </div>`;
   $('#ov').classList.add('on'); document.body.style.overflow='hidden';
-  if(p.hasAbstract){const a=p._recent?await ensureRecentAbs():await ensureAbstracts();const box=$('#absBox');if(box)box.textContent=a[p.id]||'Abstract not found.';}
+  if(p.hasAbstract){let txt;if(p._recent){txt=await recentAbstract(p.id);}else{const a=await ensureAbstracts();txt=a[p.id];}const box=$('#absBox');if(box)box.textContent=txt||'Abstract not found.';}
 }
 function closeModal(){$('#ov').classList.remove('on');document.body.style.overflow='';}
 $('#mclose').onclick=closeModal;

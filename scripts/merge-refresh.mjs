@@ -52,7 +52,19 @@ for (const mode of ['construct', 'journal']) {
 
 const out = [...merged.values()];
 fs.writeFileSync(path.join(DATA, 'recent.index.json'), JSON.stringify(out));
-fs.writeFileSync(path.join(DATA, 'recent.abstracts.json'), JSON.stringify(abstracts));
+
+// Abstracts are sharded by DOI hash into data/recent.abstracts/<NN>.json so no
+// single file approaches GitHub's 100 MB limit as the tier grows; the client
+// loads only the shard a given paper needs. (Index stays one file — metadata-only.)
+const SHARDS = 16;
+const shardOf = (doi) => { let h = 0; for (let i = 0; i < doi.length; i++) h = (h * 31 + doi.charCodeAt(i)) >>> 0; return String(h % SHARDS).padStart(2, '0'); };
+const ABSDIR = path.join(DATA, 'recent.abstracts');
+fs.rmSync(ABSDIR, { recursive: true, force: true });
+fs.mkdirSync(ABSDIR, { recursive: true });
+const buckets = {};
+for (const [doi, ab] of Object.entries(abstracts)) { const sh = shardOf(doi); (buckets[sh] || (buckets[sh] = {}))[doi] = ab; }
+for (let i = 0; i < SHARDS; i++) { const sh = String(i).padStart(2, '0'); fs.writeFileSync(path.join(ABSDIR, `${sh}.json`), JSON.stringify(buckets[sh] || {})); }
+try { fs.rmSync(path.join(DATA, 'recent.abstracts.json')); } catch { /* old monolith gone */ }
 
 const byYear = {};
 for (const r of out) byYear[r.year] = (byYear[r.year] || 0) + 1;
@@ -61,4 +73,4 @@ console.log(`[merge] recent tier: ${out.length} papers (${Object.keys(abstracts)
 console.log(`[merge] construct-tagged: ${tagged} · journal-only (untagged): ${out.length - tagged}`);
 console.log(`[merge] distinct journals: ${new Set(out.map((r) => r.journal)).size}`);
 console.log(`[merge] by year:`, JSON.stringify(Object.fromEntries(Object.entries(byYear).filter(([y]) => +y >= 2023).sort())));
-console.log(`[merge] → data/recent.index.json + data/recent.abstracts.json`);
+console.log(`[merge] → data/recent.index.json + data/recent.abstracts/<00-${String(SHARDS - 1).padStart(2, '0')}>.json`);
