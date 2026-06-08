@@ -101,7 +101,56 @@ async function main() {
   for (const k of Object.keys(stagedRecs)) existing.add(k.toLowerCase());
   console.log(`[refresh] corpus+staged DOIs known: ${existing.size}`);
 
-  if (MODE !== 'construct') { console.log(`[refresh] mode '${MODE}' not implemented in this pass — use --mode construct`); return; }
+  // ── Journal mode: recent works from each journal already in the corpus ──────
+  if (MODE === 'journal') {
+    const counts = new Map();
+    for (const p of readJson('papers.index.json')) { const j = (p.journal || '').trim(); if (j) counts.set(j, (counts.get(j) || 0) + 1); }
+    const journals = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([n]) => n); // most-represented first
+    console.log(`[refresh] ${journals.length} distinct journals in corpus`);
+    const tok = (s) => new Set(String(s).toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter((w) => w.length > 3));
+    let processed = 0, added = 0, resolved = 0, withAbs = 0;
+    const t0 = Date.now();
+    for (const name of journals) {
+      if (processed >= LIMIT) break;
+      processed++;
+      // Resolve the journal name → an OpenAlex source, verifying token overlap so
+      // we don't fetch a wrong same-ish-named venue.
+      let src = null;
+      try { const sd = await oa(`https://api.openalex.org/sources?search=${encodeURIComponent(name)}&per-page=1`); src = sd.results?.[0]; } catch { /* skip */ }
+      if (!src) { await sleep(DELAY); continue; }
+      const a = tok(name), b = tok(src.display_name); let ov = 0; for (const w of a) if (b.has(w)) ov++;
+      if (a.size && ov / a.size < 0.5) { await sleep(DELAY); continue; } // wrong journal — skip
+      resolved++;
+      const sid = String(src.id).split('/').pop();
+      let newForJ = 0;
+      try {
+        const data = await oa(`https://api.openalex.org/works?filter=from_publication_date:${SINCE},primary_location.source.id:${sid}&sort=publication_date:desc&per-page=${PER}`);
+        for (const w of data.results || []) {
+          const built = workToRecord(w, null);
+          if (!built) continue;
+          const doi = built.rec.doi;
+          if (existing.has(doi)) continue;
+          existing.add(doi);
+          if (!built.rec.journal) built.rec.journal = src.display_name;
+          stagedRecs[doi] = built.rec;
+          if (built.abstract) { stagedAbs[doi] = built.abstract; withAbs++; }
+          added++; newForJ++;
+        }
+      } catch { /* skip */ }
+      if (processed % 10 === 0) {
+        console.log(`  [${processed}/${journals.length}] resolved ${resolved} · +${added} new (${(processed / ((Date.now() - t0) / 1000)).toFixed(1)} j/s)`);
+        fs.writeFileSync(path.join(OUT, 'journal.papers.json'), JSON.stringify(stagedRecs));
+        fs.writeFileSync(path.join(OUT, 'journal.abstracts.json'), JSON.stringify(stagedAbs));
+      }
+      await sleep(DELAY);
+    }
+    fs.writeFileSync(path.join(OUT, 'journal.papers.json'), JSON.stringify(stagedRecs));
+    fs.writeFileSync(path.join(OUT, 'journal.abstracts.json'), JSON.stringify(stagedAbs));
+    console.log(`[refresh] journal done: ${processed} journals · ${resolved} resolved · ${added} new papers staged (${withAbs} w/ abstract) · total ${Object.keys(stagedRecs).length}`);
+    return;
+  }
+
+  if (MODE !== 'construct') { console.log(`[refresh] unknown mode '${MODE}'`); return; }
 
   const constructs = readJson('constructs.json');
   let processed = 0, added = 0, withAbs = 0;
