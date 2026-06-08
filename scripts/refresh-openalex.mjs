@@ -60,6 +60,10 @@ async function oa(url) {
 function workToRecord(w, constructCode) {
   const doi = (w.doi || '').replace(/^https?:\/\/doi\.org\//i, '').toLowerCase();
   if (!doi) return null;
+  // Drop records with obviously-broken year metadata (OpenAlex has stray
+  // far-future dates); keep up to next year for legit early-access/forthcoming.
+  const yr = w.publication_year;
+  if (typeof yr === 'number' && (yr > new Date().getFullYear() + 1 || yr < 1950)) return null;
   const abstract = invertedToText(w.abstract_inverted_index);
   return {
     rec: {
