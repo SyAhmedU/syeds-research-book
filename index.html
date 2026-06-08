@@ -233,6 +233,7 @@
       <label class="oa"><input type="checkbox" id="fOa"> Open access</label>
       <label class="oa"><input type="checkbox" id="fArt"> Articles only</label>
       <label class="oa" id="fAbsBox" title="Also match abstract text (loads abstracts on first use, ~9 MB)"><input type="checkbox" id="fAbs"> <span id="fAbsLbl">Search abstracts</span></label>
+      <label class="oa" id="fRecentBox" title="Add recent papers (2024→) auto-fetched from OpenAlex — real records, machine-assigned constructs, badged. Verify before citing; the hand-coded corpus stays the verified set."><input type="checkbox" id="fRecent"> <span id="fRecentLbl">+ Recent 2024→</span></label>
     </div>
     <div class="resbar">
       <div class="count"><b id="resCount">0</b> papers</div>
@@ -318,7 +319,7 @@ const TOOLS={
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PAGE=50;
-const S={papers:[],constructs:[],byCode:{},abstracts:null,absLoading:null,absIndexed:false,view:'library',page:0,filtered:[]};
+const S={papers:[],constructs:[],byCode:{},abstracts:null,absLoading:null,absIndexed:false,view:'library',page:0,filtered:[],recentLoaded:false,recentLoading:null,recentAbs:null};
 
 /* ---------- theme ---------- */
 (function(){const t=localStorage.getItem('syed-theme');if(t)document.documentElement.dataset.theme=t;})();
@@ -402,7 +403,7 @@ function buildYearSelect(){
     const o=document.createElement('option');o.value=y;o.textContent=`${y} (${yc[y]})`;sel.appendChild(o);
   });
 }
-const F={q:'',construct:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false,sort:'year'};
+const F={q:'',construct:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false,recent:false,sort:'year'};
 let qTimer;
 $('#q').oninput=e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();S.page=0;applyAndRender();},180);};
 $('#fConstruct').onchange=e=>{F.construct=e.target.value;S.page=0;applyAndRender();};
@@ -415,6 +416,26 @@ $('#fBand').onchange=e=>{F.band=e.target.value;S.page=0;applyAndRender();};
 $('#fSort').onchange=e=>{F.sort=e.target.value;applyAndRender();};
 $('#fOa').onchange=e=>{F.oa=e.target.checked;S.page=0;applyAndRender();};
 $('#fArt').onchange=e=>{F.art=e.target.checked;S.page=0;applyAndRender();};
+/* Recent tier (2024→, auto-fetched from OpenAlex) — lazy-loaded on toggle so the
+   default 9,388 hand-coded load stays fast. Real records, machine-assigned
+   constructs, kept distinct (badged) from the hand-coded moat. */
+function loadRecent(){
+  if(S.recentLoaded)return Promise.resolve();
+  if(S.recentLoading)return S.recentLoading;
+  const lbl=$('#fRecentLbl'); if(lbl)lbl.textContent='loading recent…';
+  S.recentLoading=fetch('./data/recent.index.json').then(r=>r.ok?r.json():[]).then(recent=>{
+    const have=new Set(S.papers.map(p=>p.id)); let n=0;
+    recent.forEach(p=>{
+      if(!p.id||have.has(p.id))return;
+      p.constructCodes=p.constructCodes||[];
+      p._s=((p.title||'')+' '+(p.authors||[]).join(' ')+' '+(p.journal||'')).toLowerCase();
+      p._recent=true; S.papers.push(p); n++;
+    });
+    S.recentLoaded=true; if(lbl)lbl.textContent=`+ Recent 2024→ (${n.toLocaleString()})`;
+  }).catch(()=>{S.recentLoaded=true; if(lbl)lbl.textContent='+ Recent 2024→';});
+  return S.recentLoading;
+}
+$('#fRecent').onchange=e=>{F.recent=e.target.checked;S.page=0;if(e.target.checked){loadRecent().then(()=>applyAndRender());}else{applyAndRender();}};
 $('#fAbs').onchange=async e=>{
   F.searchAbs=e.target.checked;
   if(F.searchAbs&&!S.absIndexed){
@@ -438,6 +459,7 @@ $('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',journal:'',author
 
 function applyAndRender(){
   let r=S.papers;
+  if(!F.recent)r=r.filter(p=>!p._recent);   // recent tier hidden unless toggled on
   if(F.q)r=r.filter(p=>(F.searchAbs&&p._sa||p._s).includes(F.q));
   if(F.construct)r=r.filter(p=>p.constructCodes.includes(F.construct));
   if(F.journal)r=r.filter(p=>p.journal===F.journal);
@@ -480,6 +502,7 @@ function renderList(){
         <span>${p.year||'—'}</span><span class="dot">·</span>
         ${journalLink(p.journal)}
         ${band(p)} ${p.openAccess?'<span class="badge b-oa">OA</span>':''} ${typeBadge(p)}
+        ${p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656" title="Auto-fetched from OpenAlex (2024→); machine-assigned construct. Verify before citing.">↑ recent · auto-fetched</span>':''}
         ${p.citations?'<span class="dot">·</span><span>'+p.citations+' cites</span>':''}
       </div>
       <div class="chips">${p.constructCodes.slice(0,6).map(c=>`<span class="chip" data-code="${esc(c)}">${esc((S.byCode[c]||{}).name||c)}</span>`).join('')}${p.constructCodes.length>6?'<span class="chip" style="border:0">+'+(p.constructCodes.length-6)+'</span>':''}</div>
@@ -525,6 +548,13 @@ async function ensureAbstracts(){
   if(!S.absLoading)S.absLoading=fetch('./data/abstracts.json').then(r=>r.json()).then(a=>S.abstracts=a);
   return S.absLoading;
 }
+/* Recent-tier abstracts live in their own file, lazy-loaded only when a recent
+   paper's detail is opened (so hand-coded papers never pull the ~43 MB set). */
+async function ensureRecentAbs(){
+  if(S.recentAbs)return S.recentAbs;
+  if(!S._recentAbsLoading)S._recentAbsLoading=fetch('./data/recent.abstracts.json').then(r=>r.ok?r.json():{}).then(a=>S.recentAbs=a).catch(()=>S.recentAbs={});
+  return S._recentAbsLoading;
+}
 async function openDetail(id){
   const p=S.papers.find(x=>x.id===id); if(!p)return;
   const doiUrl=p.doi?('https://doi.org/'+p.doi):null;
@@ -540,6 +570,7 @@ async function openDetail(id){
         ${journalLink(p.journal)}
         ${p.publisher?'<span class="dot">·</span><span>'+esc(p.publisher)+'</span>':''}
         ${band(p)} ${p.openAccess?'<span class="badge b-oa">Open access</span>':''} ${typeBadge(p)}
+        ${p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656">↑ recent · auto-fetched (OpenAlex, 2024→)</span>':''}
         ${p.citations!=null?'<span class="dot">·</span><span>'+p.citations+' citations</span>':''}
       </div>
       ${p.scopusCategory?'<div class="mrow" style="font-size:12px;color:var(--ink3)">'+esc(p.scopusCategory)+'</div>':''}
@@ -562,7 +593,7 @@ async function openDetail(id){
       <div class="chips">${cChips}</div>
     </div>`;
   $('#ov').classList.add('on'); document.body.style.overflow='hidden';
-  if(p.hasAbstract){const a=await ensureAbstracts();const box=$('#absBox');if(box)box.textContent=a[p.id]||'Abstract not found.';}
+  if(p.hasAbstract){const a=p._recent?await ensureRecentAbs():await ensureAbstracts();const box=$('#absBox');if(box)box.textContent=a[p.id]||'Abstract not found.';}
 }
 function closeModal(){$('#ov').classList.remove('on');document.body.style.overflow='';}
 $('#mclose').onclick=closeModal;
