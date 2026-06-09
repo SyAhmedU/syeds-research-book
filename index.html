@@ -890,6 +890,7 @@ function ttCsv(){
     if(e.button!==0)return;
     var t=e.target.closest && e.target.closest('button,a,.navbtn,.pcard,.ccard,.chip,.lnk,.ghost,.iconbtn,[role=button]');
     if(!t)return;
+    if(/close|dismiss|delete|remove|cancel|danger/i.test((t.getAttribute&&t.getAttribute('aria-label')||'')+' '+(typeof t.className==='string'?t.className:''))||/^[×✕✖]$/.test((t.textContent||'').trim()))return;
     burst(e.clientX,e.clientY);
   },{passive:true});
 })();
