@@ -815,5 +815,39 @@ function ttCsv(){
   const blob=new Blob([rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'}), u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download='term-trends-'+y+'.csv'; a.click(); URL.revokeObjectURL(u);
 }
 </script>
+<!-- ── Game-grade interaction juice — ADDITIVE: no design or colour changes, only
+     motion/feedback; fully disabled under prefers-reduced-motion. Uses the page's
+     own --accent for the click-burst, so nothing new is introduced. ── -->
+<style>
+@media (prefers-reduced-motion: no-preference){
+  .navbtn,.pcard,.ccard,.chip,.lnk,.clear,.ghost,.iconbtn,.pager button,.tt-play,button{
+    transition: transform .16s cubic-bezier(.34,1.56,.64,1), border-color .18s ease, background-color .18s ease, color .18s ease, box-shadow .22s ease, filter .18s ease;
+  }
+  .navbtn:hover,.chip:hover,.lnk:hover,.ghost:hover,.iconbtn:hover{ transform: translateY(-1px); }
+  .pcard:hover,.ccard:hover{ transform: translateY(-3px) scale(1.004); }
+  .navbtn:active,.chip:active,.lnk:active,.clear:active,.ghost:active,.iconbtn:active,.pager button:active,.tt-play:active,button:active{ transform: translateY(1px) scale(.95); transition-duration:.06s; }
+  .pcard:active,.ccard:active{ transform: translateY(-1px) scale(.992); transition-duration:.07s; }
+}
+.juice-burst{position:fixed;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;pointer-events:none;z-index:9999;
+  background:radial-gradient(circle, var(--accent,#F14575) 0%, transparent 70%);transform:scale(0);opacity:.5;
+  animation:juice-burst .5s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes juice-burst{to{transform:scale(3.4);opacity:0}}
+@media (prefers-reduced-motion: reduce){ .juice-burst{display:none} }
+</style>
+<script>
+/* Cursor click-burst on interactive elements — layout-safe (fixed element), accent-coloured, reduced-motion aware. */
+(function(){
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  addEventListener('pointerdown',function(e){
+    if(e.button!==0)return;
+    var t=e.target.closest && e.target.closest('button,a,.navbtn,.pcard,.ccard,.chip,.lnk,.ghost,.iconbtn,[role=button]');
+    if(!t)return;
+    var b=document.createElement('span'); b.className='juice-burst';
+    b.style.left=e.clientX+'px'; b.style.top=e.clientY+'px';
+    document.body.appendChild(b);
+    setTimeout(function(){ b.remove(); },520);
+  },{passive:true});
+})();
+</script>
 </body>
 </html>
