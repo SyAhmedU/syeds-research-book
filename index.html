@@ -5,6 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Syed's Research Book</title>
 <meta name="description" content="A browsable, filterable corpus of 9,388 papers across 167 management / organizational-behavior constructs — Syed's 24-month systematic-review database." />
+<meta name="theme-color" content="#14111C" />
+<link rel="canonical" href="https://syahmedu.github.io/syeds-research-book/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Syed's Research Book — 9,388-paper OB/management corpus" />
+<meta property="og:description" content="A browsable, filterable corpus of 9,388 hand-coded papers across 167 management / organizational-behavior constructs, with a co-occurrence map, trends, and a 50-year term treemap." />
+<meta property="og:url" content="https://syahmedu.github.io/syeds-research-book/" />
+<meta property="og:site_name" content="Syed Asrar" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Syed's Research Book — 9,388-paper OB/management corpus" />
+<meta name="twitter:description" content="A browsable corpus of 9,388 hand-coded papers across 167 OB/management constructs — library, construct map, trends, and term treemap." />
+<meta name="robots" content="index, follow, max-image-preview:large" />
+<meta name="author" content="Syed Ahmed" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Syed's Research Book",
+  "url": "https://syahmedu.github.io/syeds-research-book/",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Web browser",
+  "description": "A browsable, filterable corpus of 9,388 hand-coded papers across 167 management / organizational-behavior constructs, with a co-occurrence map, construct trends, and a 50-year term treemap.",
+  "inLanguage": "en",
+  "isAccessibleForFree": true,
+  "author": { "@type": "Person", "name": "Syed Ahmed", "url": "https://syahmedu.github.io/nexus/" },
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -138,6 +165,9 @@
   .secttl{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink3);margin:16px 0 6px;font-weight:700}
 
   .loading{padding:80px 0;text-align:center;color:var(--ink2)}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent,#9270F4);outline-offset:2px;border-radius:6px}
+  .skip-link{position:fixed;top:10px;left:10px;z-index:100000;transform:translateY(-160%);transition:transform .2s ease;background:#211B2E;color:#fff;padding:10px 16px;border-radius:10px;font-weight:700;text-decoration:none}
+  .skip-link:focus{transform:translateY(0);outline:3px solid var(--accent,#9270F4);outline-offset:2px}
   .spin{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 14px}
   @keyframes sp{to{transform:rotate(360deg)}}
   .hidden{display:none!important}
@@ -185,6 +215,7 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#app">Skip to content</a>
 <div class="bar">
   <div class="smark">S</div>
   <div class="brand">Syed's <b>Research Book</b></div>
@@ -201,7 +232,7 @@
 
 <div id="loading" class="loading"><div class="spin"></div>Loading the corpus… (9,388 papers)</div>
 
-<main id="app" class="hidden">
+<main id="app" class="hidden" tabindex="-1">
   <!-- LIBRARY -->
   <section id="v-library" class="wrap">
     <div class="hero">
