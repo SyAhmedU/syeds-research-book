@@ -846,55 +846,20 @@ function ttCsv(){
   const blob=new Blob([rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'}), u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download='term-trends-'+y+'.csv'; a.click(); URL.revokeObjectURL(u);
 }
 </script>
-<!-- ── "Professional game" interaction layer — ADDITIVE only (particle bursts, a glowing
-     cursor follower, hover glows). NO design or colour changes: every effect uses the page's
-     own --accent. Fully disabled under prefers-reduced-motion. ── -->
+<!-- Subtle, professional interaction polish — ADDITIVE only (calm hover lift + press
+     feedback). NO design or colour changes; uses the page's own --accent. Fully disabled
+     under prefers-reduced-motion. No particle burst or cursor follower. -->
 <style>
 @media (prefers-reduced-motion: no-preference){
   .navbtn,.pcard,.ccard,.chip,.lnk,.clear,.ghost,.iconbtn,.pager button,.tt-play,button{
-    transition: transform .18s cubic-bezier(.34,1.7,.5,1), box-shadow .22s ease, border-color .18s ease, background-color .18s ease, color .18s ease, filter .2s ease;
+    transition: transform .18s cubic-bezier(.4,0,.2,1), box-shadow .22s ease, border-color .18s ease, background-color .18s ease, color .18s ease, filter .2s ease;
   }
-  .navbtn:hover,.chip:hover,.lnk:hover,.ghost:hover,.iconbtn:hover,.tt-play:hover{ transform: translateY(-2px) scale(1.06); box-shadow:0 6px 20px -5px var(--accent); filter:brightness(1.07); }
-  .pcard:hover,.ccard:hover{ transform: translateY(-6px) scale(1.02); box-shadow:0 22px 50px -18px var(--accent2), 0 0 0 1.5px var(--accent2); filter:brightness(1.02); }
-  .navbtn:active,.chip:active,.lnk:active,.clear:active,.ghost:active,.iconbtn:active,.pager button:active,.tt-play:active,button:active{ transform: scale(.88); transition-duration:.07s; }
-  .pcard:active,.ccard:active{ transform: translateY(-2px) scale(.99); transition-duration:.08s; }
+  .navbtn:hover,.chip:hover,.lnk:hover,.ghost:hover,.iconbtn:hover,.tt-play:hover{ transform: translateY(-1px); box-shadow:0 4px 14px -6px var(--accent); }
+  .pcard:hover,.ccard:hover{ transform: translateY(-2px); box-shadow:0 14px 34px -20px var(--accent2), 0 0 0 1px var(--accent2); }
+  .navbtn:active,.chip:active,.lnk:active,.clear:active,.ghost:active,.iconbtn:active,.pager button:active,.tt-play:active,button:active{ transform: translateY(1px) scale(.985); transition-duration:.07s; }
+  .pcard:active,.ccard:active{ transform: translateY(0) scale(.995); transition-duration:.08s; }
 }
-.syed-cursor{position:fixed;left:0;top:0;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;pointer-events:none;z-index:99998;
-  background:radial-gradient(circle, var(--accent,#F14575) 0%, transparent 60%);opacity:0;mix-blend-mode:screen;will-change:transform;transition:opacity .3s}
-.syed-spark{position:fixed;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;pointer-events:none;z-index:99999;will-change:transform,opacity;
-  animation:syed-spark .68s cubic-bezier(.2,.7,.3,1) forwards}
-@keyframes syed-spark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),calc(var(--dy) + 36px)) scale(.2);opacity:0}}
-@media (prefers-reduced-motion: reduce){ .syed-cursor,.syed-spark{display:none} }
 </style>
-<script>
-/* Particle burst on click + a glowing cursor follower. Accent-coloured, layout-safe, reduced-motion aware. */
-(function(){
-  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  var ACCENT=(getComputedStyle(document.documentElement).getPropertyValue('--accent')||'').trim()||'#F14575';
-  var cur=document.createElement('div'); cur.className='syed-cursor'; document.body.appendChild(cur);
-  var tx=-200,ty=-200,cx=-200,cy=-200,seen=false;
-  addEventListener('pointermove',function(e){tx=e.clientX;ty=e.clientY;if(!seen){seen=true;cur.style.opacity='.45';}},{passive:true});
-  (function loop(){cx+=(tx-cx)*.2;cy+=(ty-cy)*.2;cur.style.transform='translate('+cx+'px,'+cy+'px)';requestAnimationFrame(loop);})();
-  function burst(x,y){
-    for(var i=0;i<12;i++){
-      var p=document.createElement('span'); p.className='syed-spark';
-      var a=(Math.PI*2*i/12)+(Math.random()-.5)*.7, v=28+Math.random()*56;
-      p.style.left=x+'px'; p.style.top=y+'px'; p.style.background=ACCENT;
-      p.style.setProperty('--dx',(Math.cos(a)*v).toFixed(1)+'px');
-      p.style.setProperty('--dy',(Math.sin(a)*v).toFixed(1)+'px');
-      document.body.appendChild(p);
-      (function(el){setTimeout(function(){el.remove();},700);})(p);
-    }
-  }
-  addEventListener('pointerdown',function(e){
-    if(e.button!==0)return;
-    var t=e.target.closest && e.target.closest('button,a,.navbtn,.pcard,.ccard,.chip,.lnk,.ghost,.iconbtn,[role=button]');
-    if(!t)return;
-    if(/close|dismiss|delete|remove|cancel|danger/i.test((t.getAttribute&&t.getAttribute('aria-label')||'')+' '+(typeof t.className==='string'?t.className:''))||/^[×✕✖]$/.test((t.textContent||'').trim()))return;
-    burst(e.clientX,e.clientY);
-  },{passive:true});
-})();
-</script>
 
 <!-- syed-motion: scroll-progress bar (self-installing, reduced-motion aware) -->
 <script>
