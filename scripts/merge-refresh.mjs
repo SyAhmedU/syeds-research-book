@@ -51,6 +51,28 @@ for (const mode of ['construct', 'journal', 'author']) {
 }
 
 const out = [...merged.values()];
+
+// Construct-tag the journal/author papers (which arrive untagged) by matching
+// each construct's hand-curated identifier vocabulary VERBATIM (word-bounded)
+// against the paper's title + abstract — so the recent tier is navigable by the
+// corpus's 167-construct spine too. Machine/heuristic, like construct-fetch mode
+// (and badged auto-fetched); only fills EMPTY constructCodes, never overrides.
+const constructs = readJsonSafe(path.join(DATA, 'constructs.json'), []);
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const matchers = constructs.map((c) => {
+  const ids = [...new Set((c.identifiers || []).map((s) => String(s).trim()).filter((s) => s.length >= 5))];
+  return ids.length ? { code: c.code, re: new RegExp('\\b(' + ids.map(escRe).join('|') + ')\\b', 'i') } : null;
+}).filter(Boolean);
+let newlyTagged = 0, newTags = 0;
+for (const p of out) {
+  if (p.constructCodes && p.constructCodes.length) continue; // keep hand-coded / construct-fetch tags
+  const hay = (p.title + ' ' + (abstracts[p.id] || '')).slice(0, 4000);
+  const codes = [];
+  for (const m of matchers) { if (m.re.test(hay)) { codes.push(m.code); if (codes.length >= 5) break; } }
+  if (codes.length) { p.constructCodes = codes; newlyTagged++; newTags += codes.length; }
+}
+console.log(`[merge] construct-tagged ${newlyTagged} previously-untagged papers (${newTags} tags, ≤5 each, identifier-verbatim)`);
+
 fs.writeFileSync(path.join(DATA, 'recent.index.json'), JSON.stringify(out));
 
 // Abstracts are sharded by DOI hash into data/recent.abstracts/<NN>.json so no
