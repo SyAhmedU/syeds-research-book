@@ -935,5 +935,38 @@ function ttCsv(){
   setTimeout(scan,1500);
 })();
 </script>
+
+<!-- syed-reveal: gentle on-load scroll reveal of the INITIAL list; disconnects on first
+     interaction so filters/searches never re-animate. reduced-motion aware. -->
+<script>
+(function(){
+  if(document.getElementById('syed-reveal-style'))return;
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var SEL='.pcard';
+  var st=document.createElement('style');st.id='syed-reveal-style';
+  st.textContent='.sx-rv{opacity:0;transform:translateY(14px)}';
+  document.head.appendChild(st);
+  var i=0, mo=null, done=false;
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(!e.isIntersecting)return;
+      var el=e.target; io.unobserve(el);
+      el.style.transition='opacity .55s cubic-bezier(.22,1,.36,1),transform .55s cubic-bezier(.22,1,.36,1)';
+      el.classList.remove('sx-rv');
+      setTimeout(function(){ el.style.transition=''; el.style.transitionDelay=''; },1200);
+    });
+  },{threshold:0.08,rootMargin:'0px 0px -5% 0px'});
+  function mark(el){ if(el.__rv)return; el.__rv=1; if(i<10){ el.style.transitionDelay=(i*0.045)+'s'; i++; } el.classList.add('sx-rv'); io.observe(el); }
+  function scan(){ document.querySelectorAll(SEL).forEach(mark); }
+  function stop(){ if(done)return; done=true; if(mo)mo.disconnect(); }
+  function start(){
+    scan();
+    mo=new MutationObserver(scan); mo.observe(document.body,{childList:true,subtree:true});
+    ['pointerdown','keydown','wheel','touchstart'].forEach(function(ev){ addEventListener(ev,stop,{once:true,passive:true}); });
+    setTimeout(stop,4000);
+  }
+  if(document.body)start(); else addEventListener('DOMContentLoaded',start);
+})();
+</script>
 </body>
 </html>
