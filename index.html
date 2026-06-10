@@ -617,6 +617,7 @@ async function openDetail(id){
       <div class="secttl">Open</div>
       <div class="links">
         ${doiUrl?`<a class="lnk primary" href="${esc(TOOLS.papercards)}#seed=${encodeURIComponent(p.doi)}" target="_blank" rel="noopener">📇 Open in PaperCards</a>`:''}
+        ${doiUrl&&p.hasAbstract?`<a class="lnk" href="${esc(TOOLS.papercards)}#explain=${encodeURIComponent(p.doi)}" target="_blank" rel="noopener" title="Narrated scene-by-scene walkthrough in PaperCards — speaks only what was extracted, verbatim">🎬 Video explainer</a>`:''}
         ${p.title?`<a class="lnk" href="${esc(TOOLS.researchflow)}?idea=${encodeURIComponent(p.title)}" target="_blank" rel="noopener">🧭 Start in ResearchFlow</a>`:''}
         ${doiUrl?`<a class="lnk" href="${esc(doiUrl)}" target="_blank" rel="noopener">DOI ↗</a>`:''}
         ${p.oaUrl?`<a class="lnk" href="${esc(p.oaUrl)}" target="_blank" rel="noopener">Open access ↗</a>`:''}
