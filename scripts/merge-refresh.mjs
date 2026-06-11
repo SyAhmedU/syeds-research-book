@@ -23,12 +23,34 @@ function readJsonSafe(p, fallback) {
   try { return JSON.parse(stripBom(fs.readFileSync(p, 'utf8'))); } catch { return fallback; }
 }
 
+// Repository hosts are not journals — Zenodo/SSRN/Figshare entries are deposits,
+// frequently duplicating a journal version. Keep the tier journal-grade.
+const REPO_VENUE = /zenodo|ssrn|research square|preprints\.org|authorea|biorxiv|medrxiv|arxiv|figshare|researchgate|^osf\b|qeios/i;
+
 // Hand-coded DOIs — never duplicate one of Syed's records into the recent tier.
 const handCoded = new Set();
 for (const p of readJsonSafe(path.join(DATA, 'papers.index.json'), [])) handCoded.add((p.doi || p.id).toLowerCase());
 
 const merged = new Map();   // doi → record
 const abstracts = {};
+
+// SELF-PRESERVING: seed from the committed recent tier first, so re-running the
+// merge after the gitignored staged scratch has been cleaned can never shrink
+// the tier. Staged entries below overlay (fresher citations / new tags win).
+for (const rec of readJsonSafe(path.join(DATA, 'recent.index.json'), [])) {
+  const key = (rec.doi || rec.id || '').toLowerCase();
+  if (!key || handCoded.has(key)) continue;
+  if (REPO_VENUE.test(rec.journal || '')) continue; // purge repository deposits from older runs
+  merged.set(key, { ...rec });
+}
+const PREV_ABSDIR = path.join(DATA, 'recent.abstracts');
+if (fs.existsSync(PREV_ABSDIR)) {
+  for (const f of fs.readdirSync(PREV_ABSDIR)) {
+    if (!f.endsWith('.json')) continue;
+    Object.assign(abstracts, readJsonSafe(path.join(PREV_ABSDIR, f), {}));
+  }
+}
+console.log(`[merge] seeded from committed tier: ${merged.size} papers, ${Object.keys(abstracts).length} abstracts`);
 
 for (const mode of ['construct', 'journal', 'author']) {
   const recs = readJsonSafe(path.join(REF, `${mode}.papers.json`), {});
@@ -38,11 +60,14 @@ for (const mode of ['construct', 'journal', 'author']) {
     if (handCoded.has(key)) continue;                         // already Syed's
     if (typeof rec.year === 'number' && (rec.year > NEXT_YEAR || rec.year < 1950)) continue; // junk date
     if (!rec.title || !rec.journal) continue;                 // need a real title + venue
+    if (REPO_VENUE.test(rec.journal)) continue;               // repository deposit, not a journal
     const prev = merged.get(key);
     if (prev) {
-      // Union construct codes (construct mode tags them; journal mode leaves []).
+      // Union construct codes (construct mode tags them; journal mode leaves []),
+      // and take the fresher fetch's citation count.
       const codes = new Set([...(prev.constructCodes || []), ...(rec.constructCodes || [])]);
       prev.constructCodes = [...codes];
+      if ((rec.addedAt || '') >= (prev.addedAt || '')) prev.citations = rec.citations ?? prev.citations;
     } else {
       merged.set(key, { ...rec });
     }

@@ -56,10 +56,16 @@ async function oa(url) {
   return res.json();
 }
 
+// Repository hosts are not journals — a "venue" like Zenodo/SSRN/Figshare is a
+// deposit, often a duplicate of a journal version. Keep the tier journal-grade.
+const REPO_VENUE = /zenodo|ssrn|research square|preprints\.org|authorea|biorxiv|medrxiv|arxiv|figshare|researchgate|^osf\b|qeios/i;
+
 // Map an OpenAlex work → an SRB-shaped record (+ separate abstract). Machine-tagged.
 function workToRecord(w, constructCode) {
   const doi = (w.doi || '').replace(/^https?:\/\/doi\.org\//i, '').toLowerCase();
   if (!doi) return null;
+  const venue = w.primary_location?.source?.display_name || w.host_venue?.display_name || '';
+  if (REPO_VENUE.test(venue)) return null;
   // Drop records with obviously-broken year metadata (OpenAlex has stray
   // far-future dates); keep up to next year for legit early-access/forthcoming.
   const yr = w.publication_year;
@@ -97,13 +103,14 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   console.log(`[refresh] mode=${MODE} since=${SINCE} per=${PER}`);
 
-  // Existing DOIs (corpus + any prior staged run) — never re-add.
+  // Existing DOIs (corpus + committed recent tier + any prior staged run) — never re-add.
   const existing = new Set();
   for (const p of readJson('papers.index.json')) existing.add((p.doi || p.id).toLowerCase());
+  try { for (const p of readJson('recent.index.json')) existing.add((p.doi || p.id).toLowerCase()); } catch { /* tier not built yet */ }
   const stagedRecs = loadStaged(`${MODE}.papers.json`);
   const stagedAbs = loadStaged(`${MODE}.abstracts.json`);
   for (const k of Object.keys(stagedRecs)) existing.add(k.toLowerCase());
-  console.log(`[refresh] corpus+staged DOIs known: ${existing.size}`);
+  console.log(`[refresh] corpus+recent+staged DOIs known: ${existing.size}`);
 
   // ── Author mode: recent work by the corpus's prolific authors. Resolve each
   // author to their EXACT OpenAlex author ID via a paper we already hold (match

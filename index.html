@@ -251,7 +251,7 @@
   <section id="v-library" class="wrap">
     <div class="hero">
       <h1>The corpus</h1>
-      <p>9,388 unique papers across 167 management &amp; organizational-behavior constructs — every record hand-coded over 24 months, DOI-keyed and Scopus-graded. Nothing here is AI-generated.</p>
+      <p>9,388 unique papers across 167 management &amp; organizational-behavior constructs — every record hand-coded over 24 months, DOI-keyed and Scopus-graded. Nothing here is AI-generated. A badged <b>recent tier</b> of real OpenAlex records (auto-fetched, machine-tagged) extends the library past 2024 to the present — and picking a construct or searching also pulls <b>this month's papers live</b>, marked ⚡.</p>
     </div>
     <div class="filters">
       <input type="text" id="q" placeholder="Search title, author, journal…" autocomplete="off">
@@ -283,6 +283,7 @@
     <div class="resbar">
       <div class="count"><b id="resCount">0</b> papers</div>
       <button class="clear hidden" id="clearBtn">clear filters</button>
+      <span id="freshNote" style="font-size:12px;color:var(--ink3)"></span>
     </div>
     <div class="list" id="list"></div>
     <div class="pager">
@@ -365,6 +366,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PAGE=50;
 const S={papers:[],constructs:[],byCode:{},abstracts:null,absLoading:null,absIndexed:false,view:'library',page:0,filtered:[],recentLoaded:false,recentLoading:null,recentAbs:null};
+window.__srb=S; // test/debug handle (read-only use)
 
 /* ---------- theme ---------- */
 (function(){const t=localStorage.getItem('syed-theme');if(t)document.documentElement.dataset.theme=t;})();
@@ -401,6 +403,12 @@ Promise.all([
   applyAndRender(); renderOverview();
   if(S.initView&&VIEWS.includes(S.initView))setView(S.initView);   // deep-link to a view (?view=termtrends)
   if(openDoi)openDetail(openDoi);
+  // Recent tier is ON by default (opt-out persisted): the hand-coded 9,388 paint
+  // first, then the auto-fetched 2024→ tier streams in behind them — so the
+  // library reaches the present without slowing the first render.
+  let wantRecent=true; try{wantRecent=localStorage.getItem('srb_recent')!=='0';}catch(_){}
+  if(wantRecent){const cb=$('#fRecent');if(cb)cb.checked=true;F.recent=true;
+    loadRecent().then(()=>{applyAndRender();updateFreshNote();return fetchLive();}).then(n=>{if(n)applyAndRender();});}
 }).catch(e=>{$('#loading').innerHTML='Could not load data. Run on a server (file:// blocks fetch).<br><small>'+esc(e.message)+'</small>';});
 
 /* ---------- nav ---------- */
@@ -450,8 +458,8 @@ function buildYearSelect(){
 }
 const F={q:'',construct:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false,recent:false,sort:'year'};
 let qTimer;
-$('#q').oninput=e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();S.page=0;applyAndRender();},180);};
-$('#fConstruct').onchange=e=>{F.construct=e.target.value;S.page=0;applyAndRender();};
+$('#q').oninput=e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();S.page=0;applyAndRender();fetchLive().then(n=>{if(n)applyAndRender();});},180);};
+$('#fConstruct').onchange=e=>{F.construct=e.target.value;S.page=0;applyAndRender();fetchLive().then(n=>{if(n)applyAndRender();});};
 $('#fJournal').onchange=e=>{F.journal=e.target.value;S.page=0;applyAndRender();};
 $('#fAuthor').onchange=e=>{F.author=e.target.value;S.page=0;applyAndRender();};
 $('#fYear').onchange=e=>{F.yearExact=e.target.value?+e.target.value:null;S.page=0;applyAndRender();};
@@ -469,18 +477,88 @@ function loadRecent(){
   if(S.recentLoading)return S.recentLoading;
   const lbl=$('#fRecentLbl'); if(lbl)lbl.textContent='loading recent…';
   S.recentLoading=fetch('./data/recent.index.json').then(r=>r.ok?r.json():[]).then(recent=>{
-    const have=new Set(S.papers.map(p=>p.id)); let n=0;
+    const have=new Set(S.papers.map(p=>p.id)); let n=0, through='';
     recent.forEach(p=>{
       if(!p.id||have.has(p.id))return;
       p.constructCodes=p.constructCodes||[];
       p._s=((p.title||'')+' '+(p.authors||[]).join(' ')+' '+(p.journal||'')).toLowerCase();
       p._recent=true; S.papers.push(p); n++;
+      if(p.addedAt&&p.addedAt>through)through=p.addedAt;
     });
-    S.recentLoaded=true; if(lbl)lbl.textContent=`+ Recent 2024→ (${n.toLocaleString()})`;
+    S.recentLoaded=true; S.recentN=n; S.recentThrough=through;
+    if(lbl)lbl.textContent=`+ Recent 2024→ (${n.toLocaleString()})`;
+    updateFreshNote();
   }).catch(()=>{S.recentLoaded=true; if(lbl)lbl.textContent='+ Recent 2024→';});
   return S.recentLoading;
 }
-$('#fRecent').onchange=e=>{F.recent=e.target.checked;S.page=0;if(e.target.checked){loadRecent().then(()=>applyAndRender());}else{applyAndRender();}};
+function updateFreshNote(){
+  const el=$('#freshNote'); if(!el)return;
+  if(!F.recent){el.textContent='';return;}
+  const bits=[];
+  if(S.recentN)bits.push(`+ ${S.recentN.toLocaleString()} recent auto-fetched${S.recentThrough?' (through '+S.recentThrough+')':''}`);
+  bits.push('⚡ pick a construct or search to also pull this month’s papers live');
+  el.textContent=bits.join(' · ');
+}
+$('#fRecent').onchange=e=>{F.recent=e.target.checked;try{localStorage.setItem('srb_recent',e.target.checked?'1':'0');}catch(_){}
+  S.page=0;if(e.target.checked){loadRecent().then(()=>{applyAndRender();updateFreshNote();fetchLive().then(n=>{if(n)applyAndRender();});});}else{updateFreshNote();applyAndRender();}};
+
+/* ── ⚡ Live layer: today's papers, fetched from OpenAlex on demand ──────────
+   When the recent tier is on and the user picks a construct (or types a search
+   of 4+ chars), pull the newest works straight from the OpenAlex API — real
+   records published in the last ~45 days, deduped against everything loaded,
+   gated on the construct's hand-curated identifier vocabulary (verbatim match),
+   and badged "live". Nothing invented; one cached query per filter. */
+function invertedToText(inv){if(!inv)return '';const out=[];for(const w in inv)for(const p of inv[w])out[p]=w;return out.join(' ').replace(/\s+/g,' ').trim();}
+const _liveCache=new Map();
+async function fetchLive(){
+  if(!F.recent)return 0;
+  let query='',gate=null,code='';
+  if(F.construct&&S.byCode[F.construct]){const c=S.byCode[F.construct];query=c.name;code=c.code;
+    gate=(c.identifiers||[]).map(s=>String(s).toLowerCase()).filter(s=>s.length>=5);}
+  else if(F.q&&F.q.length>=4){query=F.q;}
+  else return 0;
+  const key=query.toLowerCase();
+  if(_liveCache.has(key))return _liveCache.get(key);
+  const since=new Date(Date.now()-45*864e5).toISOString().slice(0,10);
+  // Multi-word queries are sent as a quoted phrase — OpenAlex otherwise ANDs
+  // loose tokens and drifts off-topic ("green human resource management" must
+  // appear as a phrase, not as four scattered words).
+  const qParam=query.split(/\s+/).length>1?'"'+query.replace(/"/g,'')+'"':query;
+  const job=fetch(`https://api.openalex.org/works?filter=from_publication_date:${since},title_and_abstract.search:${encodeURIComponent(qParam)}&sort=publication_date:desc&per-page=25&mailto=syedfaceprep@gmail.com`)
+    .then(r=>r.ok?r.json():{results:[]})
+    .then(d=>{
+      const have=new Set(S.papers.map(p=>p.id));
+      const seenTitles=new Set(S.papers.map(p=>(p.title||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()));
+      const REPO=/zenodo|ssrn|research square|preprints\.org|authorea|biorxiv|medrxiv|arxiv|figshare|researchgate|^osf\b|qeios/i;
+      let n=0;
+      for(const w of d.results||[]){
+        const doi=(w.doi||'').replace(/^https?:\/\/doi\.org\//i,'').toLowerCase();
+        if(!doi||have.has(doi))continue;
+        const yr=w.publication_year;
+        if(typeof yr==='number'&&(yr>new Date().getFullYear()+1||yr<1950))continue;
+        const abs=invertedToText(w.abstract_inverted_index);
+        const hay=((w.display_name||'')+' '+abs).toLowerCase();
+        if(gate&&gate.length&&!gate.some(t=>hay.includes(t)))continue;   // off-construct
+        const journal=(w.primary_location&&w.primary_location.source&&w.primary_location.source.display_name)||'';
+        if(!journal||REPO.test(journal))continue;                        // need a real journal, not a deposit
+        const tNorm=(w.display_name||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+        if(tNorm&&seenTitles.has(tNorm))continue;                        // same-title duplicate version
+        seenTitles.add(tNorm);
+        have.add(doi);
+        S.papers.push({id:doi,doi,title:w.display_name||'',
+          authors:(w.authorships||[]).map(a=>a.author&&a.author.display_name).filter(Boolean),
+          year:yr,journal,citations:w.cited_by_count||0,type:w.type||'article',
+          openAccess:!!(w.open_access&&w.open_access.is_oa),oaUrl:(w.open_access&&w.open_access.oa_url)||null,
+          constructCodes:code?[code]:[],hasAbstract:!!abs,_abs:abs,
+          _s:((w.display_name||'')+' '+(w.authorships||[]).map(a=>a.author&&a.author.display_name).join(' ')+' '+journal).toLowerCase(),
+          _recent:true,_live:true});
+        n++;
+      }
+      return n;
+    }).catch(()=>0);
+  _liveCache.set(key,job);
+  return job;
+}
 $('#fAbs').onchange=async e=>{
   F.searchAbs=e.target.checked;
   if(F.searchAbs&&!S.absIndexed){
@@ -547,7 +625,7 @@ function renderList(){
         <span>${p.year||'—'}</span><span class="dot">·</span>
         ${journalLink(p.journal)}
         ${band(p)} ${p.openAccess?'<span class="badge b-oa">OA</span>':''} ${typeBadge(p)}
-        ${p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656" title="Auto-fetched from OpenAlex (2024→); machine-assigned construct. Verify before citing.">↑ recent · auto-fetched</span>':''}
+        ${p._live?'<span class="badge" style="background:rgba(64,221,242,.16);color:#22d3ee" title="Fetched live from OpenAlex just now — published in the last ~45 days. Machine-matched to this construct/search; verify before citing.">⚡ live · just published</span>':p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656" title="Auto-fetched from OpenAlex (2024→); machine-assigned construct. Verify before citing.">↑ recent · auto-fetched</span>':''}
         ${p.citations?'<span class="dot">·</span><span>'+p.citations+' cites</span>':''}
       </div>
       <div class="chips">${p.constructCodes.slice(0,6).map(c=>`<span class="chip" data-code="${esc(c)}">${esc((S.byCode[c]||{}).name||c)}</span>`).join('')}${p.constructCodes.length>6?'<span class="chip" style="border:0">+'+(p.constructCodes.length-6)+'</span>':''}</div>
@@ -619,7 +697,7 @@ async function openDetail(id){
         ${journalLink(p.journal)}
         ${p.publisher?'<span class="dot">·</span><span>'+esc(p.publisher)+'</span>':''}
         ${band(p)} ${p.openAccess?'<span class="badge b-oa">Open access</span>':''} ${typeBadge(p)}
-        ${p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656">↑ recent · auto-fetched (OpenAlex, 2024→)</span>':''}
+        ${p._live?'<span class="badge" style="background:rgba(64,221,242,.16);color:#22d3ee">⚡ live · fetched from OpenAlex just now</span>':p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656">↑ recent · auto-fetched (OpenAlex, 2024→)</span>':''}
         ${p.citations!=null?'<span class="dot">·</span><span>'+p.citations+' citations</span>':''}
       </div>
       ${p.scopusCategory?'<div class="mrow" style="font-size:12px;color:var(--ink3)">'+esc(p.scopusCategory)+'</div>':''}
@@ -643,7 +721,7 @@ async function openDetail(id){
       <div class="chips">${cChips}</div>
     </div>`;
   $('#ov').classList.add('on'); document.body.style.overflow='hidden';
-  if(p.hasAbstract){let txt;if(p._recent){txt=await recentAbstract(p.id);}else{const a=await ensureAbstracts();txt=a[p.id];}const box=$('#absBox');if(box)box.textContent=txt||'Abstract not found.';}
+  if(p.hasAbstract){let txt;if(p._live){txt=p._abs||'';}else if(p._recent){txt=await recentAbstract(p.id);}else{const a=await ensureAbstracts();txt=a[p.id];}const box=$('#absBox');if(box)box.textContent=txt||'Abstract not found.';}
 }
 function closeModal(){$('#ov').classList.remove('on');document.body.style.overflow='';}
 $('#mclose').onclick=closeModal;
@@ -701,7 +779,7 @@ $('#ovBand').onclick=e=>{const d=e.target.closest('[data-band]');if(!d)return;
 function coocPairs(){
   if(S.cooc)return S.cooc;
   const m=new Map();
-  for(const p of S.papers){const cs=p.constructCodes;for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){const a=cs[i],b=cs[j];const k=a<b?a+'|'+b:b+'|'+a;m.set(k,(m.get(k)||0)+1);}}
+  for(const p of S.papers){if(p._recent)continue;/* map = the hand-coded story only */const cs=p.constructCodes;for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){const a=cs[i],b=cs[j];const k=a<b?a+'|'+b:b+'|'+a;m.set(k,(m.get(k)||0)+1);}}
   S.cooc=[...m.entries()].map(([k,w])=>{const x=k.split('|');return{a:x[0],b:x[1],w};});
   return S.cooc;
 }
@@ -751,7 +829,7 @@ function renderTrends(){
   const top=S.constructs.slice().sort((a,b)=>b.paperCount-a.paperCount).slice(0,40);
   const y0=Math.max(2005,S.yMin),years=[];for(let y=y0;y<=S.yMax;y++)years.push(y);
   const cnt={};top.forEach(c=>cnt[c.code]={});
-  for(const p of S.papers){if(!p.year||p.year<y0)continue;for(const code of p.constructCodes)if(cnt[code])cnt[code][p.year]=(cnt[code][p.year]||0)+1;}
+  for(const p of S.papers){if(p._recent)continue;/* trends = the hand-coded story only */if(!p.year||p.year<y0)continue;for(const code of p.constructCodes)if(cnt[code])cnt[code][p.year]=(cnt[code][p.year]||0)+1;}
   let mx=1;top.forEach(c=>years.forEach(y=>{if((cnt[c.code][y]||0)>mx)mx=cnt[c.code][y];}));
   let h='<table class="hm"><thead><tr><th></th>'+years.map(y=>`<th>'${String(y).slice(2)}</th>`).join('')+'</tr></thead><tbody>';
   for(const c of top){
