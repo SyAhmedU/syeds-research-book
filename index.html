@@ -117,6 +117,11 @@
   .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
   .chip{font-size:11px;font-weight:600;background:var(--chip);border:1px solid var(--line);color:var(--ink2);padding:3px 8px;border-radius:999px;cursor:pointer;font-family:var(--mono)}
   .chip:hover{border-color:var(--accent2);color:var(--ink)}
+  /* Scopus tier readable at a glance — left-edge signal derived from the badge already on the card */
+  .pcard{border-left:3px solid transparent}
+  .pcard:has(.b-top){border-left-color:rgba(146,112,244,.55)}
+  .pcard:has(.b-hi){border-left-color:rgba(241,69,117,.45)}
+  .pcard:has(.b-mid){border-left-color:rgba(255,150,86,.45)}
   .badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;font-family:var(--mono)}
   .b-top{background:rgba(146,112,244,.16);color:#b9a6ff}
   .b-hi{background:rgba(241,69,117,.14);color:#ff9bb6}
@@ -160,8 +165,9 @@
   .ov{position:fixed;inset:0;background:rgba(5,7,12,.62);backdrop-filter:blur(4px);z-index:60;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
   .ov.on{display:flex}
   .modal{background:var(--bg2);border:1px solid var(--line2);border-radius:18px;max-width:760px;width:100%;box-shadow:var(--shadow);overflow:hidden}
+  .modal::before{content:'';display:block;height:3px;background:var(--grad)}
   .mhead{padding:20px 22px;border-bottom:1px solid var(--line);background:var(--card)}
-  .mtitle{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.25;margin:0 0 8px}
+  .mtitle{font-family:var(--serif);font-weight:600;font-size:22px;line-height:1.22;margin:0 0 8px;letter-spacing:-.012em;font-optical-sizing:auto;text-wrap:balance}
   .mbody{padding:20px 22px}
   .mrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--ink2);margin-bottom:10px}
   .abs{font-size:14px;line-height:1.6;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0;white-space:pre-wrap}
