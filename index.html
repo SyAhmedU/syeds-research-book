@@ -85,7 +85,9 @@
 
   /* hero */
   .hero{padding:34px 0 10px}
-  .hero h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4.4vw,44px);margin:0 0 8px;line-height:1.08;letter-spacing:-.015em;font-optical-sizing:auto;text-wrap:balance}
+  .hero h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4.4vw,44px);margin:0 0 8px;line-height:1.08;letter-spacing:-.015em;font-optical-sizing:auto;text-wrap:balance;position:relative}
+  /* syed-bose: hanging quote in the left margin, after bosefellows.mit.edu .hangquote-left */
+  .hero h1::before{content:'\201C' / '';position:absolute;left:-.45em;top:-.1em;font-size:1.4em;line-height:1;color:var(--accent2);opacity:.32;pointer-events:none}
   .hero p{color:var(--ink2);margin:0;max-width:62ch}
   .stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
   .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
@@ -197,7 +199,8 @@
   .hm td.lbl{color:var(--ink2);padding:2px 10px 2px 0;cursor:pointer;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hm td.lbl:hover{color:var(--ink)}
   .hm td.cell{width:22px;height:18px;border-radius:4px}
-  footer{border-top:1px solid var(--line);color:var(--ink3);font-size:12px;padding:22px 0;text-align:center}
+  /* syed-bose: accent top-border on the closing band, after the Bose Fellows topbar */
+  footer{border-top:3px solid var(--accent2);border-image:var(--grad) 1;color:var(--ink3);font-size:12px;padding:22px 0;text-align:center}
   @media(max-width:760px){.filters #q{flex-basis:100%}.filters select{flex:1 1 44%;max-width:none}.jlist{columns:1}.brand{font-size:16px}}
 
   /* term trends (treemap folded in from Wordmap) */
