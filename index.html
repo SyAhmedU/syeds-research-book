@@ -65,6 +65,8 @@
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
   html[data-theme="light"] body::after{mix-blend-mode:multiply;opacity:.03}
   a{color:inherit}
+  /* clip, not hidden — keeps .bar's position:sticky working */
+  html,body{overflow-x:clip}
   .wrap{max-width:var(--maxw);margin:0 auto;padding:0 18px}
 
   /* brand bar */
@@ -212,7 +214,14 @@
   .hm td.cell{width:22px;height:18px;border-radius:4px}
   /* syed-bose: accent top-border on the closing band, after the Bose Fellows topbar */
   footer{border-top:3px solid var(--accent2);border-image:var(--grad) 1;color:var(--ink3);font-size:12px;padding:22px 0;text-align:center}
-  @media(max-width:760px){.filters #q{flex-basis:100%}.filters select{flex:1 1 44%;max-width:none}.jlist{columns:1}.brand{font-size:16px}}
+  @media(max-width:760px){.filters #q{flex-basis:100%}.filters select{flex:1 1 44%;max-width:none}.jlist{columns:1}.brand{font-size:16px}
+    /* the bar's min-content (~849px) must never widen the layout viewport on
+       phones — scroll the bar internally instead (sticky keeps working: only
+       ANCESTOR overflow breaks sticky, not the element's own) */
+    .bar{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:8px;padding:0 12px}
+    .bar::-webkit-scrollbar{display:none}
+    .bar>*{flex-shrink:0}
+    .bar .sp{flex:1 0 12px}}
 
   /* term trends (treemap folded in from Wordmap) */
   .tt-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
