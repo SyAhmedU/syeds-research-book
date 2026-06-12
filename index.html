@@ -152,6 +152,8 @@
   .kw .rc-link{cursor:pointer;border-color:var(--accent2);color:var(--accent2)}
   .kw .rc-new{background:transparent;border-style:dashed}
   .kw .rc-badge{opacity:.75}
+  .kw .xw{cursor:pointer;border-color:var(--accent2);color:var(--accent2);font-weight:600}
+  .kw .xw:hover{background:var(--accent2);color:#fff}
   .muted{color:var(--ink3)}
 
   /* overview */
@@ -667,11 +669,47 @@ $('#list').onclick=e=>{
 /* Two tiers: hand-coded 167 (canonical) + recent tier — construct phrases
    extracted VERBATIM from the 79.5K recent corpus via fixed linguistic frames
    (scripts/mine-constructs-recent.mjs, no AI), frequency-gated, badged. */
-S.ctier='hand'; S.recentConstructs=null;
+S.ctier='hand'; S.recentConstructs=null; S.cmap=null;
 function ensureRecentConstructs(){
   if(S.recentConstructs)return Promise.resolve(S.recentConstructs);
   if(!S.rcLoading)S.rcLoading=fetch('./data/constructs.recent.json').then(r=>r.json()).then(j=>{S.recentConstructs=j;$('#ctRecentN').textContent=j.count;return j;}).catch(()=>null);
   return S.rcLoading;
+}
+/* crosswalk: construct → theories (TheoryScope) + scales (ScaleScope) — deterministic label match, scripts/build-construct-map.mjs */
+function ensureConstructMap(){
+  if(S.cmap)return Promise.resolve(S.cmap);
+  if(!S.cmLoading)S.cmLoading=fetch('./data/constructs.map.json').then(r=>r.json()).then(j=>{S.cmap=j;return j;}).catch(()=>null);
+  return S.cmLoading;
+}
+function xwChip(kind,key){
+  if(!S.cmap)return '';
+  const e=(kind==='code'?S.cmap.byCode:S.cmap.byPhrase)[key];
+  if(!e||(!e.theories.length&&!e.scales.length))return '';
+  const parts=[];if(e.theories.length)parts.push('🧠 '+e.theories.length);if(e.scales.length)parts.push('📏 '+e.scales.length);
+  return `<span class="xw" data-kind="${kind}" data-key="${esc(key)}" title="Theories that use it · scales that measure it — machine-matched, verify">${parts.join(' · ')}</span>`;
+}
+function openConstructModal(kind,key){
+  const e=(kind==='code'?S.cmap.byCode:S.cmap.byPhrase)[key]; if(!e)return;
+  const hand=kind==='code'?S.constructs.find(c=>c.code===key):null;
+  const rc=kind==='phrase'&&S.recentConstructs?S.recentConstructs.constructs.find(c=>c.t===key):null;
+  const title=hand?hand.name:key;
+  const nPapers=hand?hand.paperCount+' papers (hand-coded corpus)':rc?rc.n+' recent papers (2024→, machine-extracted)':'';
+  $('#mcontent').innerHTML=`
+    <div class="mhead"><p class="mtitle">${esc(title)}</p>
+      <div class="mrow">${hand?'<span class="badge">✋ '+esc(hand.code)+'</span>':'<span class="badge" style="background:rgba(241,69,117,.15);color:#F14575">↑ recent · machine-extracted</span>'}<span class="dot">·</span><span>${esc(nPapers)}</span></div></div>
+    <div class="mbody">
+      <div class="secttl">Theories that use it <span style="font-weight:400;font-size:11px;color:var(--ink3)">· TheoryScope, label-matched — verify</span></div>
+      ${e.theories.length?'<div class="links">'+e.theories.map(t=>`<a class="lnk" href="${esc(TOOLS.theoryscope)}#/theory/${esc(t.s)}" target="_blank" rel="noopener">🧠 ${esc(t.n)} ↗</a>`).join('')+'</div>':'<p class="muted" style="font-size:13px">None label-matched in the 632-theory catalog.</p>'}
+      <div class="secttl">Scales that measure it <span style="font-weight:400;font-size:11px;color:var(--ink3)">· ScaleScope, label-matched — verify</span></div>
+      ${e.scales.length?'<div class="links">'+e.scales.map(s=>`<a class="lnk" href="${esc(TOOLS.scalescope)}?scale=${s.id}" target="_blank" rel="noopener">📏 ${esc(s.n)}${s.ab?' ('+esc(s.ab)+')':''} ↗</a>`).join('')+'</div>':'<p class="muted" style="font-size:13px">None label-matched in the 332-scale catalog.</p>'}
+      <div class="secttl">Papers</div>
+      <div class="links"><a class="lnk primary" href="#" id="xwPapers">📚 View papers in Library</a></div>
+    </div>`;
+  $('#xwPapers').onclick=ev=>{ev.preventDefault();closeModal();
+    if(hand){F.construct=key;$('#fConstruct').value=key;F.q='';$('#q').value='';}
+    else{F.q=key.toLowerCase();$('#q').value=key;F.construct='';$('#fConstruct').value='';fetchLive().then(n=>{if(n)applyAndRender();});}
+    S.page=0;applyAndRender();setView('library');};
+  $('#ov').classList.add('on');document.body.style.overflow='hidden';
 }
 function renderConstructs(){
   const q=($('#cq').value||'').trim().toLowerCase();
@@ -687,7 +725,7 @@ function renderConstructs(){
         <div class="ccode">↑ ${c.n} papers</div>
         <div class="cname">${esc(c.t)}</div>
         <div class="ccount">${Object.entries(c.byYear||{}).sort().map(([y,n])=>y+': '+n).join(' · ')}</div>
-        <div class="kw">${c.code&&handByCode[c.code]?`<span class="rc-link" data-code="${esc(c.code)}">✋ ${esc(handByCode[c.code].name)}</span>`:'<span class="rc-new">new — not in the 167</span>'}<span class="rc-badge">machine · verify</span></div>
+        <div class="kw">${c.code&&handByCode[c.code]?`<span class="rc-link" data-code="${esc(c.code)}">✋ ${esc(handByCode[c.code].name)}</span>`:'<span class="rc-new">new — not in the 167</span>'}${xwChip('phrase',c.t)}<span class="rc-badge">machine · verify</span></div>
       </div>`).join('')||'<p class="muted">No matches.</p>';
     return;
   }
@@ -699,14 +737,16 @@ function renderConstructs(){
       <div class="ccode">${esc(c.code)}</div>
       <div class="cname">${esc(c.name)}</div>
       <div class="ccount">${c.paperCount} papers</div>
-      <div class="kw">${(c.identifiers||[]).slice(0,5).map(k=>`<span>${esc(k)}</span>`).join('')}${(c.identifiers||[]).length>5?'<span>+'+((c.identifiers.length)-5)+'</span>':''}</div>
+      <div class="kw">${xwChip('code',c.code)}${(c.identifiers||[]).slice(0,5).map(k=>`<span>${esc(k)}</span>`).join('')}${(c.identifiers||[]).length>5?'<span>+'+((c.identifiers.length)-5)+'</span>':''}</div>
     </div>`).join('');
 }
 $('#cq').oninput=renderConstructs; $('#cSort').onchange=renderConstructs;
 $('#ctier').onclick=e=>{const b=e.target.closest('.ct-btn');if(!b)return;
   S.ctier=b.dataset.tier;document.querySelectorAll('#ctier .ct-btn').forEach(x=>x.classList.toggle('on',x===b));renderConstructs();};
-ensureRecentConstructs();
+ensureRecentConstructs();ensureConstructMap().then(()=>{if(!$('#v-constructs').classList.contains('hidden'))renderConstructs();});
 $('#cgrid').onclick=e=>{
+  const xw=e.target.closest('.xw');
+  if(xw){openConstructModal(xw.dataset.kind,xw.dataset.key);return;}
   const link=e.target.closest('.rc-link');
   if(link){F.construct=link.dataset.code;$('#fConstruct').value=link.dataset.code;S.page=0;applyAndRender();setView('library');return;}
   const c=e.target.closest('.ccard');if(!c)return;
