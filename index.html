@@ -144,6 +144,15 @@
   .ccount{font-size:12px;color:var(--ink3)}
   .kw{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
   .kw span{font-size:10.5px;background:var(--chip);border:1px solid var(--line);color:var(--ink3);padding:2px 7px;border-radius:6px}
+  /* construct tier toggle + recent-tier cards (machine-extracted, badged) */
+  .ctier{display:flex;gap:8px;margin:0 0 12px}
+  .ct-btn{font:inherit;font-size:13px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink3);cursor:pointer}
+  .ct-btn.on{background:linear-gradient(120deg,#FF9656,#F14575,#9270F4);color:#fff;border-color:transparent;font-weight:600}
+  .ccard.rc .ccode{color:var(--accent,#F14575)}
+  .kw .rc-link{cursor:pointer;border-color:var(--accent2);color:var(--accent2)}
+  .kw .rc-new{background:transparent;border-style:dashed}
+  .kw .rc-badge{opacity:.75}
+  .muted{color:var(--ink3)}
 
   /* overview */
   .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:14px 0}
@@ -298,7 +307,11 @@
 
   <!-- CONSTRUCTS -->
   <section id="v-constructs" class="wrap hidden">
-    <div class="hero"><h1>167 constructs</h1><p>The taxonomy spine — each construct carries the controlled keyword vocabulary used to build the corpus. Click any to see its papers.</p></div>
+    <div class="hero"><h1>167 constructs</h1><p>The taxonomy spine — each construct carries the controlled keyword vocabulary used to build the corpus. Click any to see its papers. The <strong>↑ recent</strong> tier adds construct phrases extracted verbatim from the 79.5K-paper recent corpus (machine-extracted, frequency-gated — verify).</p></div>
+    <div class="ctier" id="ctier">
+      <button class="ct-btn on" data-tier="hand">✋ Hand-coded · 167</button>
+      <button class="ct-btn" data-tier="recent">↑ Recent tier · <span id="ctRecentN">…</span></button>
+    </div>
     <div class="filters" style="grid-template-columns:1fr auto">
       <input type="text" id="cq" placeholder="Search constructs…" autocomplete="off">
       <select id="cSort"><option value="count">Most papers</option><option value="name">A–Z</option><option value="no">Sheet order</option></select>
@@ -651,8 +664,33 @@ $('#list').onclick=e=>{
 };
 
 /* ---------- constructs view ---------- */
+/* Two tiers: hand-coded 167 (canonical) + recent tier — construct phrases
+   extracted VERBATIM from the 79.5K recent corpus via fixed linguistic frames
+   (scripts/mine-constructs-recent.mjs, no AI), frequency-gated, badged. */
+S.ctier='hand'; S.recentConstructs=null;
+function ensureRecentConstructs(){
+  if(S.recentConstructs)return Promise.resolve(S.recentConstructs);
+  if(!S.rcLoading)S.rcLoading=fetch('./data/constructs.recent.json').then(r=>r.json()).then(j=>{S.recentConstructs=j;$('#ctRecentN').textContent=j.count;return j;}).catch(()=>null);
+  return S.rcLoading;
+}
 function renderConstructs(){
   const q=($('#cq').value||'').trim().toLowerCase();
+  if(S.ctier==='recent'){
+    if(!S.recentConstructs){$('#cgrid').innerHTML='<p class="muted">Loading recent-tier constructs…</p>';ensureRecentConstructs().then(j=>{if(j)renderConstructs();else $('#cgrid').innerHTML='<p class="muted">constructs.recent.json not available.</p>';});return;}
+    const sortKey=$('#cSort').value||'count';
+    let cs=S.recentConstructs.constructs.slice();
+    cs.sort(sortKey==='name'?(a,b)=>a.t.localeCompare(b.t):(a,b)=>b.n-a.n);
+    if(q)cs=cs.filter(c=>c.t.includes(q)||(c.code&&c.code.toLowerCase().includes(q)));
+    const handByCode={};S.constructs.forEach(h=>handByCode[h.code]=h);
+    $('#cgrid').innerHTML=cs.map(c=>`
+      <div class="ccard rc" data-q="${esc(c.t)}" title="Phrase appears verbatim in ${c.n} recent papers (2024→) — machine-extracted, verify">
+        <div class="ccode">↑ ${c.n} papers</div>
+        <div class="cname">${esc(c.t)}</div>
+        <div class="ccount">${Object.entries(c.byYear||{}).sort().map(([y,n])=>y+': '+n).join(' · ')}</div>
+        <div class="kw">${c.code&&handByCode[c.code]?`<span class="rc-link" data-code="${esc(c.code)}">✋ ${esc(handByCode[c.code].name)}</span>`:'<span class="rc-new">new — not in the 167</span>'}<span class="rc-badge">machine · verify</span></div>
+      </div>`).join('')||'<p class="muted">No matches.</p>';
+    return;
+  }
   const sort={count:(a,b)=>b.paperCount-a.paperCount,name:(a,b)=>a.name.localeCompare(b.name),no:(a,b)=>a.no-b.no}[$('#cSort').value||'count'];
   let cs=S.constructs.slice().sort(sort);
   if(q)cs=cs.filter(c=>c.name.toLowerCase().includes(q)||c.code.toLowerCase().includes(q)||(c.identifiers||[]).some(k=>k.toLowerCase().includes(q)));
@@ -665,7 +703,17 @@ function renderConstructs(){
     </div>`).join('');
 }
 $('#cq').oninput=renderConstructs; $('#cSort').onchange=renderConstructs;
-$('#cgrid').onclick=e=>{const c=e.target.closest('.ccard');if(!c)return;
+$('#ctier').onclick=e=>{const b=e.target.closest('.ct-btn');if(!b)return;
+  S.ctier=b.dataset.tier;document.querySelectorAll('#ctier .ct-btn').forEach(x=>x.classList.toggle('on',x===b));renderConstructs();};
+ensureRecentConstructs();
+$('#cgrid').onclick=e=>{
+  const link=e.target.closest('.rc-link');
+  if(link){F.construct=link.dataset.code;$('#fConstruct').value=link.dataset.code;S.page=0;applyAndRender();setView('library');return;}
+  const c=e.target.closest('.ccard');if(!c)return;
+  if(c.classList.contains('rc')){
+    const q=c.dataset.q;F.q=q.toLowerCase();$('#q').value=q;F.construct='';$('#fConstruct').value='';S.page=0;
+    applyAndRender();fetchLive().then(n=>{if(n)applyAndRender();});setView('library');return;
+  }
   F.construct=c.dataset.code;$('#fConstruct').value=c.dataset.code;S.page=0;applyAndRender();setView('library');};
 
 /* ---------- detail modal ---------- */
