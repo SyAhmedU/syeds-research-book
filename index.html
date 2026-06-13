@@ -254,6 +254,58 @@
   .tt-csv{font:inherit;font-size:11px;color:var(--ink2);background:var(--card);border:1px solid var(--line);border-radius:7px;padding:5px 9px;cursor:pointer}
   .tt-tip{position:fixed;z-index:60;display:none;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.5;padding:8px 11px;border-radius:9px;box-shadow:var(--shadow);max-width:250px}
   .tt-tip b{font-weight:700}
+
+  /* ── Construct Spectrum ─────────────────────────────────────────── */
+  #v-spectrum .hero h1 em{font-style:italic;font-weight:500;font-variation-settings:'SOFT' 100,'WONK' 1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .spec-pickwrap{margin:6px 0 0}
+  .spec-search{width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);font:inherit;font-size:14px;outline:none;transition:border-color .15s,box-shadow .4s cubic-bezier(.22,1,.36,1)}
+  .spec-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+  .spec-palette{display:flex;flex-wrap:wrap;gap:6px;max-height:140px;overflow-y:auto;margin-top:10px;padding:2px}
+  .spec-pal-chip{font:inherit;font-size:12.5px;color:var(--ink2);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer;transition:border-color .15s,color .15s,background .15s;white-space:nowrap}
+  .spec-pal-chip:hover{border-color:var(--accent);color:var(--ink)}
+  .spec-pal-chip.on{background:var(--grad);border-color:transparent;color:#fff}
+  .spec-pal-chip .pc-n{opacity:.7;font-size:11px;margin-left:5px}
+  .spec-selbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 4px;padding-top:12px;border-top:1px dashed var(--line2)}
+  .spec-selbar-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+  .spec-selected{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+  .spec-sel-chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--accent) 9%,var(--card));border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:999px;padding:5px 6px 5px 12px}
+  .spec-sel-chip .x{display:grid;place-items:center;width:18px;height:18px;border-radius:999px;background:none;border:0;color:var(--ink3);font-size:14px;line-height:1;cursor:pointer}
+  .spec-sel-chip .x:hover{color:var(--accent);background:var(--chip)}
+  .spec-clear{font:inherit;font-size:12px;font-weight:600;color:var(--ink3);background:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer}
+  .spec-clear:hover{color:var(--accent);border-color:var(--accent)}
+  .spec-empty{margin:22px 0 40px;padding:24px;border:1px dashed var(--line2);border-radius:var(--radius);background:var(--card);color:var(--ink2);text-align:center;font-family:var(--serif,'Lora',Georgia,serif)}
+  .spec-empty p{margin:0 0 14px}
+  .spec-suggest{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .spec-sugg{font:inherit;font-size:13px;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;transition:border-color .15s,color .15s}
+  .spec-sugg:hover{border-color:var(--accent);color:var(--ink)}
+  .spec-sugg b{color:var(--accent);font-weight:700}
+  .spec-arcwrap{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin:16px 0;overflow:hidden}
+  .spec-arc-edge{fill:none;cursor:pointer;transition:stroke-opacity .15s,stroke-width .15s}
+  .spec-arc-edge:hover,.spec-arc-edge.on{stroke-opacity:.95!important}
+  .spec-arc-node circle{cursor:pointer}
+  .spec-arc-label{font-family:var(--mono);font-size:10.5px;fill:var(--ink2);cursor:pointer}
+  .spec-arc-label:hover{fill:var(--accent)}
+  .spec-tip{position:absolute;z-index:5;display:none;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.5;padding:7px 11px;border-radius:9px;box-shadow:var(--shadow);max-width:240px}
+  .spec-tip b{font-weight:700}
+  .spec-cols{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:40px}
+  .spec-rel-head{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+  .spec-count{color:var(--accent);font-weight:700}
+  .spec-pairs{display:flex;flex-direction:column;gap:7px;max-height:520px;overflow-y:auto}
+  .spec-pair{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 13px;cursor:pointer;transition:border-color .15s,transform .5s cubic-bezier(.22,1,.36,1),box-shadow .35s}
+  .spec-pair:hover{border-color:var(--accent);transform:translateX(3px)}
+  .spec-pair.on{border-color:transparent;box-shadow:0 0 0 2px var(--accent),0 8px 22px -14px rgba(241,69,117,.5);background:color-mix(in srgb,var(--accent) 5%,var(--card))}
+  .spec-pair-bar{flex:none;width:6px;align-self:stretch;border-radius:3px;background:var(--grad)}
+  .spec-pair-names{flex:1;min-width:0;font-size:13.5px;line-height:1.4;color:var(--ink)}
+  .spec-pair-names .arr{color:var(--accent);font-weight:700;margin:0 5px}
+  .spec-pair-n{flex:none;font-family:var(--mono);font-size:12px;color:var(--ink2);text-align:right}
+  .spec-pair-n b{font-size:15px;color:var(--accent);font-weight:700}
+  .spec-allinter{width:100%;margin-top:10px;font:inherit;font-size:13px;font-weight:600;color:#fff;background:var(--grad);border:0;border-radius:11px;padding:11px 14px;cursor:pointer;box-shadow:0 8px 22px -10px rgba(241,69,117,.5)}
+  .spec-allinter:hover{filter:brightness(1.04)}
+  .spec-papers-head{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+  .spec-papers-head b{color:var(--ink);text-transform:none;letter-spacing:0;font-family:var(--serif,'Lora',Georgia,serif);font-style:italic;font-size:14px}
+  .spec-papers-list{display:flex;flex-direction:column;gap:10px;max-height:560px;overflow-y:auto}
+  @media (min-width:880px){.spec-cols{grid-template-columns:minmax(0,420px) minmax(0,1fr)}}
+  @media (prefers-reduced-motion:reduce){.spec-pair{transition:none}}
 </style>
 </head>
 <body>
@@ -264,6 +316,7 @@
   <button class="navbtn on" data-view="library">Library</button>
   <button class="navbtn" data-view="constructs">Constructs</button>
   <button class="navbtn" data-view="map">Map</button>
+  <button class="navbtn" data-view="spectrum">Spectrum</button>
   <button class="navbtn" data-view="trends">Trends</button>
   <button class="navbtn" data-view="termtrends">Term Trends</button>
   <button class="navbtn" data-view="overview">Overview</button>
@@ -359,6 +412,40 @@
     </div>
   </section>
 
+  <!-- SPECTRUM — pick constructs, see how they're co-studied, jump to the papers -->
+  <section id="v-spectrum" class="wrap hidden">
+    <div class="hero"><h1>Construct <em>spectrum</em></h1><p>Pick two or more constructs and see how they're <strong>studied together</strong> across the corpus — each arc is the number of papers that coded both. Click any link to read the papers that study that relationship. Co-occurrence in Syed's hand-coded corpus, not a causal claim — verify direction in the papers.</p></div>
+    <div class="spec-pickwrap">
+      <div class="spec-picker">
+        <input type="text" id="specSearch" class="spec-search" placeholder="Search 167 constructs to add…" autocomplete="off">
+        <div id="specPalette" class="spec-palette"></div>
+      </div>
+      <div class="spec-selbar">
+        <span class="spec-selbar-lbl">Selected</span>
+        <div id="specSelected" class="spec-selected"></div>
+        <button id="specClear" class="spec-clear" hidden>Clear all</button>
+      </div>
+    </div>
+    <div id="specEmpty" class="spec-empty">
+      <p>Add at least two constructs to draw their spectrum. Or start from a strong pairing:</p>
+      <div id="specSuggest" class="spec-suggest"></div>
+    </div>
+    <div id="specStage" hidden>
+      <div id="specArcWrap" class="spec-arcwrap"><svg id="specArc" width="100%" height="320" style="display:block"></svg><div id="specTip" class="spec-tip"></div></div>
+      <div class="spec-cols">
+        <div class="spec-rel">
+          <div class="spec-rel-head">Relationships <span id="specRelCount" class="spec-count"></span></div>
+          <div id="specPairs" class="spec-pairs"></div>
+          <button id="specAllInter" class="spec-allinter" hidden></button>
+        </div>
+        <div class="spec-papers">
+          <div id="specPapersHead" class="spec-papers-head">Pick a relationship to see its papers →</div>
+          <div id="specPapers" class="spec-papers-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- TRENDS -->
   <section id="v-trends" class="wrap hidden">
     <div class="hero"><h1>Trends</h1><p>When each construct surged. Rows = the busiest constructs, columns = years, darker = more papers. Click a row to see its papers.</p></div>
@@ -444,13 +531,14 @@ Promise.all([
 }).catch(e=>{$('#loading').innerHTML='Could not load data. Run on a server (file:// blocks fetch).<br><small>'+esc(e.message)+'</small>';});
 
 /* ---------- nav ---------- */
-const VIEWS=['library','constructs','map','trends','termtrends','overview'];
+const VIEWS=['library','constructs','map','spectrum','trends','termtrends','overview'];
 function setView(v){
   S.view=v; $$('.navbtn').forEach(x=>x.classList.toggle('on',x.dataset.view===v));
   VIEWS.forEach(x=>$('#v-'+x).classList.toggle('hidden',x!==v));
   if(v!=='termtrends')ttStop();   // pause the year animation when leaving Term Trends
   if(v==='constructs')renderConstructs();
   if(v==='map')renderMap();
+  if(v==='spectrum')renderSpectrum();
   if(v==='trends')renderTrends();
   if(v==='termtrends')renderTermTrends();
   window.scrollTo(0,0);
