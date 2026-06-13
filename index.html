@@ -157,6 +157,9 @@
   .kw .rc-badge{opacity:.75}
   .kw .xw{cursor:pointer;border-color:var(--accent2);color:var(--accent2);font-weight:600}
   .kw .xw:hover{background:var(--accent2);color:#fff}
+  /* crosswalk badge when it rides next to a construct chip (paper modal) */
+  .chips .xw{font-size:10.5px;background:transparent;border:1px solid var(--accent2);color:var(--accent2);padding:2px 7px;border-radius:6px;cursor:pointer;font-weight:600}
+  .chips .xw:hover{background:var(--accent2);color:#fff}
   .muted{color:var(--ink3)}
 
   /* overview */
@@ -786,8 +789,9 @@ async function recentAbstract(doi){
 async function openDetail(id){
   const p=S.papers.find(x=>x.id===id); if(!p)return;
   const doiUrl=p.doi?('https://doi.org/'+p.doi):null;
+  await ensureConstructMap();  /* so the chips carry their 🧠·📏 crosswalk badges */
   const cChips=p.constructCodes.map(c=>{const cc=S.byCode[c]||{name:c};
-    return `<span class="chip" data-code="${esc(c)}">${esc(cc.name||c)}</span>`;}).join('');
+    return `<span class="chip" data-code="${esc(c)}">${esc(cc.name||c)}</span>${xwChip('code',c)}`;}).join('');
   const absProv=p.hasAbstract?({sheet:'from review coding',openalex:'via OpenAlex',crossref:'via Crossref'}[p.absSrc]||''):'';
   $('#mcontent').innerHTML=`
     <div class="mhead">
@@ -828,6 +832,8 @@ function closeModal(){$('#ov').classList.remove('on');document.body.style.overfl
 $('#mclose').onclick=closeModal;
 $('#ov').onclick=e=>{if(e.target.id==='ov')closeModal();};
 $('#mcontent').onclick=e=>{
+  const xw=e.target.closest('.xw');
+  if(xw){openConstructModal(xw.dataset.kind,xw.dataset.key);return;}
   const au=e.target.closest('[data-author]');
   if(au){closeModal();F.author=au.dataset.author;$('#fAuthor').value=au.dataset.author;S.page=0;applyAndRender();setView('library');return;}
   const jr=e.target.closest('[data-journal]');
