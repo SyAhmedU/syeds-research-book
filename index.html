@@ -35,7 +35,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,500..600,0,0;1,9..144,500..600,0,1&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   :root{
     --grad: linear-gradient(135deg,#FF9656,#F14575 55%,#9270F4);
@@ -88,7 +88,8 @@
 
   /* hero */
   .hero{padding:34px 0 10px}
-  .hero h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4.4vw,44px);margin:0 0 8px;line-height:1.08;letter-spacing:-.015em;font-optical-sizing:auto;text-wrap:balance;position:relative}
+  .hero h1{font-family:var(--serif);font-weight:600;font-size:clamp(30px,4.8vw,50px);margin:0 0 8px;line-height:1.06;letter-spacing:-.02em;font-optical-sizing:auto;text-wrap:balance;position:relative}
+  .hero h1 em{font-style:italic;font-weight:500;font-variation-settings:'SOFT' 100,'WONK' 1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
   /* syed-bose: hanging quote in the left margin, after bosefellows.mit.edu .hangquote-left */
   .hero h1::before{content:'\201C' / '';position:absolute;left:-.45em;top:-.1em;font-size:1.4em;line-height:1;color:var(--accent2);opacity:.32;pointer-events:none}
   .hero p{color:var(--ink2);margin:0;max-width:62ch}
@@ -277,7 +278,7 @@
   <!-- LIBRARY -->
   <section id="v-library" class="wrap">
     <div class="hero">
-      <h1>The corpus</h1>
+      <h1>The <em>corpus</em></h1>
       <p>9,388 unique papers across 167 management &amp; organizational-behavior constructs — every record hand-coded over 24 months, DOI-keyed and Scopus-graded. Nothing here is AI-generated. A badged <b>recent tier</b> of real OpenAlex records (auto-fetched, machine-tagged) extends the library past 2024 to the present — and picking a construct or searching also pulls <b>this month's papers live</b>, marked ⚡.</p>
     </div>
     <div class="filters">
