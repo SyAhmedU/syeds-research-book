@@ -336,9 +336,33 @@
   .mx-rowcode{font-family:var(--mono);font-size:9.5px;color:var(--ink3);margin-left:6px}
   .mx-rownum{display:inline-block;min-width:16px;font-family:var(--mono);font-size:9.5px;color:var(--ink3);margin-right:7px;text-align:right}
   .mx-cell{width:34px;min-width:34px;height:32px;text-align:center;cursor:pointer;font-variant-numeric:tabular-nums}
-  .heat-wrap{position:relative;overflow:auto;max-height:80vh;border:1px solid var(--line);border-radius:var(--radius);background:var(--bg2);margin:10px 0 6px}
-  .heat-readout{font-size:12.5px;color:var(--ink2);min-height:18px;padding:5px 2px}
-  #heatCanvas{display:block;image-rendering:pixelated;cursor:crosshair}
+  /* chord */
+  .chord-rib{transition:stroke-opacity .12s}
+  .chord-node{cursor:pointer}
+  .chord-lbl{font-size:10.5px;fill:var(--ink2);cursor:pointer;dominant-baseline:middle}
+  .chord-lbl:hover,.chord-node:hover{fill:var(--accent)}
+  /* clusters */
+  .clusters-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin:6px 0 8px}
+  .camp-card{border:1px solid var(--line);border-left:3px solid var(--cc);border-radius:12px;background:var(--card);padding:12px 13px}
+  .camp-h{font-size:13.5px;color:var(--ink);margin-bottom:9px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .camp-dot{width:9px;height:9px;border-radius:50%;background:var(--cc);flex:none}
+  .camp-n{font-size:11px;color:var(--ink3);font-weight:500}
+  .camp-members{display:flex;flex-wrap:wrap;gap:5px}
+  .camp-chip{font-size:11.5px;border:1px solid var(--line2);background:var(--chip);color:var(--ink2);border-radius:999px;padding:3px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .camp-chip:hover{border-color:var(--cc);color:var(--ink)}
+  .camp-chip-n{font-size:9.5px;color:var(--ink3);font-family:var(--mono)}
+  .camp-more{font-size:11px;color:var(--ink3);align-self:center;padding:0 4px}
+  /* neighbours */
+  .nb-wrap{margin:12px 0 6px}
+  .nb-head{font-size:14px;color:var(--ink);margin-bottom:10px}
+  .nb-total{font-size:11.5px;color:var(--ink3);font-family:var(--mono);margin:0 4px}
+  .nb-row{display:grid;grid-template-columns:200px 1fr 56px;align-items:center;gap:10px;margin-bottom:5px}
+  .nb-lbl{font-size:12.5px;color:var(--ink2);text-align:right;background:none;border:0;cursor:pointer;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nb-lbl:hover{color:var(--accent)}
+  .nb-bar{height:18px;background:var(--chip);border-radius:5px;overflow:hidden;cursor:pointer}
+  .nb-fill{display:block;height:100%;background:linear-gradient(90deg,#FF9656,#F14575);border-radius:5px}
+  .nb-val{font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;font-family:var(--mono)}
+  @media(max-width:560px){.nb-row{grid-template-columns:120px 1fr 48px}}
   .mx-cell.empty{cursor:default;background:repeating-linear-gradient(45deg,transparent,transparent 4px,var(--line2) 4px,var(--line2) 5px);opacity:.22}
   .mx-cell.diag{color:var(--ink3);font-style:italic;background:var(--chip)}
   .mx-cell.gap{background:rgba(146,112,244,.20);color:#9270F4;font-weight:700}
@@ -469,7 +493,10 @@
     <div class="mx-modebar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button id="mapModeGraph" class="mx-mode on" type="button">◌ Graph</button>
       <button id="mapModeMatrix" class="mx-mode" type="button">▦ Matrix</button>
-      <button id="mapModeHeat" class="mx-mode" type="button">▥ Full heatmap</button>
+      <button id="mapModeChord" class="mx-mode" type="button">❋ Chord</button>
+      <button id="mapModeClusters" class="mx-mode" type="button">⬡ Clusters</button>
+      <button id="mapModeNeighbors" class="mx-mode" type="button">▤ Neighbours</button>
+      <button id="mapModeHeat" class="mx-mode" type="button">▥ Heatmap</button>
       <span class="mx-tier" style="margin-left:auto">
         <button id="mxTierHand" class="mx-tier-btn on" type="button" title="Syed's hand-coded corpus — the verified set (167 constructs)">Hand-coded</button>
         <button id="mxTierRec" class="mx-tier-btn" type="button" title="Also count the recent auto-fetched tier (2024→, single fetch-tag). Machine-matched — verify.">+ Recent</button>
@@ -511,15 +538,42 @@
       <div id="mxLeads" class="mx-leads" hidden></div>
     </div>
 
-    <!-- FULL HEATMAP (every construct × every construct, canvas) -->
-    <div id="mapHeat" hidden>
-      <div class="filters" style="grid-template-columns:auto 1fr;position:static">
-        <label class="yr">Zoom <input type="range" id="heatZoom" min="2" max="16" value="3" style="width:150px"></label>
-        <span id="heatInfo" style="font-size:12px;color:var(--ink3);text-align:right"></span>
+    <!-- CHORD (top constructs on a ring, ribbons = co-occurrence) -->
+    <div id="mapChord" hidden>
+      <div class="filters" style="grid-template-columns:auto auto 1fr;position:static">
+        <label class="yr">Constructs <input type="range" id="chordN" min="12" max="40" value="26" style="width:140px"></label>
+        <span id="chordNV" style="font-size:13px;font-weight:600">26</span>
+        <span id="chordInfo" style="font-size:12px;color:var(--ink3);text-align:right"></span>
       </div>
-      <div id="heatReadout" class="heat-readout">Hover any cell to read the pair · click to open those papers</div>
-      <div id="heatWrap" class="heat-wrap"><canvas id="heatCanvas"></canvas><div id="heatTip" class="spec-tip"></div></div>
-      <p class="mx-note">The whole field at once — every construct on both axes, ordered by how much it's studied (densest top-left). Colour = how often the row × column constructs are studied together (log scale). Hover to identify a pair, drag <b>Zoom</b> to read a region, click a cell to read those papers. Recent corpus is machine-matched — verify before citing; <b>colour = how much, not direction</b>.</p>
+      <div id="chordWrap" style="position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin:10px 0;overflow:hidden">
+        <svg id="chordSvg" width="100%" height="660" style="display:block"></svg>
+        <div id="chordTip" class="spec-tip"></div>
+      </div>
+      <p class="mx-note">The most-studied constructs on a ring; each ribbon links two studied together — thicker = more papers. Hover a construct to isolate its links, click a ribbon to read those papers. Recent corpus — machine-matched, verify; <b>weight = how much, not direction</b>.</p>
+    </div>
+
+    <!-- CLUSTERS (research camps) -->
+    <div id="mapClusters" hidden>
+      <div id="clustersInfo" style="font-size:12px;color:var(--ink3);margin:10px 0 2px"></div>
+      <div id="clustersWrap" class="clusters-wrap"></div>
+      <p class="mx-note">Research <b>camps</b> — constructs grouped by which others they're most studied alongside (normalised co-occurrence; deterministic, no themes invented — the groupings come straight from the counts). Each card = a camp named by its hub; click a construct to read its papers. Recent corpus — verify.</p>
+    </div>
+
+    <!-- NEIGHBOURS (one construct → its top partners as bars) -->
+    <div id="mapNeighbors" hidden>
+      <div class="spec-pickwrap"><div class="spec-picker">
+        <input type="text" id="nbSearch" class="spec-search" placeholder="Pick a construct…" autocomplete="off">
+        <div id="nbPalette" class="spec-palette"></div>
+      </div></div>
+      <div id="nbWrap" class="nb-wrap"></div>
+      <p class="mx-note">Pick a construct to see what it's most studied alongside — bar length = papers coding both. Click a bar to read those papers, or the label to jump to that construct. Recent corpus — verify.</p>
+    </div>
+
+    <!-- HEATMAP (readable: top ~40, labelled, camp-ordered) -->
+    <div id="mapHeat" hidden>
+      <div id="heatInfo" style="font-size:12px;color:var(--ink3);margin:10px 0 4px"></div>
+      <div id="heatGridWrap" class="mx-gridwrap"><div id="heatGrid"></div><div id="heatTip" class="spec-tip"></div></div>
+      <p class="mx-note">The top ~40 constructs as a labelled grid, reordered so camp-mates sit together (blocks = related constructs). Cell = papers studying both; click to read them. Recent corpus — machine-matched, verify; <b>colour = how much, not direction</b>.</p>
     </div>
   </section>
 
@@ -1076,12 +1130,10 @@ function coocPairs(){
 function lerpColor(t){const c1=[255,150,86],c2=[241,69,117],c3=[146,112,244],mix=(a,b,u)=>a.map((v,i)=>Math.round(v+(b[i]-v)*u));const c=t<0.5?mix(c1,c2,t*2):mix(c2,c3,(t-0.5)*2);return`rgb(${c[0]},${c[1]},${c[2]})`;}
 /* Map view = two lenses on the same co-occurrence: Graph (force web) ↔ Matrix (pick 2–3, read the cell). */
 function renderMap(){
-  const m=MX.mode;
-  $('#mapGraph').hidden=m!=='graph'; $('#mapMatrix').hidden=m!=='matrix'; $('#mapHeat').hidden=m!=='heat';
-  $('#mapModeGraph').classList.toggle('on',m==='graph');
-  $('#mapModeMatrix').classList.toggle('on',m==='matrix');
-  $('#mapModeHeat').classList.toggle('on',m==='heat');
-  if(m==='matrix')renderMatrix(); else if(m==='heat')renderHeatmap(); else renderGraph();
+  const m=MX.mode,V={graph:'Graph',matrix:'Matrix',chord:'Chord',clusters:'Clusters',neighbors:'Neighbors',heat:'Heat'};
+  $('#mapGraph').hidden=m!=='graph';$('#mapMatrix').hidden=m!=='matrix';$('#mapChord').hidden=m!=='chord';$('#mapClusters').hidden=m!=='clusters';$('#mapNeighbors').hidden=m!=='neighbors';$('#mapHeat').hidden=m!=='heat';
+  for(const k in V)$('#mapMode'+V[k]).classList.toggle('on',m===k);
+  if(m==='matrix')renderMatrix();else if(m==='chord')renderChord();else if(m==='clusters')renderClusters();else if(m==='neighbors')renderNeighbors();else if(m==='heat')renderHeatmap();else renderGraph();
 }
 function renderGraph(){
   if(MX.corpus)return renderGraphCorpus();
@@ -1246,44 +1298,141 @@ function mxHeatData(){
     valOf=(a,b)=>{if(a===b)return sm[ord[a]];const ca=ord[a],cb=ord[b],k=ca<cb?ca+'::'+cb:cb+'::'+ca;return pm.get(k)||0;};
     max=Math.max(...pm.values(),1);
   }
-  return MX._heat[key]={labels,ids,solo,valOf,max,N};
+  // derive ordered pair list + adjacency once (used by chord / clusters / neighbours)
+  const pairs=[],adj=Array.from({length:N},()=>[]);
+  for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){const v=valOf(i,j);if(v){pairs.push([i,j,v]);adj[i].push([j,v]);adj[j].push([i,v]);}}
+  pairs.sort((a,b)=>b[2]-a[2]);
+  adj.forEach(a=>a.sort((x,y)=>y[1]-x[1]));
+  return MX._heat[key]={labels,ids,solo,valOf,max,N,pairs,adj};
+}
+// Research "camps": diverse hub seeds + assign each construct to its strongest hub
+// (normalised by size so big constructs don't swallow everything). Deterministic, No-fab.
+function mxCamps(D,nSeeds){
+  if(D._camps)return D._camps;
+  const N=D.N,n=D.solo,norm=(i,j)=>{const v=D.valOf(i,j);return v?v/Math.sqrt(n[i]*n[j]):0;};
+  const cap=Math.min(N,120),seeds=[];
+  for(let c=0;c<cap&&seeds.length<(nSeeds||8);c++){ if(seeds.every(s=>norm(c,s)<0.04))seeds.push(c); }
+  const camps=seeds.map(s=>({seed:s,members:[]}));
+  for(let i=0;i<N;i++){let best=-1,bestS=0;for(let k=0;k<seeds.length;k++){const sc=i===seeds[k]?1e9:norm(i,seeds[k]);if(sc>bestS){bestS=sc;best=k;}}
+    if(best>=0)camps[best].members.push(i);}
+  camps.forEach(c=>{c.members.sort((a,b)=>n[b]-n[a]);c.papers=c.members.reduce((s,i)=>s+n[i],0);});
+  return D._camps=camps.filter(c=>c.members.length).sort((a,b)=>b.papers-a.papers);
+}
+// top-K constructs reordered so camp-mates sit together (for the readable heatmap)
+function mxClusterOrder(D,K){
+  const camps=mxCamps(D),top=new Set([...Array(Math.min(D.N,K)).keys()]),out=[];
+  for(const c of camps)for(const m of c.members)if(top.has(m))out.push(m);
+  for(let i=0;i<Math.min(D.N,K);i++)if(!out.includes(i))out.push(i);
+  return out.slice(0,K);
 }
 function heatColor(t){const a=(0.15+0.85*t).toFixed(3);const c=t<0.55?[241,69,117]:[150,110,245];return`rgba(${c[0]},${c[1]},${c[2]},${a})`;}
+const shortLbl=(s,n=16)=>s.length>n?s.slice(0,n-1)+'…':s;
+function vizDrill(D,a,b){const ids=b==null?[D.ids[a]]:[D.ids[a],D.ids[b]];if(MX.corpus)ccOpenPapers(ids);else mxOpenPapers(ids);}
+const tierLbl=()=>MX.corpus?'recent corpus — machine-matched, verify':MX.recent?'hand + recent':'hand-coded';
+
+/* ---- HEATMAP (readable: top ~40, labelled, camp-ordered) ---- */
 function renderHeatmap(){
   if(MX.corpus&&!CC.loaded){loadCorpus().then(renderHeatmap);return;}
-  const D=mxHeatData(),N=D.N,wrap=$('#heatWrap'),canvas=$('#heatCanvas');
-  if(!N){$('#heatInfo').textContent='no constructs';return;}
-  const availW=Math.max(320,wrap.clientWidth-4),fit=Math.max(2,Math.floor(availW/N)),z=$('#heatZoom');
-  let cell; if(z.dataset.touched==='1')cell=+z.value; else{cell=fit;z.value=Math.max(+z.min,Math.min(+z.max,fit));}
-  const size=N*cell,ctx=canvas.getContext('2d');
-  canvas.width=size;canvas.height=size;canvas.style.width=size+'px';canvas.style.height=size+'px';
-  ctx.clearRect(0,0,size,size);
-  const lmax=Math.log(1+D.max)||1;
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
-    if(i===j){ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(j*cell,i*cell,cell,cell);continue;}
-    const v=D.valOf(i,j); if(!v)continue;
-    ctx.fillStyle=heatColor(Math.log(1+v)/lmax); ctx.fillRect(j*cell,i*cell,cell,cell);
+  const D=mxHeatData();if(!D.N){$('#heatGrid').innerHTML='';return;}
+  const ord=mxClusterOrder(D,Math.min(40,D.N)),n=ord.length,lmax=Math.log(1+D.max)||1;
+  const bg=v=>{if(!v)return'';const t=Math.log(1+v)/lmax;return`background:${heatColor(t)};color:${t>0.55?'#fff':'var(--ink)'}`;};
+  let h='<table class="mx-table"><thead><tr><th class="mx-corner"></th>';
+  for(let c=0;c<n;c++)h+=`<th class="mx-colhead" data-hi="${c}" title="${esc(D.labels[ord[c]])}">${c+1}</th>`;
+  h+='</tr></thead><tbody>';
+  for(let r=0;r<n;r++){const i=ord[r];
+    h+=`<tr><th class="mx-rowhead" data-hi="${r}" title="${esc(D.labels[i])}"><span class="mx-rownum">${r+1}</span>${esc(D.labels[i])}</th>`;
+    for(let c=0;c<n;c++){const j=ord[c];
+      if(i===j){h+=`<td class="mx-cell diag" data-r="${r}" data-c="${c}">${D.solo[i]}</td>`;continue;}
+      const v=D.valOf(i,j);h+=`<td class="mx-cell" data-r="${r}" data-c="${c}" style="${bg(v)}">${v||''}</td>`;
+    }
+    h+='</tr>';
   }
-  canvas._D=D;canvas._cell=cell;
-  $('#heatInfo').textContent=`${N} × ${N} constructs · ${MX.corpus?'recent corpus (machine-matched — verify)':MX.recent?'hand + recent':'hand-coded'}`;
+  $('#heatGrid').innerHTML=h+'</tbody></table>';$('#heatGrid')._ord=ord;$('#heatGrid')._D=D;
+  $('#heatInfo').textContent=`Top ${n} constructs, camp-ordered · ${tierLbl()}`;
 }
-(function heatEvents(){
-  const wrap=$('#heatWrap'),canvas=$('#heatCanvas'),tip=$('#heatTip');
-  const cellAt=(e)=>{const r=canvas.getBoundingClientRect(),cell=canvas._cell||3;return{i:Math.floor((e.clientY-r.top)/cell),j:Math.floor((e.clientX-r.left)/cell),cell,r};};
-  canvas.addEventListener('mousemove',e=>{const D=canvas._D;if(!D)return;const{i,j,r}=cellAt(e);
-    if(i<0||j<0||i>=D.N||j>=D.N){tip.style.display='none';return;}
-    const v=D.valOf(i,j),both=i===j?`${D.solo[i].toLocaleString()} papers (total)`:`${v.toLocaleString()} papers code both`;
-    tip.innerHTML=`<b>${esc(D.labels[i])}</b> × <b>${esc(D.labels[j])}</b><br>${both}${i!==j&&v?'<br><span style="opacity:.7">click to read them →</span>':''}`;
-    tip.style.display='block';
-    tip.style.left=Math.max(0,e.clientX-r.left+14)+'px';tip.style.top=Math.max(0,e.clientY-r.top+14)+'px';
-    $('#heatReadout').innerHTML=`<b>${esc(D.labels[i])}</b> × <b>${esc(D.labels[j])}</b> — ${both}`;
-  });
-  canvas.addEventListener('mouseleave',()=>{tip.style.display='none';});
-  canvas.addEventListener('click',e=>{const D=canvas._D;if(!D)return;const{i,j}=cellAt(e);
-    if(i<0||j<0||i>=D.N||j>=D.N||i===j||!D.valOf(i,j))return;
-    if(MX.corpus)ccOpenPapers([D.ids[i],D.ids[j]]);else mxOpenPapers([D.ids[i],D.ids[j]]);});
+(function heatGridEvents(){
+  const wrap=$('#heatGridWrap'),grid=$('#heatGrid'),tip=$('#heatTip');
+  grid.addEventListener('mousemove',e=>{const td=e.target.closest('.mx-cell'),D=grid._D,ord=grid._ord;if(!td||!D){tip.style.display='none';return;}
+    const i=ord[+td.dataset.r],j=ord[+td.dataset.c],v=D.valOf(i,j),both=i===j?`${D.solo[i].toLocaleString()} papers (total)`:`${v.toLocaleString()} papers code both`;
+    tip.innerHTML=`<b>${esc(D.labels[i])}</b> × <b>${esc(D.labels[j])}</b><br>${both}${i!==j&&v?'<br><span style="opacity:.7">click to read →</span>':''}`;
+    tip.style.display='block';const wr=wrap.getBoundingClientRect();
+    tip.style.left=Math.min(e.clientX-wr.left+14,wr.width-230)+'px';tip.style.top=(e.clientY-wr.top+14)+'px';});
+  grid.addEventListener('mouseleave',()=>{tip.style.display='none';});
+  grid.addEventListener('click',e=>{const td=e.target.closest('.mx-cell'),D=grid._D,ord=grid._ord;if(!td||!D)return;const i=ord[+td.dataset.r],j=ord[+td.dataset.c];if(i===j||!D.valOf(i,j))return;vizDrill(D,i,j);});
 })();
-$('#heatZoom').oninput=()=>{$('#heatZoom').dataset.touched='1';renderHeatmap();};
+
+/* ---- CHORD (top constructs on a ring, ribbons = co-occurrence) ---- */
+function renderChord(){
+  if(MX.corpus&&!CC.loaded){loadCorpus().then(renderChord);return;}
+  const D=mxHeatData(),K=Math.min(+$('#chordN').value,D.N),svg=$('#chordSvg');
+  if(!D.N){svg.innerHTML='';return;}
+  const W=Math.max(360,$('#chordWrap').clientWidth),H=660,cx=W/2,cy=H/2,R=Math.min(W,H)/2-118;
+  const ang=i=>(-Math.PI/2)+i/K*Math.PI*2,pt=i=>({x:cx+Math.cos(ang(i))*R,y:cy+Math.sin(ang(i))*R});
+  const edges=[];let mx=1;for(let a=0;a<K;a++)for(let b=a+1;b<K;b++){const v=D.valOf(a,b);if(v){edges.push([a,b,v]);mx=Math.max(mx,v);}}
+  edges.sort((x,y)=>x[2]-y[2]);
+  let s='';
+  for(const[a,b,v]of edges){const p=pt(a),q=pt(b),t=v/mx;
+    s+=`<path class="chord-rib" d="M${p.x.toFixed(1)} ${p.y.toFixed(1)} Q ${cx} ${cy} ${q.x.toFixed(1)} ${q.y.toFixed(1)}" fill="none" stroke="${lerpColor(t)}" stroke-width="${(0.5+t*5).toFixed(2)}" stroke-opacity="${(0.1+t*0.45).toFixed(2)}" data-a="${a}" data-b="${b}" data-v="${v}"></path>`;}
+  const r0=D.solo[0]||1;
+  for(let i=0;i<K;i++){const p=pt(i),la=ang(i),deg=la*180/Math.PI,flip=Math.cos(la)<0,lx=cx+Math.cos(la)*(R+9),ly=cy+Math.sin(la)*(R+9);
+    s+=`<circle class="chord-node" data-i="${i}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(3+Math.sqrt(D.solo[i]/r0)*6).toFixed(1)}" fill="${lerpColor(i/K)}"></circle>`;
+    s+=`<text class="chord-lbl" data-i="${i}" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" transform="rotate(${(flip?deg+180:deg).toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})" text-anchor="${flip?'end':'start'}">${esc(shortLbl(D.labels[i],20))}</text>`;}
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML=s;svg._D=D;
+  $('#chordInfo').textContent=`${K} constructs · ${edges.length} links · ${tierLbl()}`;
+}
+(function chordEvents(){
+  const svg=$('#chordSvg'),tip=$('#chordTip'),wrap=$('#chordWrap');
+  const show=e=>{const wr=wrap.getBoundingClientRect();tip.style.display='block';tip.style.left=Math.min(e.clientX-wr.left+14,wr.width-230)+'px';tip.style.top=(e.clientY-wr.top+14)+'px';};
+  svg.addEventListener('mousemove',e=>{const D=svg._D;if(!D)return;const rib=e.target.closest('.chord-rib'),node=e.target.closest('.chord-node,.chord-lbl');
+    if(rib){tip.innerHTML=`<b>${esc(D.labels[+rib.dataset.a])}</b> × <b>${esc(D.labels[+rib.dataset.b])}</b><br>${(+rib.dataset.v).toLocaleString()} papers code both<br><span style="opacity:.7">click to read →</span>`;show(e);}
+    else if(node){const i=+node.dataset.i;tip.innerHTML=`<b>${esc(D.labels[i])}</b><br>${D.solo[i].toLocaleString()} papers · <span style="opacity:.7">click → its neighbours</span>`;show(e);}
+    else tip.style.display='none';});
+  svg.addEventListener('mouseover',e=>{const node=e.target.closest('.chord-node,.chord-lbl');if(!node)return;const i=node.dataset.i;
+    svg.querySelectorAll('.chord-rib').forEach(r=>{r.style.strokeOpacity=(r.dataset.a===i||r.dataset.b===i)?'.9':'.04';});});
+  svg.addEventListener('mouseout',e=>{if(e.target.closest('.chord-node,.chord-lbl'))svg.querySelectorAll('.chord-rib').forEach(r=>r.style.strokeOpacity='');});
+  svg.addEventListener('mouseleave',()=>{tip.style.display='none';});
+  svg.addEventListener('click',e=>{const D=svg._D;if(!D)return;const rib=e.target.closest('.chord-rib');if(rib){vizDrill(D,+rib.dataset.a,+rib.dataset.b);return;}
+    const node=e.target.closest('.chord-node,.chord-lbl');if(node){MX.nb=D.ids[+node.dataset.i];MX.mode='neighbors';renderMap();}});
+})();
+$('#chordN').oninput=()=>{$('#chordNV').textContent=$('#chordN').value;renderChord();};
+
+/* ---- CLUSTERS (research camps) ---- */
+const CAMP_COLS=['#F14575','#9270F4','#FF9656','#22d3ee','#4ade80','#f59e0b','#ec4899','#38bdf8'];
+function renderClusters(){
+  if(MX.corpus&&!CC.loaded){loadCorpus().then(renderClusters);return;}
+  const D=mxHeatData(),camps=mxCamps(D);
+  $('#clustersInfo').innerHTML=`${camps.length} camps · ${tierLbl()} — grouped by normalised co-occurrence`;
+  let h='';
+  camps.forEach((c,ci)=>{h+=`<div class="camp-card" style="--cc:${CAMP_COLS[ci%CAMP_COLS.length]}"><div class="camp-h"><span class="camp-dot"></span><b>${esc(D.labels[c.seed])}</b> camp <span class="camp-n">${c.members.length} constructs · ${c.papers.toLocaleString()} papers</span></div><div class="camp-members">`+
+    c.members.slice(0,20).map(m=>`<button class="camp-chip" data-i="${m}">${esc(D.labels[m])}<span class="camp-chip-n">${D.solo[m].toLocaleString()}</span></button>`).join('')+
+    (c.members.length>20?`<span class="camp-more">+${c.members.length-20} more</span>`:'')+'</div></div>';});
+  const w=$('#clustersWrap');w.innerHTML=h;w._D=D;
+}
+$('#clustersWrap').onclick=e=>{const b=e.target.closest('.camp-chip'),D=$('#clustersWrap')._D;if(b&&D)vizDrill(D,+b.dataset.i);};
+
+/* ---- NEIGHBOURS (one construct → its top partners as bars) ---- */
+function nbRenderPalette(D){
+  const q=($('#nbSearch').value||'').trim().toLowerCase();
+  let list=D.ids.map((id,i)=>({i,label:D.labels[i],n:D.solo[i]}));
+  if(q)list=list.filter(c=>c.label.toLowerCase().includes(q));
+  $('#nbPalette').innerHTML=list.slice(0,40).map(c=>`<button class="spec-pal-chip${D.ids[c.i]===MX.nb?' on':''}" data-pi="${c.i}">${esc(c.label)}<span class="pc-n">${c.n}</span></button>`).join('');
+}
+function renderNeighbors(){
+  if(MX.corpus&&!CC.loaded){loadCorpus().then(renderNeighbors);return;}
+  const D=mxHeatData();if(!D.N){$('#nbWrap').innerHTML='';return;}
+  nbRenderPalette(D);
+  let i=MX.nb!=null?D.ids.indexOf(MX.nb):0;if(i<0)i=0;MX.nb=D.ids[i];
+  const partners=(D.adj[i]||[]).slice(0,18),max=partners.length?partners[0][1]:1;
+  let h=`<div class="nb-head"><b>${esc(D.labels[i])}</b> <span class="nb-total">${D.solo[i].toLocaleString()} papers</span> — most studied alongside:</div>`;
+  if(!partners.length)h+='<div style="color:var(--ink3);padding:14px 2px">No co-studied constructs on record.</div>';
+  for(const[j,v]of partners)h+=`<div class="nb-row" data-j="${j}"><button class="nb-lbl" data-jl="${j}" title="See this construct's neighbours">${esc(D.labels[j])}</button><span class="nb-bar"><span class="nb-fill" style="width:${(v/max*100).toFixed(1)}%"></span></span><span class="nb-val">${v.toLocaleString()}</span></div>`;
+  const w=$('#nbWrap');w.innerHTML=h;w._D=D;
+  $('#nbWrap')._i=i;
+}
+$('#nbSearch').oninput=()=>nbRenderPalette(mxHeatData());
+$('#nbPalette').onclick=e=>{const b=e.target.closest('[data-pi]');if(!b)return;MX.nb=mxHeatData().ids[+b.dataset.pi];renderNeighbors();};
+$('#nbWrap').onclick=e=>{const D=$('#nbWrap')._D;if(!D)return;const lbl=e.target.closest('[data-jl]');if(lbl){MX.nb=D.ids[+lbl.dataset.jl];renderNeighbors();return;}
+  const row=e.target.closest('[data-j]');if(row)vizDrill(D,$('#nbWrap')._i,+row.dataset.j);};
 
 /* Excel export — full co-occurrence matrix + pair list + construct totals (active tier). */
 let _xlsxP;
@@ -1464,6 +1613,9 @@ function mxOpenPapers(codes){
 }
 $('#mapModeGraph').onclick=()=>{MX.mode='graph';renderMap();};
 $('#mapModeMatrix').onclick=()=>{MX.mode='matrix';renderMap();};
+$('#mapModeChord').onclick=()=>{MX.mode='chord';renderMap();};
+$('#mapModeClusters').onclick=()=>{MX.mode='clusters';renderMap();};
+$('#mapModeNeighbors').onclick=()=>{MX.mode='neighbors';renderMap();};
 $('#mapModeHeat').onclick=()=>{MX.mode='heat';renderMap();};
 function mxSetTier(t){   // t: 'hand' | 'rec' | 'corpus' — shared by Graph + Matrix
   if(t==='corpus'||MX._lastTier==='corpus')MX.sel=[];   // construct codes differ between tiers

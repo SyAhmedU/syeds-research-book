@@ -57,11 +57,22 @@ try {
   ok('leads panel visible', await page.evaluate(() => { const l = document.querySelector('#mxLeads'); return l && !l.hidden && l.querySelectorAll('.mx-lead-row').length > 0; }));
   ok('note says recent corpus', /recent corpus/i.test(await page.evaluate(() => document.querySelector('#mxNote').textContent)));
 
-  // full heatmap: every construct on a canvas
+  // chord
+  await page.click('#mapModeChord');
+  await page.waitForFunction(() => document.querySelectorAll('#chordSvg .chord-rib').length > 20, { timeout: 10000 });
+  ok('chord renders ribbons + nodes', await page.evaluate(() => document.querySelectorAll('#chordSvg .chord-node').length >= 12 && document.querySelectorAll('#chordSvg .chord-rib').length > 20));
+  // clusters
+  await page.click('#mapModeClusters');
+  await page.waitForFunction(() => document.querySelectorAll('.camp-card').length > 2, { timeout: 8000 });
+  ok('clusters render research camps', await page.evaluate(() => document.querySelectorAll('.camp-card').length >= 4), await page.evaluate(() => document.querySelectorAll('.camp-card').length + ' camps'));
+  // neighbours
+  await page.click('#mapModeNeighbors');
+  await page.waitForFunction(() => document.querySelectorAll('.nb-row').length > 3, { timeout: 8000 });
+  ok('neighbours render ranked bars', await page.evaluate(() => document.querySelectorAll('.nb-row').length > 3));
+  // readable heatmap (DOM grid)
   await page.click('#mapModeHeat');
-  await page.waitForFunction(() => { const c = document.querySelector('#heatCanvas'); return c && c.width > 200; }, { timeout: 10000 });
-  ok('heatmap canvas renders full matrix', await page.evaluate(() => document.querySelector('#heatCanvas').width > 200), await page.evaluate(() => document.querySelector('#heatInfo').textContent));
-  ok('heatmap covers all non-zero constructs', /3\d\d × 3\d\d|[1-9]\d\d × \d/.test(await page.evaluate(() => document.querySelector('#heatInfo').textContent)));
+  await page.waitForFunction(() => document.querySelectorAll('#heatGrid .mx-cell').length > 200, { timeout: 8000 });
+  ok('readable heatmap grid renders', await page.evaluate(() => document.querySelectorAll('#heatGrid .mx-cell').length > 200));
   ok('Excel export button present', await page.evaluate(() => !!document.querySelector('#heatExport')));
   await page.click('#mapModeMatrix'); // back for the drill test
   await page.waitForFunction(() => document.querySelectorAll('#mxGrid .mx-cell').length > 50, { timeout: 8000 });
