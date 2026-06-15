@@ -475,6 +475,7 @@
         <button id="mxTierRec" class="mx-tier-btn" type="button" title="Also count the recent auto-fetched tier (2024→, single fetch-tag). Machine-matched — verify.">+ Recent</button>
         <button id="mxTierCorpus" class="mx-tier-btn" type="button" title="Recent corpus: 408 clean constructs extracted from 79K titles + abstracts; real multi-construct co-occurrence. Machine-matched — verify before citing.">Recent corpus · 408</button>
       </span>
+      <button id="heatExport" class="mx-mode" type="button" style="margin-left:8px" title="Download the full co-occurrence matrix + pair list + construct totals as an .xlsx workbook (active tier)">⬇ Excel</button>
     </div>
 
     <!-- GRAPH (force-directed, hand-coded corpus) -->
@@ -512,9 +513,8 @@
 
     <!-- FULL HEATMAP (every construct × every construct, canvas) -->
     <div id="mapHeat" hidden>
-      <div class="filters" style="grid-template-columns:auto auto 1fr;position:static">
+      <div class="filters" style="grid-template-columns:auto 1fr;position:static">
         <label class="yr">Zoom <input type="range" id="heatZoom" min="2" max="16" value="3" style="width:150px"></label>
-        <button id="heatExport" class="mx-tier-btn" type="button" style="border-radius:8px" title="Download the full co-occurrence matrix + pair list as an .xlsx workbook">⬇ Excel</button>
         <span id="heatInfo" style="font-size:12px;color:var(--ink3);text-align:right"></span>
       </div>
       <div id="heatReadout" class="heat-readout">Hover any cell to read the pair · click to open those papers</div>
