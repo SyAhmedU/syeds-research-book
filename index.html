@@ -336,6 +336,9 @@
   .mx-rowcode{font-family:var(--mono);font-size:9.5px;color:var(--ink3);margin-left:6px}
   .mx-rownum{display:inline-block;min-width:16px;font-family:var(--mono);font-size:9.5px;color:var(--ink3);margin-right:7px;text-align:right}
   .mx-cell{width:34px;min-width:34px;height:32px;text-align:center;cursor:pointer;font-variant-numeric:tabular-nums}
+  .heat-wrap{position:relative;overflow:auto;max-height:80vh;border:1px solid var(--line);border-radius:var(--radius);background:var(--bg2);margin:10px 0 6px}
+  .heat-readout{font-size:12.5px;color:var(--ink2);min-height:18px;padding:5px 2px}
+  #heatCanvas{display:block;image-rendering:pixelated;cursor:crosshair}
   .mx-cell.empty{cursor:default;background:repeating-linear-gradient(45deg,transparent,transparent 4px,var(--line2) 4px,var(--line2) 5px);opacity:.22}
   .mx-cell.diag{color:var(--ink3);font-style:italic;background:var(--chip)}
   .mx-cell.gap{background:rgba(146,112,244,.20);color:#9270F4;font-weight:700}
@@ -466,6 +469,7 @@
     <div class="mx-modebar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button id="mapModeGraph" class="mx-mode on" type="button">◌ Graph</button>
       <button id="mapModeMatrix" class="mx-mode" type="button">▦ Matrix</button>
+      <button id="mapModeHeat" class="mx-mode" type="button">▥ Full heatmap</button>
       <span class="mx-tier" style="margin-left:auto">
         <button id="mxTierHand" class="mx-tier-btn on" type="button" title="Syed's hand-coded corpus — the verified set (167 constructs)">Hand-coded</button>
         <button id="mxTierRec" class="mx-tier-btn" type="button" title="Also count the recent auto-fetched tier (2024→, single fetch-tag). Machine-matched — verify.">+ Recent</button>
@@ -504,6 +508,18 @@
       <div id="mxLegend" class="mx-legend"></div>
       <p class="mx-note" id="mxNote"></p>
       <div id="mxLeads" class="mx-leads" hidden></div>
+    </div>
+
+    <!-- FULL HEATMAP (every construct × every construct, canvas) -->
+    <div id="mapHeat" hidden>
+      <div class="filters" style="grid-template-columns:auto auto 1fr;position:static">
+        <label class="yr">Zoom <input type="range" id="heatZoom" min="2" max="16" value="3" style="width:150px"></label>
+        <button id="heatExport" class="mx-tier-btn" type="button" style="border-radius:8px" title="Download the full co-occurrence matrix + pair list as an .xlsx workbook">⬇ Excel</button>
+        <span id="heatInfo" style="font-size:12px;color:var(--ink3);text-align:right"></span>
+      </div>
+      <div id="heatReadout" class="heat-readout">Hover any cell to read the pair · click to open those papers</div>
+      <div id="heatWrap" class="heat-wrap"><canvas id="heatCanvas"></canvas><div id="heatTip" class="spec-tip"></div></div>
+      <p class="mx-note">The whole field at once — every construct on both axes, ordered by how much it's studied (densest top-left). Colour = how often the row × column constructs are studied together (log scale). Hover to identify a pair, drag <b>Zoom</b> to read a region, click a cell to read those papers. Recent corpus is machine-matched — verify before citing; <b>colour = how much, not direction</b>.</p>
     </div>
   </section>
 
@@ -1060,8 +1076,12 @@ function coocPairs(){
 function lerpColor(t){const c1=[255,150,86],c2=[241,69,117],c3=[146,112,244],mix=(a,b,u)=>a.map((v,i)=>Math.round(v+(b[i]-v)*u));const c=t<0.5?mix(c1,c2,t*2):mix(c2,c3,(t-0.5)*2);return`rgb(${c[0]},${c[1]},${c[2]})`;}
 /* Map view = two lenses on the same co-occurrence: Graph (force web) ↔ Matrix (pick 2–3, read the cell). */
 function renderMap(){
-  if(MX.mode==='matrix'){$('#mapGraph').hidden=true;$('#mapMatrix').hidden=false;$('#mapModeGraph').classList.remove('on');$('#mapModeMatrix').classList.add('on');renderMatrix();}
-  else{$('#mapMatrix').hidden=true;$('#mapGraph').hidden=false;$('#mapModeMatrix').classList.remove('on');$('#mapModeGraph').classList.add('on');renderGraph();}
+  const m=MX.mode;
+  $('#mapGraph').hidden=m!=='graph'; $('#mapMatrix').hidden=m!=='matrix'; $('#mapHeat').hidden=m!=='heat';
+  $('#mapModeGraph').classList.toggle('on',m==='graph');
+  $('#mapModeMatrix').classList.toggle('on',m==='matrix');
+  $('#mapModeHeat').classList.toggle('on',m==='heat');
+  if(m==='matrix')renderMatrix(); else if(m==='heat')renderHeatmap(); else renderGraph();
 }
 function renderGraph(){
   if(MX.corpus)return renderGraphCorpus();
@@ -1205,6 +1225,92 @@ function ccOpenPapers(ids){
     S.page=0;applyAndRender();setView('library');window.scrollTo(0,0);};
   if(!S.recentLoaded)loadRecent().then(go);else go();
 }
+
+/* ===== FULL HEATMAP — every construct × every construct on a canvas ===== */
+// Tier-aware data: ordered construct list (by prevalence) + a cell value lookup.
+function mxHeatData(){
+  const key=MX.corpus?'corpus':(MX.recent?'rec':'hand');
+  MX._heat=MX._heat||{};
+  if(MX._heat[key])return MX._heat[key];
+  let labels,ids,solo,valOf,max,N;
+  if(MX.corpus){
+    const ord=CC.constructs.map((c,i)=>i).filter(i=>CC.constructs[i].n>0).sort((a,b)=>CC.constructs[b].n-CC.constructs[a].n);
+    labels=ord.map(i=>CC.constructs[i].label); ids=ord.map(i=>CC.constructs[i].id); solo=ord.map(i=>CC.constructs[i].n); N=ord.length;
+    valOf=(a,b)=>{const oa=ord[a],ob=ord[b];if(oa===ob)return CC.constructs[oa].n;const x=Math.min(oa,ob),y=Math.max(oa,ob);return CC.pairMap.get(x+':'+y)||0;};
+    max=Math.max(...CC.pairs.map(p=>p[2]),1);
+  }else{
+    const sm={},pm=new Map();
+    for(const p of S.papers){if(!MX.recent&&p._recent)continue;const cs=[...new Set(p.constructCodes)];for(const c of cs)sm[c]=(sm[c]||0)+1;for(let a=0;a<cs.length;a++)for(let b=a+1;b<cs.length;b++){const k=cs[a]<cs[b]?cs[a]+'::'+cs[b]:cs[b]+'::'+cs[a];pm.set(k,(pm.get(k)||0)+1);}}
+    const ord=Object.keys(sm).sort((a,b)=>sm[b]-sm[a]);
+    labels=ord.map(c=>(S.byCode[c]||{}).name||c); ids=ord; solo=ord.map(c=>sm[c]); N=ord.length;
+    valOf=(a,b)=>{if(a===b)return sm[ord[a]];const ca=ord[a],cb=ord[b],k=ca<cb?ca+'::'+cb:cb+'::'+ca;return pm.get(k)||0;};
+    max=Math.max(...pm.values(),1);
+  }
+  return MX._heat[key]={labels,ids,solo,valOf,max,N};
+}
+function heatColor(t){const a=(0.15+0.85*t).toFixed(3);const c=t<0.55?[241,69,117]:[150,110,245];return`rgba(${c[0]},${c[1]},${c[2]},${a})`;}
+function renderHeatmap(){
+  if(MX.corpus&&!CC.loaded){loadCorpus().then(renderHeatmap);return;}
+  const D=mxHeatData(),N=D.N,wrap=$('#heatWrap'),canvas=$('#heatCanvas');
+  if(!N){$('#heatInfo').textContent='no constructs';return;}
+  const availW=Math.max(320,wrap.clientWidth-4),fit=Math.max(2,Math.floor(availW/N)),z=$('#heatZoom');
+  let cell; if(z.dataset.touched==='1')cell=+z.value; else{cell=fit;z.value=Math.max(+z.min,Math.min(+z.max,fit));}
+  const size=N*cell,ctx=canvas.getContext('2d');
+  canvas.width=size;canvas.height=size;canvas.style.width=size+'px';canvas.style.height=size+'px';
+  ctx.clearRect(0,0,size,size);
+  const lmax=Math.log(1+D.max)||1;
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+    if(i===j){ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(j*cell,i*cell,cell,cell);continue;}
+    const v=D.valOf(i,j); if(!v)continue;
+    ctx.fillStyle=heatColor(Math.log(1+v)/lmax); ctx.fillRect(j*cell,i*cell,cell,cell);
+  }
+  canvas._D=D;canvas._cell=cell;
+  $('#heatInfo').textContent=`${N} × ${N} constructs · ${MX.corpus?'recent corpus (machine-matched — verify)':MX.recent?'hand + recent':'hand-coded'}`;
+}
+(function heatEvents(){
+  const wrap=$('#heatWrap'),canvas=$('#heatCanvas'),tip=$('#heatTip');
+  const cellAt=(e)=>{const r=canvas.getBoundingClientRect(),cell=canvas._cell||3;return{i:Math.floor((e.clientY-r.top)/cell),j:Math.floor((e.clientX-r.left)/cell),cell,r};};
+  canvas.addEventListener('mousemove',e=>{const D=canvas._D;if(!D)return;const{i,j,r}=cellAt(e);
+    if(i<0||j<0||i>=D.N||j>=D.N){tip.style.display='none';return;}
+    const v=D.valOf(i,j),both=i===j?`${D.solo[i].toLocaleString()} papers (total)`:`${v.toLocaleString()} papers code both`;
+    tip.innerHTML=`<b>${esc(D.labels[i])}</b> × <b>${esc(D.labels[j])}</b><br>${both}${i!==j&&v?'<br><span style="opacity:.7">click to read them →</span>':''}`;
+    tip.style.display='block';
+    tip.style.left=Math.max(0,e.clientX-r.left+14)+'px';tip.style.top=Math.max(0,e.clientY-r.top+14)+'px';
+    $('#heatReadout').innerHTML=`<b>${esc(D.labels[i])}</b> × <b>${esc(D.labels[j])}</b> — ${both}`;
+  });
+  canvas.addEventListener('mouseleave',()=>{tip.style.display='none';});
+  canvas.addEventListener('click',e=>{const D=canvas._D;if(!D)return;const{i,j}=cellAt(e);
+    if(i<0||j<0||i>=D.N||j>=D.N||i===j||!D.valOf(i,j))return;
+    if(MX.corpus)ccOpenPapers([D.ids[i],D.ids[j]]);else mxOpenPapers([D.ids[i],D.ids[j]]);});
+})();
+$('#heatZoom').oninput=()=>{$('#heatZoom').dataset.touched='1';renderHeatmap();};
+
+/* Excel export — full co-occurrence matrix + pair list + construct totals (active tier). */
+let _xlsxP;
+function loadXLSX(){return _xlsxP||(_xlsxP=new Promise((res,rej)=>{if(window.XLSX)return res(window.XLSX);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=()=>res(window.XLSX);s.onerror=rej;document.head.appendChild(s);}));}
+async function exportMatrixExcel(){
+  const btn=$('#heatExport'),old=btn.textContent;btn.textContent='…building';btn.disabled=true;
+  try{
+    if(MX.corpus&&!CC.loaded)await loadCorpus();
+    const XLSX=await loadXLSX(),D=mxHeatData(),N=D.N,tier=MX.corpus?'recent-corpus':(MX.recent?'hand+recent':'hand-coded');
+    // Constructs sheet
+    const cs=[['Rank','Construct','Papers']];for(let i=0;i<N;i++)cs.push([i+1,D.labels[i],D.solo[i]]);
+    // Pairs (long) sheet — every co-studied pair
+    const ps=[['Construct A','Construct B','Papers studying both']];
+    for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){const v=D.valOf(i,j);if(v)ps.push([D.labels[i],D.labels[j],v]);}
+    ps.length>1&&ps.splice(1,ps.length,...ps.slice(1).sort((a,b)=>b[2]-a[2]));
+    // Full square matrix sheet
+    const mx=[['',...D.labels]];
+    for(let i=0;i<N;i++){const row=[D.labels[i]];for(let j=0;j<N;j++)row.push(D.valOf(i,j));mx.push(row);}
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cs),'Constructs');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ps),'Pairs');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mx),'Matrix');
+    XLSX.writeFile(wb,`research-book-cooccurrence-${tier}.xlsx`);
+  }catch(e){alert('Excel export failed: '+e.message);}
+  finally{btn.textContent=old;btn.disabled=false;}
+}
+$('#heatExport').onclick=exportMatrixExcel;
 function mxTopDefault(n){
   if(MX.corpus)return ccTopDefault(n);
   if(!MX.recent)return S.constructs.slice().sort((a,b)=>(b.paperCount||0)-(a.paperCount||0)).slice(0,n).map(c=>c.code);
@@ -1358,6 +1464,7 @@ function mxOpenPapers(codes){
 }
 $('#mapModeGraph').onclick=()=>{MX.mode='graph';renderMap();};
 $('#mapModeMatrix').onclick=()=>{MX.mode='matrix';renderMap();};
+$('#mapModeHeat').onclick=()=>{MX.mode='heat';renderMap();};
 function mxSetTier(t){   // t: 'hand' | 'rec' | 'corpus' — shared by Graph + Matrix
   if(t==='corpus'||MX._lastTier==='corpus')MX.sel=[];   // construct codes differ between tiers
   MX._lastTier=t; MX.corpus=(t==='corpus'); MX.recent=(t==='rec');

@@ -57,6 +57,15 @@ try {
   ok('leads panel visible', await page.evaluate(() => { const l = document.querySelector('#mxLeads'); return l && !l.hidden && l.querySelectorAll('.mx-lead-row').length > 0; }));
   ok('note says recent corpus', /recent corpus/i.test(await page.evaluate(() => document.querySelector('#mxNote').textContent)));
 
+  // full heatmap: every construct on a canvas
+  await page.click('#mapModeHeat');
+  await page.waitForFunction(() => { const c = document.querySelector('#heatCanvas'); return c && c.width > 200; }, { timeout: 10000 });
+  ok('heatmap canvas renders full matrix', await page.evaluate(() => document.querySelector('#heatCanvas').width > 200), await page.evaluate(() => document.querySelector('#heatInfo').textContent));
+  ok('heatmap covers all non-zero constructs', /3\d\d × 3\d\d|[1-9]\d\d × \d/.test(await page.evaluate(() => document.querySelector('#heatInfo').textContent)));
+  ok('Excel export button present', await page.evaluate(() => !!document.querySelector('#heatExport')));
+  await page.click('#mapModeMatrix'); // back for the drill test
+  await page.waitForFunction(() => document.querySelectorAll('#mxGrid .mx-cell').length > 50, { timeout: 8000 });
+
   // drill-down: click the strongest leads row → Library with papers
   await page.click('#mxLeads .mx-lead-row');
   await page.waitForFunction(() => document.querySelector('#v-library') && !document.querySelector('#v-library').classList.contains('hidden'), { timeout: 8000 });
