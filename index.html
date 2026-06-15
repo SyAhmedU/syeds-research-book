@@ -348,8 +348,20 @@
   .mx-sw.gp{background:rgba(146,112,244,.45);border-color:#9270F4}
   .mx-sw.em{background:repeating-linear-gradient(45deg,transparent,transparent 3px,var(--line2) 3px,var(--line2) 4px)}
   .mx-gapn{font-family:var(--mono);font-size:11px;color:#9270F4;font-weight:700;margin-left:auto}
-  .mx-note{font-size:12px;color:var(--ink3);margin:8px 0 36px}
+  .mx-note{font-size:12px;color:var(--ink3);margin:8px 0 16px}
   .mx-note b{color:var(--ink2)}
+  .mx-leads{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:0 0 36px}
+  .mx-leads[hidden]{display:none}
+  .mx-lead-col{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px 13px}
+  .mx-lead-h{font-size:12px;font-weight:700;letter-spacing:.01em;margin:0 0 4px;display:flex;align-items:center;gap:7px;color:var(--ink)}
+  .mx-lead-h .mx-lead-dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .mx-lead-sub{font-size:10.5px;color:var(--ink3);margin:0 0 8px;line-height:1.3}
+  .mx-lead-row{display:flex;align-items:baseline;gap:8px;padding:6px 0;border-top:1px solid var(--line2);cursor:pointer;font-size:12.5px;color:var(--ink2)}
+  .mx-lead-row:hover{color:var(--accent)}
+  .mx-lead-pair{flex:1;line-height:1.3}
+  .mx-lead-x{color:var(--ink3);font-style:italic;padding:0 1px}
+  .mx-lead-n{font-family:var(--mono);font-size:10.5px;color:var(--ink3);white-space:nowrap;flex:none}
+  .mx-lead-empty{font-size:11.5px;color:var(--ink3);padding:6px 0;border-top:1px solid var(--line2)}
   .xfilter{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink2);background:color-mix(in srgb,var(--accent) 8%,var(--card));border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-radius:999px;padding:4px 6px 4px 12px}
   .xfilter .x-lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
   .x-clr{display:grid;place-items:center;width:18px;height:18px;border-radius:999px;background:none;border:0;color:var(--ink3);font-size:14px;cursor:pointer}
@@ -489,6 +501,7 @@
       <div id="mxGridWrap" class="mx-gridwrap"><div id="mxGrid"></div><div id="mxTip" class="spec-tip"></div></div>
       <div id="mxLegend" class="mx-legend"></div>
       <p class="mx-note" id="mxNote"></p>
+      <div id="mxLeads" class="mx-leads" hidden></div>
     </div>
   </section>
 
@@ -1155,6 +1168,7 @@ function renderMatrix(){
   $('#mxLegend').innerHTML='<span><i class="mx-sw st"></i> studied · darker = more papers</span><span><i class="mx-sw un"></i> rarely studied together</span><span><i class="mx-sw gp"></i> ◆ gap — both well-studied, never together</span><span><i class="mx-sw em"></i> not studied</span>'+(gaps?`<span class="mx-gapn">${gaps} gap${gaps>1?'s':''} flagged</span>`:'');
   $('#mxNote').innerHTML=`Colour shows <b>how much</b> a pair is studied — <b>not</b> the direction. The corpus codes which constructs co-occur, not whether the effect was positive or negative; check the papers for that. Counting ${MX.recent?'hand-coded + recent (recent is machine-matched — verify before citing)':'the hand-coded corpus only'} · click a cell to read those papers.`;
   renderMxReadout();
+  renderMxLeads();
 }
 function renderMxReadout(){
   const el=$('#mxReadout');
@@ -1170,6 +1184,56 @@ function renderMxReadout(){
     h+=`<div class="mx-ro-line mx-ro-all"><span class="mx-ro-pair">All three together</span> — ${fmt(mxMulti(codes))} <button class="mx-see" data-codes="${esc(codes.join('|'))}">See →</button></div>`;
   }
   el.hidden=false;el.innerHTML=h;
+}
+/* Leads — corpus-wide co-occurrence findings (counting only, No-fab). Cached per tier. */
+function mxLeadsData(){
+  const key=MX.recent?'rec':'hand';
+  MX._leads=MX._leads||{};
+  if(MX._leads[key])return MX._leads[key];
+  const solo=Object.create(null),pair=new Map();let N=0;
+  for(const p of S.papers){
+    if(!MX.recent&&p._recent)continue;N++;
+    const cs=p.constructCodes;if(!cs||!cs.length)continue;
+    const u=[...new Set(cs)];
+    for(const c of u)solo[c]=(solo[c]||0)+1;
+    for(let a=0;a<u.length;a++)for(let b=a+1;b<u.length;b++){
+      const k=u[a]<u[b]?u[a]+'::'+u[b]:u[b]+'::'+u[a];
+      pair.set(k,(pair.get(k)||0)+1);
+    }
+  }
+  N=N||1;
+  // prominent = the 50 most-studied constructs (a bounded, defensible "well-studied" set)
+  const prom=Object.keys(solo).sort((x,y)=>solo[y]-solo[x]).slice(0,50);
+  const promSet=new Set(prom);
+  const allPairs=[];for(const [k,v] of pair){const [a,b]=k.split('::');allPairs.push({a,b,v});}
+  const strongest=allPairs.slice().sort((x,y)=>y.v-x.v).slice(0,8);
+  // under = both prominent, real overlap expected (E>=5) yet observed < half of expected
+  const under=allPairs.filter(p=>promSet.has(p.a)&&promSet.has(p.b))
+    .map(p=>{const E=solo[p.a]*solo[p.b]/N;return {a:p.a,b:p.b,v:p.v,E,lift:E>0?p.v/E:0};})
+    .filter(p=>p.E>=5&&p.lift<0.5).sort((x,y)=>x.lift-y.lift).slice(0,8);
+  // gaps = prominent pairs with ZERO co-occurrence, biggest first (both genuinely large)
+  const gaps=[];
+  for(let i=0;i<prom.length;i++)for(let j=i+1;j<prom.length;j++){
+    const a=prom[i],b=prom[j],k=a<b?a+'::'+b:b+'::'+a;
+    if(!pair.has(k))gaps.push({a,b,m:Math.min(solo[a],solo[b])});
+  }
+  gaps.sort((x,y)=>y.m-x.m);
+  return MX._leads[key]={strongest,under,gaps:gaps.slice(0,8)};
+}
+function renderMxLeads(){
+  const el=$('#mxLeads');if(!el)return;
+  if(!S.papers||!S.papers.length){el.hidden=true;return;}
+  const {strongest,under,gaps}=mxLeadsData();
+  const row=(p,right,act)=>`<div class="mx-lead-row" data-a="${esc(p.a)}" data-b="${esc(p.b)}" data-act="${act}" title="${act==='gap'?'Put this pair on the grid':'Read the papers coding both'}"><span class="mx-lead-pair">${mxNm(p.a)} <span class="mx-lead-x">×</span> ${mxNm(p.b)}</span><span class="mx-lead-n">${right}</span></div>`;
+  const col=(dot,title,sub,rows,empty)=>`<div class="mx-lead-col"><div class="mx-lead-h"><i class="mx-lead-dot" style="background:${dot}"></i>${title}</div><p class="mx-lead-sub">${sub}</p>${rows||`<div class="mx-lead-empty">${empty}</div>`}</div>`;
+  const sH=strongest.map(p=>row(p,`${p.v}`,'read')).join('');
+  const uH=under.map(p=>row(p,`${p.v} · ${Math.round(1/p.lift)}× under`,'read')).join('');
+  const gH=gaps.map(p=>row(p,'0 · ◆','gap')).join('');
+  el.hidden=false;
+  el.innerHTML=
+    col('rgba(241,69,117,.78)','Strongest pairs','Most papers coding both — read →',sH,'No co-occurring pairs.')+
+    col('rgba(255,150,86,.95)','Most under-studied','Far below expected co-occurrence — read →',uH,'Nothing notably under-studied.')+
+    col('#9270F4','Biggest gaps','Both well-studied, never together — explore →',gH,'No prominent gaps.');
 }
 function mxOpenPapers(codes){
   F.construct='';$('#fConstruct').value='';F.constructs=codes.slice();
@@ -1187,6 +1251,9 @@ $('#mxPalette').onclick=e=>{const b=e.target.closest('[data-code]');if(b)mxToggl
 $('#mxSelected').onclick=e=>{const b=e.target.closest('[data-rm]');if(b)mxToggle(b.dataset.rm);};
 $('#mxClear').onclick=()=>{MX.sel=[];renderMatrix();};
 $('#mxReadout').onclick=e=>{const b=e.target.closest('.mx-see');if(b)mxOpenPapers(b.dataset.codes.split('|'));};
+$('#mxLeads').onclick=e=>{const r=e.target.closest('.mx-lead-row');if(!r)return;const a=r.dataset.a,b=r.dataset.b;
+  if(r.dataset.act==='gap'){MX.sel=[a,b];renderMatrix();$('#mxGridWrap').scrollIntoView({behavior:'smooth',block:'center'});}
+  else mxOpenPapers([a,b]);};
 (function mxGridEvents(){
   const wrap=$('#mxGridWrap'),grid=$('#mxGrid'),tip=$('#mxTip');
   grid.addEventListener('mouseover',e=>{const td=e.target.closest('.mx-cell');if(!td||td.classList.contains('empty'))return;const codes=grid._codes;if(!codes)return;const i=+td.dataset.i,j=+td.dataset.j;
