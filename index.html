@@ -337,8 +337,18 @@
   .mx-cell{width:34px;min-width:34px;height:32px;text-align:center;cursor:pointer;font-variant-numeric:tabular-nums}
   .mx-cell.empty{cursor:default;background:repeating-linear-gradient(45deg,transparent,transparent 4px,var(--line2) 4px,var(--line2) 5px);opacity:.22}
   .mx-cell.diag{color:var(--ink3);font-style:italic;background:var(--chip)}
+  .mx-cell.gap{background:rgba(146,112,244,.20);color:#9270F4;font-weight:700}
+  .mx-cell.under{box-shadow:inset 0 0 0 1.6px rgba(255,150,86,.85)}
   .mx-cell:not(.empty):hover{outline:2px solid var(--accent);outline-offset:-2px}
-  .mx-note{font-size:12px;color:var(--ink3);margin:6px 0 36px}
+  .mx-legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:10px 0 0;font-size:12px;color:var(--ink2)}
+  .mx-legend span{display:inline-flex;align-items:center;gap:6px}
+  .mx-sw{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid var(--line2);flex:none}
+  .mx-sw.st{background:rgba(241,69,117,.7)}
+  .mx-sw.un{background:rgba(241,69,117,.25);box-shadow:inset 0 0 0 1.6px rgba(255,150,86,.9)}
+  .mx-sw.gp{background:rgba(146,112,244,.45);border-color:#9270F4}
+  .mx-sw.em{background:repeating-linear-gradient(45deg,transparent,transparent 3px,var(--line2) 3px,var(--line2) 4px)}
+  .mx-gapn{font-family:var(--mono);font-size:11px;color:#9270F4;font-weight:700;margin-left:auto}
+  .mx-note{font-size:12px;color:var(--ink3);margin:8px 0 36px}
   .mx-note b{color:var(--ink2)}
   .xfilter{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink2);background:color-mix(in srgb,var(--accent) 8%,var(--card));border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-radius:999px;padding:4px 6px 4px 12px}
   .xfilter .x-lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
@@ -477,6 +487,7 @@
       </div>
       <div id="mxReadout" class="mx-readout" hidden></div>
       <div id="mxGridWrap" class="mx-gridwrap"><div id="mxGrid"></div><div id="mxTip" class="spec-tip"></div></div>
+      <div id="mxLegend" class="mx-legend"></div>
       <p class="mx-note" id="mxNote"></p>
     </div>
   </section>
@@ -1078,7 +1089,12 @@ $('#mapMin').onchange=renderMap;
    filtered to that pair. Replaces the never-finished Spectrum view. */
 const MX={mode:'graph',sel:[],recent:false,MAXSEL:12};
 const MXCAP=24; // axis cap for a readable grid
-function mxTopDefault(n){return S.constructs.slice().sort((a,b)=>(b.paperCount||0)-(a.paperCount||0)).slice(0,n).map(c=>c.code);}
+function mxTopDefault(n){
+  if(!MX.recent)return S.constructs.slice().sort((a,b)=>(b.paperCount||0)-(a.paperCount||0)).slice(0,n).map(c=>c.code);
+  // +Recent on → rank by COMBINED hand-coded + recent paper count
+  const m=Object.create(null);for(const p of S.papers)for(const c of p.constructCodes)m[c]=(m[c]||0)+1;
+  return Object.keys(m).sort((a,b)=>m[b]-m[a]).slice(0,n);
+}
 function mxPartners(code){const t=new Map();for(const p of S.papers){if(!MX.recent&&p._recent)continue;const cs=p.constructCodes;if(cs.indexOf(code)<0)continue;for(const c of cs)if(c!==code)t.set(c,(t.get(c)||0)+1);}return [...t.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);}
 function mxCompute(codeList){const n=codeList.length,idx={};codeList.forEach((c,i)=>idx[c]=i);const set=new Set(codeList);
   const pair=Array.from({length:n},()=>Array.from({length:n},()=>({h:0,r:0})));const solo=codeList.map(()=>({h:0,r:0}));
@@ -1109,7 +1125,17 @@ function renderMatrix(){
   else codeList=MX.sel.slice();
   codeList=[...new Set(codeList)].slice(0,MXCAP);
   const {pair,solo}=mxCompute(codeList),n=codeList.length;
-  let mx=1;for(let i=0;i<n;i++)for(let j=0;j<n;j++)if(i!==j)mx=Math.max(mx,mxVal(pair[i][j]));
+  // gap / coverage analysis — ALL from real counts (no sign/direction is invented):
+  // "prominent" = a construct studied at/above the grid's median; a 0-cell between
+  // two prominent constructs is research white-space; a studied cell far below its
+  // expected co-occurrence (lift<0.35) is "rarely studied together".
+  const N=(MX.recent?S.papers:S.papers.filter(p=>!p._recent)).length||1;
+  const solos=codeList.map((_,i)=>mxVal(solo[i]));
+  // "prominent" bar = 30th percentile of the grid's construct sizes (floor 15) — low
+  // enough that a deliberate 2–3 pick flags correctly, high enough to mean "studied".
+  const promCut=Math.max(15,[...solos].sort((a,b)=>a-b)[Math.floor(solos.length*0.3)]||0);
+  const prom=i=>solos[i]>=promCut;
+  let mx=1,gaps=0;for(let i=0;i<n;i++)for(let j=0;j<n;j++)if(i!==j)mx=Math.max(mx,mxVal(pair[i][j]));
   let h='<table class="mx-table"><thead><tr><th class="mx-corner"></th>';
   for(const c of codeList)h+=`<th class="mx-colhead" data-code="${esc(c)}" title="${mxNm(c)}">${esc(c)}</th>`;
   h+='</tr></thead><tbody>';
@@ -1118,14 +1144,16 @@ function renderMatrix(){
     for(let j=0;j<n;j++){
       if(i===j){const v=mxVal(solo[i]);h+=`<td class="mx-cell diag" data-i="${i}" data-j="${j}">${v||''}</td>`;continue;}
       const v=mxVal(pair[i][j]);
-      if(!v){h+='<td class="mx-cell empty"></td>';continue;}
-      const t=v/mx;h+=`<td class="mx-cell" data-i="${i}" data-j="${j}" style="background:${mxBg(t)};color:${t>0.5?'#fff':'var(--ink)'}">${v}</td>`;
+      if(!v){const gap=prom(i)&&prom(j);if(gap)gaps++;h+=`<td class="mx-cell ${gap?'gap':'empty'}" data-i="${i}" data-j="${j}">${gap?'◆':''}</td>`;continue;}
+      const E=solos[i]*solos[j]/N,under=prom(i)&&prom(j)&&E>0&&v/E<0.35;
+      const t=v/mx;h+=`<td class="mx-cell${under?' under':''}" data-i="${i}" data-j="${j}" style="background:${mxBg(t)};color:${t>0.5?'#fff':'var(--ink)'}">${v}</td>`;
     }
     h+='</tr>';
   }
   h+='</tbody></table>';
   const grid=$('#mxGrid');grid.innerHTML=h;grid._codes=codeList;grid._pair=pair;grid._solo=solo;
-  $('#mxNote').innerHTML=`${n} constructs · cell = papers coding <b>both</b> · darker = more · counting ${MX.recent?'hand-coded + recent (recent is machine-matched — verify before citing)':'the hand-coded corpus only'}. Click a cell to read those papers.`;
+  $('#mxLegend').innerHTML='<span><i class="mx-sw st"></i> studied · darker = more papers</span><span><i class="mx-sw un"></i> rarely studied together</span><span><i class="mx-sw gp"></i> ◆ gap — both well-studied, never together</span><span><i class="mx-sw em"></i> not studied</span>'+(gaps?`<span class="mx-gapn">${gaps} gap${gaps>1?'s':''} flagged</span>`:'');
+  $('#mxNote').innerHTML=`Colour shows <b>how much</b> a pair is studied — <b>not</b> the direction. The corpus codes which constructs co-occur, not whether the effect was positive or negative; check the papers for that. Counting ${MX.recent?'hand-coded + recent (recent is machine-matched — verify before citing)':'the hand-coded corpus only'} · click a cell to read those papers.`;
   renderMxReadout();
 }
 function renderMxReadout(){
@@ -1163,7 +1191,8 @@ $('#mxReadout').onclick=e=>{const b=e.target.closest('.mx-see');if(b)mxOpenPaper
   const wrap=$('#mxGridWrap'),grid=$('#mxGrid'),tip=$('#mxTip');
   grid.addEventListener('mouseover',e=>{const td=e.target.closest('.mx-cell');if(!td||td.classList.contains('empty'))return;const codes=grid._codes;if(!codes)return;const i=+td.dataset.i,j=+td.dataset.j;
     if(i===j){const o=grid._solo[i],tot=MX.recent?o.h+o.r:o.h;tip.innerHTML=`<b>${mxNm(codes[i])}</b><br>${tot} papers total${MX.recent?` · ${o.h} hand-coded, ${o.r} recent`:''}`;}
-    else{const o=grid._pair[i][j],tot=MX.recent?o.h+o.r:o.h;tip.innerHTML=`<b>${mxNm(codes[i])}</b> × <b>${mxNm(codes[j])}</b><br>${tot} papers code both${MX.recent?` · ${o.h} hand-coded, ${o.r} recent`:''}<br><span style="opacity:.7">click to read them →</span>`;}
+    else if(td.classList.contains('gap')){tip.innerHTML=`<b>${mxNm(codes[i])}</b> × <b>${mxNm(codes[j])}</b><br>◆ never studied together — yet both are well-studied separately.<br><span style="opacity:.7">a gap worth exploring</span>`;}
+    else{const o=grid._pair[i][j],tot=MX.recent?o.h+o.r:o.h,rare=td.classList.contains('under')?'<br><span style="opacity:.85">rarely studied together for how prominent each is</span>':'';tip.innerHTML=`<b>${mxNm(codes[i])}</b> × <b>${mxNm(codes[j])}</b><br>${tot} papers code both${MX.recent?` · ${o.h} hand-coded, ${o.r} recent`:''}${rare}<br><span style="opacity:.7">click to read them →</span>`;}
     tip.style.display='block';});
   grid.addEventListener('mousemove',e=>{const w=wrap.getBoundingClientRect();tip.style.left=Math.min(e.clientX-w.left+14,w.width-250)+'px';tip.style.top=(e.clientY-w.top+14)+'px';});
   grid.addEventListener('mouseout',()=>{tip.style.display='none';});
