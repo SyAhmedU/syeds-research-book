@@ -462,9 +462,14 @@
   <!-- MAP -->
   <section id="v-map" class="wrap hidden">
     <div class="hero"><h1>Construct co-occurrence</h1><p>Two constructs go together when papers code both — the real shape of the field. <b>Graph</b> = the whole web at a glance; <b>Matrix</b> = pick two or three constructs and read exactly how often they're studied together, then jump to those papers.</p></div>
-    <div class="mx-modebar">
+    <div class="mx-modebar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button id="mapModeGraph" class="mx-mode on" type="button">◌ Graph</button>
       <button id="mapModeMatrix" class="mx-mode" type="button">▦ Matrix</button>
+      <span class="mx-tier" style="margin-left:auto">
+        <button id="mxTierHand" class="mx-tier-btn on" type="button" title="Syed's hand-coded corpus — the verified set (167 constructs)">Hand-coded</button>
+        <button id="mxTierRec" class="mx-tier-btn" type="button" title="Also count the recent auto-fetched tier (2024→, single fetch-tag). Machine-matched — verify.">+ Recent</button>
+        <button id="mxTierCorpus" class="mx-tier-btn" type="button" title="Recent corpus: 408 clean constructs extracted from 79K titles + abstracts; real multi-construct co-occurrence. Machine-matched — verify before citing.">Recent corpus · 408</button>
+      </span>
     </div>
 
     <!-- GRAPH (force-directed, hand-coded corpus) -->
@@ -490,10 +495,6 @@
         <div class="spec-selbar">
           <span class="spec-selbar-lbl">Compare</span>
           <div id="mxSelected" class="spec-selected"></div>
-          <span class="mx-tier">
-            <button id="mxTierHand" class="mx-tier-btn on" type="button" title="Syed's hand-coded corpus — the verified set">Hand-coded</button>
-            <button id="mxTierRec" class="mx-tier-btn" type="button" title="Also count the recent tier (2024→, auto-fetched, machine-assigned constructs). Machine-matched — verify before citing.">+ Recent</button>
-          </span>
           <button id="mxClear" class="spec-clear" hidden>Clear</button>
         </div>
       </div>
@@ -596,7 +597,7 @@ function setView(v){
   VIEWS.forEach(x=>$('#v-'+x).classList.toggle('hidden',x!==v));
   if(v!=='termtrends')ttStop();   // pause the year animation when leaving Term Trends
   if(v==='constructs')renderConstructs();
-  if(v==='map')renderMap();
+  if(v==='map'){if(!MX._inited){MX._inited=true;mxSetTier('corpus');}else renderMap();}
   if(v==='trends')renderTrends();
   if(v==='termtrends')renderTermTrends();
   window.scrollTo(0,0);
@@ -755,11 +756,17 @@ $('#fAbs').onchange=async e=>{
   }
   S.page=0; applyAndRender();
 };
-$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',constructs:[],journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false});
+$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',constructs:[],dois:null,doisLabel:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false});
   $('#q').value='';$('#fConstruct').value='';$('#fJournal').value='';$('#fAuthor').value='';$('#fYear').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;$('#fAbs').checked=false;S.page=0;applyAndRender();};
 /* multi-construct (matrix) intersection filter — shown as a removable chip in the result bar */
 function renderXfilterNote(){
   const el=$('#xfilterNote'); if(!el)return;
+  if(F.dois){   // matrix (corpus tier) drill-down — an exact DOI set across constructs
+    el.hidden=false;
+    el.innerHTML=`<span class="x-lbl">recent-corpus papers studying:</span> ${esc(F.doisLabel||'selected constructs')} <button class="x-clr" id="xfilterClr" title="Remove this filter">×</button>`;
+    const b=$('#xfilterClr'); if(b)b.onclick=()=>{F.dois=null;F.doisLabel='';S.page=0;applyAndRender();};
+    return;
+  }
   if(!F.constructs||!F.constructs.length){el.hidden=true;el.innerHTML='';return;}
   const names=F.constructs.map(c=>esc((S.byCode[c]||{}).name||c)).join(' <span class="x-and">×</span> ');
   el.hidden=false;
@@ -769,6 +776,7 @@ function renderXfilterNote(){
 
 function applyAndRender(){
   let r=S.papers;
+  if(F.dois)r=r.filter(p=>F.dois.has(p.doi||p.id));   // matrix drill-down: an exact DOI set
   if(!F.recent)r=r.filter(p=>!p._recent);   // recent tier hidden unless toggled on
   if(F.q)r=r.filter(p=>(F.searchAbs&&p._sa||p._s).includes(F.q));
   if(F.construct)r=r.filter(p=>p.constructCodes.includes(F.construct));
@@ -788,7 +796,7 @@ function applyAndRender(){
   r=r.slice().sort(dir);
   S.filtered=r;
   $('#resCount').textContent=r.length.toLocaleString();
-  const active=F.q||F.construct||(F.constructs&&F.constructs.length)||F.journal||F.author||F.yearExact!=null||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art;
+  const active=F.q||F.construct||(F.constructs&&F.constructs.length)||F.dois||F.journal||F.author||F.yearExact!=null||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art;
   $('#clearBtn').classList.toggle('hidden',!active);
   renderXfilterNote();
   renderList();
@@ -1055,6 +1063,8 @@ function renderMap(){
   else{$('#mapMatrix').hidden=true;$('#mapGraph').hidden=false;$('#mapModeMatrix').classList.remove('on');$('#mapModeGraph').classList.add('on');renderGraph();}
 }
 function renderGraph(){
+  if(MX.corpus)return renderGraphCorpus();
+  const slider=$('#mapMin'); if(slider.dataset.tier!=='hand'){slider.dataset.tier='hand';slider.min=2;slider.max=40;slider.step=1;slider.value=8;}
   const svg=$('#mapSvg'),minW=+$('#mapMin').value; $('#mapMinV').textContent=minW;
   const edges=coocPairs().filter(e=>e.w>=minW);
   const codes=new Set();edges.forEach(e=>{codes.add(e.a);codes.add(e.b);});
@@ -1081,16 +1091,50 @@ function renderGraph(){
   for(const n of nodes){const r=rad(n.pc);s+=`<g class="node" data-code="${esc(n.code)}" transform="translate(${n.x.toFixed(1)},${n.y.toFixed(1)})"><circle r="${r.toFixed(1)}" fill="${lerpColor(n.pc/maxPc)}"></circle>${labeled.has(n.code)?`<text x="${(r+3).toFixed(1)}" y="3">${esc(n.code)}</text>`:''}</g>`;}
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.innerHTML=s;
 }
+/* Corpus graph — same force web over the 408-construct lexicon + precomputed co-occurrence. */
+function renderGraphCorpus(){
+  const svg=$('#mapSvg');
+  const slider=$('#mapMin'); if(slider.dataset.tier!=='corpus'){slider.dataset.tier='corpus';slider.min=20;slider.max=600;slider.step=10;slider.value=120;}
+  const minW=+slider.value; $('#mapMinV').textContent=minW;
+  const lbl=i=>(CC.constructs[i]||{}).label||'';
+  let edges=CC.pairs.filter(([,,n])=>n>=minW).map(([i,j,n])=>({a:CC.constructs[i].id,b:CC.constructs[j].id,w:n}));
+  const codes=new Set();edges.forEach(e=>{codes.add(e.a);codes.add(e.b);});
+  let nodes=[...codes].map(id=>({code:id,name:(CC.byId[id]||{}).label||id,pc:(CC.byId[id]||{}).n||1}));
+  // keep it readable: cap to the 60 biggest nodes, drop edges to the rest
+  if(nodes.length>60){nodes.sort((a,b)=>b.pc-a.pc);nodes=nodes.slice(0,60);const keep=new Set(nodes.map(n=>n.code));edges=edges.filter(e=>keep.has(e.a)&&keep.has(e.b));}
+  const by={};nodes.forEach(n=>by[n.code]=n);
+  $('#mapInfo').textContent=`${nodes.length} constructs · ${edges.length} links · recent corpus (machine-matched — verify)`;
+  if(!nodes.length){svg.innerHTML='<text x="20" y="40" fill="var(--ink3)">No links at this threshold — lower it.</text>';return;}
+  const W=Math.max(320,$('#mapWrap').clientWidth),H=640,pad=46;
+  nodes.forEach((n,i)=>{const a=i/nodes.length*Math.PI*2;n.x=W/2+Math.cos(a)*Math.min(W,H)*0.34;n.y=H/2+Math.sin(a)*Math.min(W,H)*0.34;});
+  const E=edges.map(e=>({s:by[e.a],t:by[e.b],w:e.w}));
+  const k=Math.sqrt(W*H/nodes.length)*0.8;let temp=W*0.10;
+  for(let it=0;it<300;it++){
+    nodes.forEach(n=>{n.dx=0;n.dy=0;});
+    for(let i=0;i<nodes.length;i++){const a=nodes[i];for(let j=i+1;j<nodes.length;j++){const b=nodes[j];let dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy)||0.01,f=k*k/d,ux=dx/d,uy=dy/d;a.dx+=ux*f;a.dy+=uy*f;b.dx-=ux*f;b.dy-=uy*f;}}
+    for(const e of E){let dx=e.s.x-e.t.x,dy=e.s.y-e.t.y,d=Math.hypot(dx,dy)||0.01,f=d*d/k*(0.5+0.18*Math.log(1+e.w)),ux=dx/d,uy=dy/d;e.s.dx-=ux*f;e.s.dy-=uy*f;e.t.dx+=ux*f;e.t.dy+=uy*f;}
+    nodes.forEach(n=>{let d=Math.hypot(n.dx,n.dy)||0.01,m=Math.min(d,temp);n.x=Math.max(pad,Math.min(W-pad,n.x+n.dx/d*m));n.y=Math.max(pad,Math.min(H-pad,n.y+n.dy/d*m));});
+    temp*=0.97;
+  }
+  const maxPc=Math.max(...nodes.map(n=>n.pc)),maxW=Math.max(...E.map(e=>e.w),1);
+  const rad=pc=>4+Math.sqrt(pc/maxPc)*20;
+  const labeled=new Set(nodes.slice().sort((a,b)=>b.pc-a.pc).slice(0,26).map(n=>n.code));
+  const short=s=>s.length>17?s.slice(0,16)+'…':s;
+  let s='';
+  for(const e of E)s+=`<line class="edge" x1="${e.s.x.toFixed(1)}" y1="${e.s.y.toFixed(1)}" x2="${e.t.x.toFixed(1)}" y2="${e.t.y.toFixed(1)}" stroke-width="${(0.4+e.w/maxW*2.6).toFixed(2)}" stroke-opacity="${(0.10+e.w/maxW*0.4).toFixed(2)}" data-a="${esc(e.s.code)}" data-b="${esc(e.t.code)}"></line>`;
+  for(const n of nodes){const r=rad(n.pc);s+=`<g class="node" data-code="${esc(n.code)}" transform="translate(${n.x.toFixed(1)},${n.y.toFixed(1)})"><circle r="${r.toFixed(1)}" fill="${lerpColor(n.pc/maxPc)}"></circle>${labeled.has(n.code)?`<text x="${(r+3).toFixed(1)}" y="3">${esc(short(n.name))}</text>`:''}</g>`;}
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.innerHTML=s;
+}
 (function mapEvents(){
   const svg=$('#mapSvg'),tip=$('#mapTip');
   svg.addEventListener('mouseover',e=>{const g=e.target.closest('.node');if(!g)return;const code=g.dataset.code,nb=new Set([code]);
     svg.querySelectorAll('line').forEach(l=>{const on=l.dataset.a===code||l.dataset.b===code;l.style.stroke=on?'var(--accent2)':'';l.style.strokeOpacity=on?'.9':'.04';if(on){nb.add(l.dataset.a);nb.add(l.dataset.b);}});
     svg.querySelectorAll('.node').forEach(n=>{n.style.opacity=nb.has(n.dataset.code)?'1':'.16';});
-    const c=S.byCode[code]||{};tip.innerHTML=`<b>${esc(c.name||code)}</b><br>${(c.paperCount||0)} papers`;tip.style.display='block';});
+    const c=MX.corpus?(CC.byId[code]||{}):(S.byCode[code]||{});tip.innerHTML=`<b>${esc(c.name||c.label||code)}</b><br>${(c.paperCount||c.n||0)} papers`;tip.style.display='block';});
   svg.addEventListener('mousemove',e=>{const w=$('#mapWrap').getBoundingClientRect();tip.style.left=(e.clientX-w.left+14)+'px';tip.style.top=(e.clientY-w.top+14)+'px';});
   svg.addEventListener('mouseout',e=>{if(e.relatedTarget&&e.relatedTarget.closest&&e.relatedTarget.closest('.node'))return;
     svg.querySelectorAll('line').forEach(l=>{l.style.stroke='';l.style.strokeOpacity='';});svg.querySelectorAll('.node').forEach(n=>{n.style.opacity='';});tip.style.display='none';});
-  svg.addEventListener('click',e=>{const g=e.target.closest('.node');if(!g)return;F.construct=g.dataset.code;$('#fConstruct').value=g.dataset.code;S.page=0;applyAndRender();setView('library');});
+  svg.addEventListener('click',e=>{const g=e.target.closest('.node');if(!g)return;if(MX.corpus){ccOpenPapers([g.dataset.code]);return;}F.construct=g.dataset.code;$('#fConstruct').value=g.dataset.code;S.page=0;applyAndRender();setView('library');});
 })();
 $('#mapMin').onchange=renderMap;
 
@@ -1100,31 +1144,97 @@ $('#mapMin').onchange=renderMap;
    are real (intersections of construct codes); recent-tier construct assignment
    is machine-matched, so it's labelled "verify". Click a cell → the Library
    filtered to that pair. Replaces the never-finished Spectrum view. */
-const MX={mode:'graph',sel:[],recent:false,MAXSEL:12};
+const MX={mode:'graph',sel:[],recent:false,corpus:false,MAXSEL:12};
 const MXCAP=24; // axis cap for a readable grid
+
+/* ===== Recent-corpus tier — 408 clean constructs extracted from 79K titles+abstracts =====
+   Precomputed (scripts/build-construct-lexicon → extract-construct-memberships → build-cooccurrence).
+   Counting only; codes here are lexicon ids (strings). Machine-matched — verify. */
+const CC={loaded:false,loading:null,constructs:[],byId:{},idIndex:{},pairs:[],pairMap:null,adj:{},N:1,mem:null};
+function loadCorpus(){
+  if(CC.loaded)return Promise.resolve(CC);
+  if(CC.loading)return CC.loading;
+  CC.loading=Promise.all([
+    fetch('./data/construct-cooccurrence.json').then(r=>r.json()),
+    fetch('./data/construct-memberships.json').then(r=>r.json())
+  ]).then(([co,mem])=>{
+    CC.constructs=co.constructs; CC.pairs=co.pairs; CC.N=co.N||1;
+    CC.constructs.forEach((c,i)=>{CC.byId[c.id]=c;CC.idIndex[c.id]=i;});
+    CC.pairMap=new Map();
+    for(const [i,j,n] of CC.pairs){CC.pairMap.set(i+':'+j,n);(CC.adj[i]=CC.adj[i]||[]).push([j,n]);(CC.adj[j]=CC.adj[j]||[]).push([i,n]);}
+    CC.mem=mem.memberships;
+    CC.loaded=true; return CC;
+  }).catch(()=>{CC.loaded=true;return CC;});
+  return CC.loading;
+}
+const ccPairN=(i,j)=>{if(i===j)return (CC.constructs[i]||{}).n||0;const a=Math.min(i,j),b=Math.max(i,j);return CC.pairMap.get(a+':'+b)||0;};
+const ccTopDefault=n=>CC.constructs.map((c,i)=>i).sort((a,b)=>CC.constructs[b].n-CC.constructs[a].n).slice(0,n).map(i=>CC.constructs[i].id);
+function ccPartners(id){const i=CC.idIndex[id];return (CC.adj[i]||[]).slice().sort((x,y)=>y[1]-x[1]).map(([j])=>CC.constructs[j].id);}
+function ccCompute(idList){const n=idList.length,ix=idList.map(id=>CC.idIndex[id]);
+  const pair=Array.from({length:n},()=>Array.from({length:n},()=>({h:0,r:0}))),solo=idList.map(()=>({h:0,r:0}));
+  for(let a=0;a<n;a++){solo[a].h=(CC.constructs[ix[a]]||{}).n||0;for(let b=a+1;b<n;b++){const v=ccPairN(ix[a],ix[b]);pair[a][b].h=v;pair[b][a].h=v;}}
+  return {pair,solo};}
+function ccMulti(ids){const ix=ids.map(id=>CC.idIndex[id]).filter(x=>x!=null),o={h:0,r:0};
+  if(ix.length<2)return o; if(ix.length===2){o.h=ccPairN(ix[0],ix[1]);return o;}
+  for(const doi in CC.mem){const a=CC.mem[doi];if(ix.every(k=>a.includes(k)))o.h++;}return o;}
+function ccDois(ids){const ix=ids.map(id=>CC.idIndex[id]).filter(x=>x!=null),s=new Set();
+  for(const doi in CC.mem){const a=CC.mem[doi];if(ix.length&&ix.every(k=>a.includes(k)))s.add(doi);}return s;}
+function ccLeadsData(){
+  if(CC._leads)return CC._leads;
+  const C=CC.constructs,N=CC.N;
+  const order=C.map((c,i)=>i).sort((a,b)=>C[b].n-C[a].n);
+  const prom=order.slice(0,50),promSet=new Set(prom);
+  const id=i=>C[i].id;
+  const strongest=CC.pairs.slice(0,8).map(([i,j,v])=>({a:id(i),b:id(j),v}));
+  const under=CC.pairs.filter(([i,j])=>promSet.has(i)&&promSet.has(j))
+    .map(([i,j,v])=>{const E=C[i].n*C[j].n/N;return {a:id(i),b:id(j),v,lift:E>0?v/E:0,E};})
+    .filter(p=>p.E>=5&&p.lift<0.5).sort((x,y)=>x.lift-y.lift).slice(0,8);
+  const gaps=[];
+  for(let x=0;x<prom.length;x++)for(let y=x+1;y<prom.length;y++){const i=prom[x],j=prom[y],a=Math.min(i,j),b=Math.max(i,j);
+    if(!CC.pairMap.has(a+':'+b))gaps.push({a:id(i),b:id(j),m:Math.min(C[i].n,C[j].n)});}
+  gaps.sort((x,y)=>y.m-x.m);
+  return CC._leads={strongest,under,gaps:gaps.slice(0,8)};
+}
+function ccOpenPapers(ids){
+  const go=()=>{F.construct='';$('#fConstruct').value='';F.constructs=[];F.q='';$('#q').value='';
+    F.recent=true;const cb=$('#fRecent');if(cb)cb.checked=true;
+    F.dois=ccDois(ids);F.doisLabel=ids.map(id=>(CC.byId[id]||{}).label||id).join(' × ');
+    S.page=0;applyAndRender();setView('library');window.scrollTo(0,0);};
+  if(!S.recentLoaded)loadRecent().then(go);else go();
+}
 function mxTopDefault(n){
+  if(MX.corpus)return ccTopDefault(n);
   if(!MX.recent)return S.constructs.slice().sort((a,b)=>(b.paperCount||0)-(a.paperCount||0)).slice(0,n).map(c=>c.code);
   // +Recent on → rank by COMBINED hand-coded + recent paper count
   const m=Object.create(null);for(const p of S.papers)for(const c of p.constructCodes)m[c]=(m[c]||0)+1;
   return Object.keys(m).sort((a,b)=>m[b]-m[a]).slice(0,n);
 }
-function mxPartners(code){const t=new Map();for(const p of S.papers){if(!MX.recent&&p._recent)continue;const cs=p.constructCodes;if(cs.indexOf(code)<0)continue;for(const c of cs)if(c!==code)t.set(c,(t.get(c)||0)+1);}return [...t.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);}
-function mxCompute(codeList){const n=codeList.length,idx={};codeList.forEach((c,i)=>idx[c]=i);const set=new Set(codeList);
+function mxPartners(code){if(MX.corpus)return ccPartners(code);const t=new Map();for(const p of S.papers){if(!MX.recent&&p._recent)continue;const cs=p.constructCodes;if(cs.indexOf(code)<0)continue;for(const c of cs)if(c!==code)t.set(c,(t.get(c)||0)+1);}return [...t.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);}
+function mxCompute(codeList){if(MX.corpus)return ccCompute(codeList);const n=codeList.length,idx={};codeList.forEach((c,i)=>idx[c]=i);const set=new Set(codeList);
   const pair=Array.from({length:n},()=>Array.from({length:n},()=>({h:0,r:0})));const solo=codeList.map(()=>({h:0,r:0}));
   for(const p of S.papers){const rec=!!p._recent;const pr=[];for(const c of p.constructCodes)if(set.has(c))pr.push(idx[c]);if(!pr.length)continue;
     for(const i of pr){if(rec)solo[i].r++;else solo[i].h++;}
     for(let a=0;a<pr.length;a++)for(let b=a+1;b<pr.length;b++){const i=pr[a],j=pr[b];if(rec){pair[i][j].r++;pair[j][i].r++;}else{pair[i][j].h++;pair[j][i].h++;}}}
   return {pair,solo};}
-function mxMulti(codes){const o={h:0,r:0};for(const p of S.papers){if(codes.every(c=>p.constructCodes.indexOf(c)>=0)){if(p._recent)o.r++;else o.h++;}}return o;}
+function mxMulti(codes){if(MX.corpus)return ccMulti(codes);const o={h:0,r:0};for(const p of S.papers){if(codes.every(c=>p.constructCodes.indexOf(c)>=0)){if(p._recent)o.r++;else o.h++;}}return o;}
 const mxVal=cell=>MX.recent?cell.h+cell.r:cell.h;
 const mxBg=t=>`rgba(241,69,117,${(0.05+t*0.85).toFixed(3)})`;
-const mxNm=c=>esc((S.byCode[c]||{}).name||c);
+const mxNm=c=>MX.corpus?esc((CC.byId[c]||{}).label||c):esc((S.byCode[c]||{}).name||c);
 function mxRenderPicker(){
   const q=($('#mxSearch').value||'').trim().toLowerCase();
-  let list=S.constructs.slice();
-  if(q)list=list.filter(c=>c.name.toLowerCase().includes(q)||c.code.toLowerCase().includes(q)||(c.identifiers||[]).some(s=>String(s).toLowerCase().includes(q)));
-  list.sort((a,b)=>(b.paperCount||0)-(a.paperCount||0));list=list.slice(0,48);
-  $('#mxPalette').innerHTML=list.map(c=>`<button class="spec-pal-chip${MX.sel.includes(c.code)?' on':''}" data-code="${esc(c.code)}">${esc(c.name)}<span class="pc-n">${c.paperCount||0}</span></button>`).join('')||'<span style="color:var(--ink3);font-size:13px">No constructs match.</span>';
+  let html;
+  if(MX.corpus){
+    let list=CC.constructs.map(c=>({code:c.id,name:c.label,pc:c.n}));
+    if(q)list=list.filter(c=>c.name.toLowerCase().includes(q));
+    list.sort((a,b)=>b.pc-a.pc);list=list.slice(0,48);
+    html=list.map(c=>`<button class="spec-pal-chip${MX.sel.includes(c.code)?' on':''}" data-code="${esc(c.code)}">${esc(c.name)}<span class="pc-n">${c.pc||0}</span></button>`).join('');
+  }else{
+    let list=S.constructs.slice();
+    if(q)list=list.filter(c=>c.name.toLowerCase().includes(q)||c.code.toLowerCase().includes(q)||(c.identifiers||[]).some(s=>String(s).toLowerCase().includes(q)));
+    list.sort((a,b)=>(b.paperCount||0)-(a.paperCount||0));list=list.slice(0,48);
+    html=list.map(c=>`<button class="spec-pal-chip${MX.sel.includes(c.code)?' on':''}" data-code="${esc(c.code)}">${esc(c.name)}<span class="pc-n">${c.paperCount||0}</span></button>`).join('');
+  }
+  $('#mxPalette').innerHTML=html||'<span style="color:var(--ink3);font-size:13px">No constructs match.</span>';
   $('#mxSelected').innerHTML=MX.sel.length?MX.sel.map(code=>`<span class="spec-sel-chip">${mxNm(code)}<button class="x" data-rm="${esc(code)}" title="Remove">×</button></span>`).join(''):'<span style="color:var(--ink3);font-size:12.5px">none yet — showing the 16 largest constructs</span>';
   $('#mxClear').hidden=!MX.sel.length;
 }
@@ -1142,7 +1252,7 @@ function renderMatrix(){
   // "prominent" = a construct studied at/above the grid's median; a 0-cell between
   // two prominent constructs is research white-space; a studied cell far below its
   // expected co-occurrence (lift<0.35) is "rarely studied together".
-  const N=(MX.recent?S.papers:S.papers.filter(p=>!p._recent)).length||1;
+  const N=MX.corpus?CC.N:((MX.recent?S.papers:S.papers.filter(p=>!p._recent)).length||1);
   const solos=codeList.map((_,i)=>mxVal(solo[i]));
   // "prominent" bar = 30th percentile of the grid's construct sizes (floor 15) — low
   // enough that a deliberate 2–3 pick flags correctly, high enough to mean "studied".
@@ -1166,7 +1276,7 @@ function renderMatrix(){
   h+='</tbody></table>';
   const grid=$('#mxGrid');grid.innerHTML=h;grid._codes=codeList;grid._pair=pair;grid._solo=solo;
   $('#mxLegend').innerHTML='<span><i class="mx-sw st"></i> studied · darker = more papers</span><span><i class="mx-sw un"></i> rarely studied together</span><span><i class="mx-sw gp"></i> ◆ gap — both well-studied, never together</span><span><i class="mx-sw em"></i> not studied</span>'+(gaps?`<span class="mx-gapn">${gaps} gap${gaps>1?'s':''} flagged</span>`:'');
-  $('#mxNote').innerHTML=`Colour shows <b>how much</b> a pair is studied — <b>not</b> the direction. The corpus codes which constructs co-occur, not whether the effect was positive or negative; check the papers for that. Counting ${MX.recent?'hand-coded + recent (recent is machine-matched — verify before citing)':'the hand-coded corpus only'} · click a cell to read those papers.`;
+  $('#mxNote').innerHTML=`Colour shows <b>how much</b> a pair is studied — <b>not</b> the direction. The corpus codes which constructs co-occur, not whether the effect was positive or negative; check the papers for that. Counting ${MX.corpus?`the <b>recent corpus</b> — ${CC.N.toLocaleString()} papers, 408 constructs extracted from titles + abstracts (machine-matched — verify before citing)`:MX.recent?'hand-coded + recent (recent is machine-matched — verify before citing)':'the hand-coded corpus only'} · click a cell to read those papers.`;
   renderMxReadout();
   renderMxLeads();
 }
@@ -1187,6 +1297,7 @@ function renderMxReadout(){
 }
 /* Leads — corpus-wide co-occurrence findings (counting only, No-fab). Cached per tier. */
 function mxLeadsData(){
+  if(MX.corpus)return ccLeadsData();
   const key=MX.recent?'rec':'hand';
   MX._leads=MX._leads||{};
   if(MX._leads[key])return MX._leads[key];
@@ -1236,6 +1347,7 @@ function renderMxLeads(){
     col('#9270F4','Biggest gaps','Both well-studied, never together — explore →',gH,'No prominent gaps.');
 }
 function mxOpenPapers(codes){
+  if(MX.corpus){ccOpenPapers(codes);return;}
   F.construct='';$('#fConstruct').value='';F.constructs=codes.slice();
   if(MX.recent){F.recent=true;const cb=$('#fRecent');if(cb)cb.checked=true;}
   S.page=0;const go=()=>{applyAndRender();setView('library');};
@@ -1243,8 +1355,20 @@ function mxOpenPapers(codes){
 }
 $('#mapModeGraph').onclick=()=>{MX.mode='graph';renderMap();};
 $('#mapModeMatrix').onclick=()=>{MX.mode='matrix';renderMap();};
-$('#mxTierHand').onclick=()=>{MX.recent=false;$('#mxTierHand').classList.add('on');$('#mxTierRec').classList.remove('on');renderMatrix();};
-$('#mxTierRec').onclick=()=>{MX.recent=true;$('#mxTierRec').classList.add('on');$('#mxTierHand').classList.remove('on');if(!S.recentLoaded)loadRecent().then(renderMatrix);else renderMatrix();};
+function mxSetTier(t){   // t: 'hand' | 'rec' | 'corpus' — shared by Graph + Matrix
+  if(t==='corpus'||MX._lastTier==='corpus')MX.sel=[];   // construct codes differ between tiers
+  MX._lastTier=t; MX.corpus=(t==='corpus'); MX.recent=(t==='rec');
+  $('#mxTierHand').classList.toggle('on',t==='hand');
+  $('#mxTierRec').classList.toggle('on',t==='rec');
+  $('#mxTierCorpus').classList.toggle('on',t==='corpus');
+  const sb=$('#mxSearch'); if(sb)sb.placeholder=MX.corpus?'Search 408 constructs to compare…':'Search 167 constructs to compare…';
+  if(t==='corpus')loadCorpus().then(renderMap);
+  else if(t==='rec'&&!S.recentLoaded)loadRecent().then(renderMap);
+  else renderMap();
+}
+$('#mxTierHand').onclick=()=>mxSetTier('hand');
+$('#mxTierRec').onclick=()=>mxSetTier('rec');
+$('#mxTierCorpus').onclick=()=>mxSetTier('corpus');
 let mxSearchTimer;
 $('#mxSearch').oninput=()=>{clearTimeout(mxSearchTimer);mxSearchTimer=setTimeout(mxRenderPicker,140);};
 $('#mxPalette').onclick=e=>{const b=e.target.closest('[data-code]');if(b)mxToggle(b.dataset.code);};
@@ -1266,7 +1390,7 @@ $('#mxLeads').onclick=e=>{const r=e.target.closest('.mx-lead-row');if(!r)return;
   grid.addEventListener('click',e=>{
     const th=e.target.closest('.mx-colhead,.mx-rowhead');if(th&&th.dataset.code){mxToggle(th.dataset.code);return;}
     const td=e.target.closest('.mx-cell');if(!td||td.classList.contains('empty'))return;const codes=grid._codes;if(!codes)return;const i=+td.dataset.i,j=+td.dataset.j;
-    if(i===j){F.constructs=[];F.construct=codes[i];$('#fConstruct').value=codes[i];if(MX.recent){F.recent=true;const cb=$('#fRecent');if(cb)cb.checked=true;}S.page=0;const go=()=>{applyAndRender();setView('library');};if(MX.recent&&!S.recentLoaded)loadRecent().then(go);else go();}
+    if(i===j){if(MX.corpus){ccOpenPapers([codes[i]]);return;}F.constructs=[];F.construct=codes[i];$('#fConstruct').value=codes[i];if(MX.recent){F.recent=true;const cb=$('#fRecent');if(cb)cb.checked=true;}S.page=0;const go=()=>{applyAndRender();setView('library');};if(MX.recent&&!S.recentLoaded)loadRecent().then(go);else go();}
     else mxOpenPapers([codes[i],codes[j]]);
   });
 })();
