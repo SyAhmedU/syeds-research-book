@@ -1184,7 +1184,7 @@ function ccLeadsData(){
   if(CC._leads)return CC._leads;
   const C=CC.constructs,N=CC.N;
   const order=C.map((c,i)=>i).sort((a,b)=>C[b].n-C[a].n);
-  const prom=order.slice(0,50),promSet=new Set(prom);
+  const prom=order.slice(0,100),promSet=new Set(prom);   // corpus tier: top-100 well-studied set
   const id=i=>C[i].id;
   const strongest=CC.pairs.slice(0,8).map(([i,j,v])=>({a:id(i),b:id(j),v}));
   const under=CC.pairs.filter(([i,j])=>promSet.has(i)&&promSet.has(j))
