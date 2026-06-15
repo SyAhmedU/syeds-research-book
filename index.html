@@ -334,6 +334,7 @@
   .mx-rowhead{position:sticky;left:0;z-index:1;background:var(--card);text-align:right;padding:0 10px;max-width:160px;min-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--ink);cursor:pointer;font-size:11.5px}
   .mx-rowhead:hover{color:var(--accent)}
   .mx-rowcode{font-family:var(--mono);font-size:9.5px;color:var(--ink3);margin-left:6px}
+  .mx-rownum{display:inline-block;min-width:16px;font-family:var(--mono);font-size:9.5px;color:var(--ink3);margin-right:7px;text-align:right}
   .mx-cell{width:34px;min-width:34px;height:32px;text-align:center;cursor:pointer;font-variant-numeric:tabular-nums}
   .mx-cell.empty{cursor:default;background:repeating-linear-gradient(45deg,transparent,transparent 4px,var(--line2) 4px,var(--line2) 5px);opacity:.22}
   .mx-cell.diag{color:var(--ink3);font-style:italic;background:var(--chip)}
@@ -1260,10 +1261,10 @@ function renderMatrix(){
   const prom=i=>solos[i]>=promCut;
   let mx=1,gaps=0;for(let i=0;i<n;i++)for(let j=0;j<n;j++)if(i!==j)mx=Math.max(mx,mxVal(pair[i][j]));
   let h='<table class="mx-table"><thead><tr><th class="mx-corner"></th>';
-  for(const c of codeList)h+=`<th class="mx-colhead" data-code="${esc(c)}" title="${mxNm(c)}">${esc(c)}</th>`;
+  for(let ci=0;ci<codeList.length;ci++){const c=codeList[ci];h+=`<th class="mx-colhead" data-code="${esc(c)}" title="${mxNm(c)}">${MX.corpus?(ci+1):esc(c)}</th>`;}
   h+='</tr></thead><tbody>';
   for(let i=0;i<n;i++){
-    h+=`<tr><th class="mx-rowhead" data-code="${esc(codeList[i])}" title="${mxNm(codeList[i])}">${mxNm(codeList[i])}<span class="mx-rowcode">${esc(codeList[i])}</span></th>`;
+    h+=`<tr><th class="mx-rowhead" data-code="${esc(codeList[i])}" title="${mxNm(codeList[i])}">${MX.corpus?`<span class="mx-rownum">${i+1}</span>${mxNm(codeList[i])}`:`${mxNm(codeList[i])}<span class="mx-rowcode">${esc(codeList[i])}</span>`}</th>`;
     for(let j=0;j<n;j++){
       if(i===j){const v=mxVal(solo[i]);h+=`<td class="mx-cell diag" data-i="${i}" data-j="${j}">${v||''}</td>`;continue;}
       const v=mxVal(pair[i][j]);
