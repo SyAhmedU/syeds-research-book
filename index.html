@@ -1190,10 +1190,12 @@ function ccLeadsData(){
   const under=CC.pairs.filter(([i,j])=>promSet.has(i)&&promSet.has(j))
     .map(([i,j,v])=>{const E=C[i].n*C[j].n/N;return {a:id(i),b:id(j),v,lift:E>0?v/E:0,E};})
     .filter(p=>p.E>=5&&p.lift<0.5).sort((x,y)=>x.lift-y.lift).slice(0,8);
+  const GAP_MAX=2;   // surface near-zero co-occurrence (≤2 papers), not just strictly 0
   const gaps=[];
   for(let x=0;x<prom.length;x++)for(let y=x+1;y<prom.length;y++){const i=prom[x],j=prom[y],a=Math.min(i,j),b=Math.max(i,j);
-    if(!CC.pairMap.has(a+':'+b))gaps.push({a:id(i),b:id(j),m:Math.min(C[i].n,C[j].n)});}
-  gaps.sort((x,y)=>y.m-x.m);
+    const v=CC.pairMap.get(a+':'+b)||0;
+    if(v<=GAP_MAX)gaps.push({a:id(i),b:id(j),v,m:Math.min(C[i].n,C[j].n)});}
+  gaps.sort((x,y)=>x.v-y.v||y.m-x.m);   // lowest co-occurrence first, then both-most-prominent
   return CC._leads={strongest,under,gaps:gaps.slice(0,8)};
 }
 function ccOpenPapers(ids){
@@ -1340,12 +1342,12 @@ function renderMxLeads(){
   const col=(dot,title,sub,rows,empty)=>`<div class="mx-lead-col"><div class="mx-lead-h"><i class="mx-lead-dot" style="background:${dot}"></i>${title}</div><p class="mx-lead-sub">${sub}</p>${rows||`<div class="mx-lead-empty">${empty}</div>`}</div>`;
   const sH=strongest.map(p=>row(p,`${p.v}`,'read')).join('');
   const uH=under.map(p=>row(p,`${p.v} · ${Math.round(1/p.lift)}× under`,'read')).join('');
-  const gH=gaps.map(p=>row(p,'0 · ◆','gap')).join('');
+  const gH=gaps.map(p=>row(p,`${p.v==null?0:p.v} · ◆`,'gap')).join('');
   el.hidden=false;
   el.innerHTML=
     col('rgba(241,69,117,.78)','Strongest pairs','Most papers coding both — read →',sH,'No co-occurring pairs.')+
     col('rgba(255,150,86,.95)','Most under-studied','Far below expected co-occurrence — read →',uH,'Nothing notably under-studied.')+
-    col('#9270F4','Biggest gaps','Both well-studied, never together — explore →',gH,'No prominent gaps.');
+    col('#9270F4','Biggest gaps',MX.corpus?'Both well-studied, ≤2 papers together — explore →':'Both well-studied, never together — explore →',gH,'No prominent gaps.');
 }
 function mxOpenPapers(codes){
   if(MX.corpus){ccOpenPapers(codes);return;}
