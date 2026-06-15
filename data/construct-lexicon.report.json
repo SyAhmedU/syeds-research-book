@@ -1,0 +1,2045 @@
+{
+ "generatedAt": "2026-06-15T13:20:11.284Z",
+ "spineCount": 309,
+ "bookSynonymsFolded": 264,
+ "excludedNonConstructs": [
+  "research synthesis and analytical methods",
+  "mediation and moderation in research",
+  "meta-analysis and meta-analytic techniques",
+  "measurement and validation in research",
+  "qualitative research in organizational and personal contexts",
+  "systematic reviews and systematic research methods",
+  "frameworks in organizational and research contexts",
+  "theories and theoretical frameworks in organizational and behavioral contexts",
+  "factor analysis",
+  "structural equation modeling",
+  "regression analysis",
+  "likert scale",
+  "antecedents",
+  "determinants",
+  "outcomes",
+  "consequences",
+  "dimensions",
+  "factors influencing personal, social, and organizational outcomes",
+  "outcomes in various contexts",
+  "perceptions in organizational contexts",
+  "work behaviors",
+  "attitude",
+  "sociodemographic characteristics",
+  "china",
+  "chinese",
+  "india",
+  "indian",
+  "low-skilled",
+  "reemployment",
+  "healthcare and its components",
+  "hospitality industry and management",
+  "small and medium-sized enterprises (smes) and micro, small, and medium enterprises (msmes)"
+ ],
+ "ambiguousBareExcluded": [
+  "flow"
+ ],
+ "unmappedBookCandidates": [
+  {
+   "identifier": "Abusive CEOs",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Abusive Workplace Behavior",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Abusive Supervisory Behavior",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Abusive Leadership",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Abusive Leader",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Abusive Behavior",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Abusive Retaliation",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Supervisor Abuse",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Abusive Trickle-Down",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Supervisory Abuse",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Leaders' Impulsive Abuse",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Managerial Abuse",
+   "fromCode": "1ASL",
+   "fromName": "Abusive Supervision and Leadership"
+  },
+  {
+   "identifier": "Creative Adaptability",
+   "fromCode": "2ACD",
+   "fromName": "Adaptability and Career Development"
+  },
+  {
+   "identifier": "Career Adapt-Adaptability Scale",
+   "fromCode": "2ACD",
+   "fromName": "Adaptability and Career Development"
+  },
+  {
+   "identifier": "Newcomers' Adaptability",
+   "fromCode": "2ACD",
+   "fromName": "Adaptability and Career Development"
+  },
+  {
+   "identifier": "Affective Commitment",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Positive Affect",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Negative Affect",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affective Uncertainty",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affective Events",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Cognitive-Affective Involvement",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affect-Resource Model",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affective States",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affective Organizational",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Daily Positive Affect",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affective Events Theory",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affect Regulation",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affect Stability",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Worker Affectivity",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affective Turmoil",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Positive Affective Climate",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affective Well-being",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Affective Shift Model",
+   "fromCode": "3ACOB",
+   "fromName": "Affect and Commitment in Organizational Behavior"
+  },
+  {
+   "identifier": "Age Discrimination",
+   "fromCode": "4AARIWS",
+   "fromName": "Age and Age-Related Issues in the Workplace and Society"
+  },
+  {
+   "identifier": "Ageing Societies",
+   "fromCode": "4AARIWS",
+   "fromName": "Age and Age-Related Issues in the Workplace and Society"
+  },
+  {
+   "identifier": "Older Workers",
+   "fromCode": "4AARIWS",
+   "fromName": "Age and Age-Related Issues in the Workplace and Society"
+  },
+  {
+   "identifier": "Aged Care",
+   "fromCode": "4AARIWS",
+   "fromName": "Age and Age-Related Issues in the Workplace and Society"
+  },
+  {
+   "identifier": "Healthy Ageing Practices",
+   "fromCode": "4AARIWS",
+   "fromName": "Age and Age-Related Issues in the Workplace and Society"
+  },
+  {
+   "identifier": "Job-Age Type Spectrum",
+   "fromCode": "4AARIWS",
+   "fromName": "Age and Age-Related Issues in the Workplace and Society"
+  },
+  {
+   "identifier": "Workforce Agility",
+   "fromCode": "5AOWC",
+   "fromName": "Agility in Organizational and Workforce Contexts"
+  },
+  {
+   "identifier": "Employee Agility",
+   "fromCode": "5AOWC",
+   "fromName": "Agility in Organizational and Workforce Contexts"
+  },
+  {
+   "identifier": "Organizational Strategic Agility",
+   "fromCode": "5AOWC",
+   "fromName": "Agility in Organizational and Workforce Contexts"
+  },
+  {
+   "identifier": "Enterprise Agility",
+   "fromCode": "5AOWC",
+   "fromName": "Agility in Organizational and Workforce Contexts"
+  },
+  {
+   "identifier": "Resilient Agility",
+   "fromCode": "5AOWC",
+   "fromName": "Agility in Organizational and Workforce Contexts"
+  },
+  {
+   "identifier": "Social Media Agility",
+   "fromCode": "5AOWC",
+   "fromName": "Agility in Organizational and Workforce Contexts"
+  },
+  {
+   "identifier": "Learning Agility",
+   "fromCode": "5AOWC",
+   "fromName": "Agility in Organizational and Workforce Contexts"
+  },
+  {
+   "identifier": "Agile Work Practices",
+   "fromCode": "5AOWC",
+   "fromName": "Agility in Organizational and Workforce Contexts"
+  },
+  {
+   "identifier": "Agile HRM Practices",
+   "fromCode": "5AOWC",
+   "fromName": "Agility in Organizational and Workforce Contexts"
+  },
+  {
+   "identifier": "Artificial Intelligence",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "Artificial Intelligence Capability",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "Human-Artificial Intelligence Interaction",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "Generative Artificial Intelligence",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "Artificially Intelligent Workplace",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "Artificial Neural Network",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "AI-Employee Collaboration",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "AI-Augmented HRM",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "Artificial Intelligent Components",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "Artificial Skills",
+   "fromCode": "6AIAW",
+   "fromName": "Artificial Intelligence and its Applications in the Workplace"
+  },
+  {
+   "identifier": "Covid-19 Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Financial Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Social Anxiety Disorder",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Job Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Job-Related Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Parental Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Death Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Anxiety Trajectories",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Performance Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Climate Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Employee Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Attachment Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Anxiety Disorder",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Pre-retirement Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Interview Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Math Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Social Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Trait Anxiety",
+   "fromCode": "9TCA",
+   "fromName": "Types and Contexts of Anxiety"
+  },
+  {
+   "identifier": "Attachment Style",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Attachment Styles",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Constituent Attachment",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Psychological reattachment",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Psychological Reattachment to Work",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Relational Attachment",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Attachment Theory",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Attachment Pattern",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Pet Attachment",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Neighborhood Attachment",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Attachment Anxiety",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Attachment Insecurity",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Organizational Attachment",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Insecure Attachment",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Brand Attachment",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Turnover-Attachment Survey",
+   "fromCode": "10AVF",
+   "fromName": "Attachment and its Various Forms"
+  },
+  {
+   "identifier": "Authentic Behavior",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Authentic Self",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Career Authenticity",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Authentic Self-Expression",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Authenticity Negotiation",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Authentic Assessment",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "CSR Authenticity",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Authenticity at Work",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Follower Authenticity",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Authentic Living",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Inauthentic Emotions",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Authentic Happiness Inventory (AHI)",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Behavioral Authenticity",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Relational Authenticity",
+   "fromCode": "12AIVM",
+   "fromName": "Authenticity and Its Various Manifestations"
+  },
+  {
+   "identifier": "Procedural Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Job Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Supervisor Job Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Task Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Autonomy Support",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Granting Job Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Employees' Time Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Working Time Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Organizational Units' Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Autonomous Work Motivation",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "University Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Autonomous Help",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Autonomous Motivation",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Autonomy-Meaningful Relationship",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Decision Making Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Female Autonomy",
+   "fromCode": "13AVC",
+   "fromName": "Autonomy in Various Contexts"
+  },
+  {
+   "identifier": "Work-Life Balance",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Work-Life Balance Satisfaction",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Work-Life Balance Experiences",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Work-Life Balance Crafting Behavior",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Work-Life Balance Programs",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Effort-Reward Balance",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Effort-Reward Imbalance",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Work-Life Balance Policies",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Work-Non-Work Balance",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Work-Family Satisfaction Balance",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Balance Theory",
+   "fromCode": "14WLBERB",
+   "fromName": "Work-Life Balance and Effort-Reward Balance"
+  },
+  {
+   "identifier": "Big Five",
+   "fromCode": "16PMLD",
+   "fromName": "Personality Models and Leadership Dimensions"
+  },
+  {
+   "identifier": "Big Four",
+   "fromCode": "16PMLD",
+   "fromName": "Personality Models and Leadership Dimensions"
+  },
+  {
+   "identifier": "Big Four LinkedIn Dimensions",
+   "fromCode": "16PMLD",
+   "fromName": "Personality Models and Leadership Dimensions"
+  },
+  {
+   "identifier": "Other Big Five",
+   "fromCode": "16PMLD",
+   "fromName": "Personality Models and Leadership Dimensions"
+  },
+  {
+   "identifier": "Big X of Leadership",
+   "fromCode": "16PMLD",
+   "fromName": "Personality Models and Leadership Dimensions"
+  },
+  {
+   "identifier": "HEXACO Models",
+   "fromCode": "16PMLD",
+   "fromName": "Personality Models and Leadership Dimensions"
+  },
+  {
+   "identifier": "Workplace Bullying",
+   "fromCode": "17BOC",
+   "fromName": "Bullying in Organizational Contexts"
+  },
+  {
+   "identifier": "Hierarchical Bullying",
+   "fromCode": "17BOC",
+   "fromName": "Bullying in Organizational Contexts"
+  },
+  {
+   "identifier": "Exposure to Bullying Behaviors",
+   "fromCode": "17BOC",
+   "fromName": "Bullying in Organizational Contexts"
+  },
+  {
+   "identifier": "Witnessing Workplace Bullying",
+   "fromCode": "17BOC",
+   "fromName": "Bullying in Organizational Contexts"
+  },
+  {
+   "identifier": "Workplace Bullying Exposure",
+   "fromCode": "17BOC",
+   "fromName": "Bullying in Organizational Contexts"
+  },
+  {
+   "identifier": "Cyberbullying Perpetration",
+   "fromCode": "17BOC",
+   "fromName": "Bullying in Organizational Contexts"
+  },
+  {
+   "identifier": "Workplace Bullying Bystanders",
+   "fromCode": "17BOC",
+   "fromName": "Bullying in Organizational Contexts"
+  },
+  {
+   "identifier": "Institutional Level Bullying",
+   "fromCode": "17BOC",
+   "fromName": "Bullying in Organizational Contexts"
+  },
+  {
+   "identifier": "Burnout Behavior",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Job Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Chronic Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Burnout Risk",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Occupational Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Employee Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Labour Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Burnout-Related Experiences",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Burnout-Depression Conundrum",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Burnout Assessment Tool (BAT4)",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Malsh Burnout Inventory",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Oldenburg Burnout Inventory",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Burnout Integrative Measure (BIM)",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Leaders' Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Follower Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Nurse Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Burnout Profiles",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Parental Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Teammate Burnout Questionnaire",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Shirom-Melamed Burnout Measure",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Social Media Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Burnout Syndrome",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Work-Related Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Preventing Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Psychological Burnout",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Burnout Experience",
+   "fromCode": "18BIVD",
+   "fromName": "Burnout and Its Various Dimensions"
+  },
+  {
+   "identifier": "Dynamic Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Green Dynamic Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Employees' Dynamic Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Firms' Dynamic Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Organizational Dynamic Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Firm Innovation Capability",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Green Innovation Capability",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Service Innovation Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Product Innovation Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Process Innovation Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Organizational Learning Capability",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Team Learning Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Artificial Intelligence Capability",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "AI Capability Framework",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Absorption Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Absorptive Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "IT Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "IT Capability",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Inter-Organizational IT Capability",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Digital Capability",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Digital Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Knowledge Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Well-being Capabilities",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Work Capability",
+   "fromCode": "19COTC",
+   "fromName": "Capabilities in Organizational and Technological Contexts"
+  },
+  {
+   "identifier": "Social Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Positive Self-Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Intellectual Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Individual Intellectual Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Intellectual Capital Loss",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Green Intellectual Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Intellectual Capital Structure",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Human Capital Development",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Innovative Human Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Human Capital Development Index",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Human Capital Creation",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Human Capital Approaches",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Parliamentary Human Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Human Capital Transferrability",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Symbolic Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Network Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Organizational Social Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Workplace Social Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Internal Social Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Social Capital Interaction",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "CEO Social Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Social Capital Dimensions",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Group Social Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Green IT Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Career Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Bourdieu's Theory of Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Structural Social Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Social Capital Perspective",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Perceived Social Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Employability Capital",
+   "fromCode": "20FCOPC",
+   "fromName": "Forms of Capital in Organizational and Psychological Contexts"
+  },
+  {
+   "identifier": "Protean Career",
+   "fromCode": "21PCC",
+   "fromName": "Protean Career Concepts"
+  },
+  {
+   "identifier": "Protean Career Orientation",
+   "fromCode": "21PCC",
+   "fromName": "Protean Career Concepts"
+  },
+  {
+   "identifier": "Protean Career Attitude",
+   "fromCode": "21PCC",
+   "fromName": "Protean Career Concepts"
+  },
+  {
+   "identifier": "Protean Career Attitudes",
+   "fromCode": "21PCC",
+   "fromName": "Protean Career Concepts"
+  },
+  {
+   "identifier": "International Protean Career",
+   "fromCode": "21PCC",
+   "fromName": "Protean Career Concepts"
+  },
+  {
+   "identifier": "Job Characteristics",
+   "fromCode": "22JC",
+   "fromName": "Job Characteristics"
+  },
+  {
+   "identifier": "Motivational Job Characteristics",
+   "fromCode": "22JC",
+   "fromName": "Job Characteristics"
+  },
+  {
+   "identifier": "Relational Job Characteristics",
+   "fromCode": "22JC",
+   "fromName": "Job Characteristics"
+  },
+  {
+   "identifier": "Organizational Citizenship",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Interpersonal Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Organizational Citizens",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Change-Oriented Citizenship",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Compassion-Driven Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Organizationally Focused Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Voluntary Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Employee Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Employee Environmental Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Customer Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Customer Citizenship",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Consumer Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Employees' Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Team Citizenship Behaviors",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Group Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Citizenship Ambivalence",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Citizenship Pressure",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Compulsory Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Safety Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Project Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Facebook Citizenship Behavior",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Students' Academic Citizenship Behaviors",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Global Citizenship",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Second-Class Citizen",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Citizenship Performance",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Unethical Organizational Citizen",
+   "fromCode": "25CBOSC",
+   "fromName": "Citizenship Behaviors in Organizational and Social Contexts"
+  },
+  {
+   "identifier": "Organizational Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Organizational Political Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Supportive Organizational Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Supportive Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Safe Organizational Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Sociomoral Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Socio-moral Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Workforce Diversity Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Diversity Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Diversity Climate Perceptions",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Workplace Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Organizational Innovative Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Innovative Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Innovative Climate Profiles",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Organizational Learning Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Focused Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Ethical Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Justice Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Organizational Ethical Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Green Employee Development Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Green Organizational Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Psychological Green Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Psychological Climates",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Knowledge Hiding Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Social Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Mastery Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Benevolent Sexist Organizational Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Team Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Organizational Climate Theory",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Civility Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "ECO VI Organizational Climate Scale",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Overwork Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Climate Strength",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Voice Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Competitive Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "High-Involvement Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Climate Anxiety",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Regulatory Focus Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Leadership Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Organizational Climate Profiles",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Performance-driven Work Climates",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Performance Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Inclusive Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Civility Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "CSR Promotional Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Value Congruence Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Participative Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Competitive Psychological Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Workplace Covid-19 Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Climate for Green Creativity",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Talent Development Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Learning Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Learning Climate Scale",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Work Climate Perceptions",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Empowerment Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Team Procrastination Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Coworker Support Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Perceived Collectivistic Work Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Error Management Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Responsibility Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Overstudy Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Positive Affective Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Motivational Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Perceived Motivational Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Service Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Presenteeism Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Clash of Climates",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Campus Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Development Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Creative Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Group Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Workgroup Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Interpersonal Justice Climate",
+   "fromCode": "26OCIVD",
+   "fromName": "Organizational Climate and Its Various Dimensions"
+  },
+  {
+   "identifier": "Cognitive Abilities",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Ability",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Ability Assessment",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Age",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Difficulties",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Factors",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Components",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Triggers",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Demands",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Scale to Measure Cognitive Demands",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Resources",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Performance",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Crafting",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Schemas",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Stressors",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Appraisal",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Biases",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Aging",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Function",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Functioning",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Effects",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Closure",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Task",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Challenging Task",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Task Data Splitting",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Diversity",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Failures",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Noncognitive Skills",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Stress Management",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Behavioral Process",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Control Model",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Skills",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Dissonance",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Reflection",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Social Cognitive Model",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Social-Cognitive Approach",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Socio-Cognitive Theory",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Capacities",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Reappraisal",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Styles",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive-Affective Involvement",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Reflection",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Education Method",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Social Cognitive Perspective",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Non-cognitive Skills",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Non-Cognitive Constructs",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Socio-Cognitive Models for Stress",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Non-Cognitive Antecedents",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Resource Theory",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Impairment",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Biases Policy",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Paradoxical Cognitive Framework",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Reactions",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Behavioral Group Therapy",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Moral Development",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Individual Cognitive Strategies",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Modulation",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Pathways for Team Creativity",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cultural Cognitive Differences",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Analytical Cognitive Style",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Modeling",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Metacognitive Practice",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Underpinning",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Cognitive Control Deficits",
+   "fromCode": "27CNCPC",
+   "fromName": "Cognitive and Non-Cognitive Processes and Constructs"
+  },
+  {
+   "identifier": "Competitive Environments",
+   "fromCode": "28CEPC",
+   "fromName": "Competitive Environments and Psychological Climate"
+  },
+  {
+   "identifier": "Competitive Climate",
+   "fromCode": "28CEPC",
+   "fromName": "Competitive Environments and Psychological Climate"
+  }
+ ],
+ "unmappedTotal": 2994
+}

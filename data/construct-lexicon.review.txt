@@ -1,0 +1,412 @@
+# Construct lexicon — 408 constructs (review list)
+# papers = recent-tier (79,517) abstracts mentioning the construct
+# sorted by prevalence; 0 = not present in this OB corpus (harmless)
+
+  1.   7165  Knowledge Management
+  2.   6912  Innovation
+  3.   6470  Work Engagement
+  4.   6094  Sustainability
+  5.   5198  Well-Being
+  6.   5087  Team Processes
+  7.   4134  Gender
+  8.   3992  Resilience
+  9.   3592  Decision-Making
+ 10.   3483  Student Outcomes
+ 11.   3473  Artificial Intelligence at Work
+ 12.   3320  Task Performance
+ 13.   3307  Work Motivation
+ 14.   3147  Identity
+ 15.   2959  Mental Health
+ 16.   2941  Emotional Intelligence
+ 17.   2934  Inclusion
+ 18.   2884  Aging at Work
+ 19.   2483  Organizational Commitment
+ 20.   2413  Generational Differences
+ 21.   2378  Anxiety
+ 22.   2378  Work Stress
+ 23.   2365  Turnover Intention
+ 24.   2262  Diversity
+ 25.   1970  Transformational Leadership
+ 26.   1948  Feedback
+ 27.   1946  Competitive Climate
+ 28.   1927  Work Pressure
+ 29.   1916  Social Exchange
+ 30.   1828  Work Orientation
+ 31.   1757  Autonomy
+ 32.   1581  Career Development
+ 33.   1546  Workplace Flexibility
+ 34.   1542  Depression
+ 35.   1491  Temporal Focus
+ 36.   1488  Recovery from Work
+ 37.   1466  Personality
+ 38.   1434  Organizational Justice
+ 39.   1391  Conflict
+ 40.   1303  Human Resource Management
+ 41.   1242  Burnout
+ 42.   1232  Creativity
+ 43.   1227  Self-Efficacy
+ 44.   1172  Career adaptability
+ 45.   1127  Locus of Control
+ 46.   1110  Psychological Empowerment
+ 47.   1100  Proactive Personality
+ 48.   1099  Job Satisfaction
+ 49.   1095  Mindfulness
+ 50.   1092  Authenticity
+ 51.   1061  Fear
+ 52.   1044  Quality of Life
+ 53.   1002  Workplace Discrimination
+ 54.    988  Older Workers
+ 55.    960  Psychological Capital
+ 56.    934  Sleep
+ 57.    914  Team Performance
+ 58.    880  Organizational Culture
+ 59.    833  Social Support
+ 60.    823  Fatigue
+ 61.    811  Job Demands and Resources
+ 62.    732  Work Experience
+ 63.    724  Emotional Exhaustion
+ 64.    723  Organizational Citizenship Behavior
+ 65.    712  Work Passion
+ 66.    711  Empathy
+ 67.    711  Organizational Capabilities
+ 68.    707  Personality Traits
+ 69.    692  Organizational Agility
+ 70.    650  Trust
+ 71.    644  Attachment
+ 72.    644  Compensation
+ 73.    644  Work-Life Integration
+ 74.    625  Work-Life Balance
+ 75.    620  Corporate Social Responsibility
+ 76.    615  Psychological Well-Being
+ 77.    601  Safety Climate
+ 78.    545  Employability
+ 79.    500  Job Performance
+ 80.    498  Organizational Climate
+ 81.    497  Dynamic Capabilities
+ 82.    486  Happiness
+ 83.    482  Social Influence
+ 84.    480  Psychological Distress
+ 85.    471  Service Quality
+ 86.    463  Depressive Symptoms
+ 87.    450  Digital Literacy
+ 88.    441  Psychological Safety
+ 89.    431  Workplace Bullying
+ 90.    428  Coping strategies
+ 91.    426  Purchase Intention
+ 92.    422  Pro-Environmental Behavior
+ 93.    415  Talent Management
+ 94.    400  Time Management
+ 95.    395  Moral Behavior
+ 96.    388  Social Identity
+ 97.    383  Green Human Resource Management
+ 98.    382  Self-Esteem
+ 99.    378  Subjective Wellbeing
+100.    376  Knowledge Sharing
+101.    372  Leadership Styles
+102.    369  Job Embeddedness
+103.    359  Loneliness
+104.    355  Workplace Spirituality
+105.    353  Gratitude
+106.    350  Life Satisfaction
+107.    349  Remote Work
+108.    347  Supervisor Support
+109.    327  Retirement
+110.    327  Technology Acceptance
+111.    324  Job insecurity
+112.    317  Emotion Regulation
+113.    298  Student Engagement
+114.    294  Aggression
+115.    294  Interpersonal Relationships at Work
+116.    289  Organizational Learning
+117.    288  Customer Satisfaction
+118.    280  Voice Behavior
+119.    275  Servant Leadership
+120.    268  Workplace Deviance
+121.    264  Gig Work
+122.    264  Job Crafting
+123.    261  Sleep Quality
+124.    255  Coworker Relationships
+125.    247  Work–Family Enrichment
+126.    246  Perceived Organizational Support
+127.    245  Ethical Leadership
+128.    238  Narcissism
+129.    230  Workplace Incivility
+130.    219  Person-Environment Fit
+131.    209  Leader-Member Exchange
+132.    205  Perceived Stress
+133.    202  Followership
+134.    201  Team Reflexivity
+135.    198  Abusive Supervision
+136.    190  Innovative Work Behavior
+137.    187  Work-Family Conflict
+138.    181  Virtual Teams
+139.    173  Dark Triad Personality
+140.    171  Person–organization fit
+141.    168  Psychological Contract
+142.    167  Psychological Resilience
+143.    165  Forgiveness
+144.    159  Meaningful Work
+145.    155  Customer Engagement
+146.    153  Self-Control
+147.    132  Big Five Personality
+148.    130  Organizational Politics
+149.    128  Newcomer Socialization
+150.    128  Self-compassion
+151.    125  Perceived social support
+152.    121  Responsible Leadership
+153.    119  Workplace ostracism
+154.    116  Job Characteristics
+155.    112  Big Five personality traits
+156.    109  Organizational Identification
+157.    108  Moral Disengagement
+158.    108  Work Design
+159.    107  Growth Mindset
+160.    104  Sociodemographic characteristics
+161.    100  Authentic leadership
+162.     99  Cognitive Flexibility
+163.     98  Goal Orientation
+164.     97  Job Design
+165.     95  Technostress
+166.     94  Health-Related Quality of Life
+167.     93  Telework
+168.     93  Work-Home Interface
+169.     92  Grit
+170.     91  Brand Loyalty
+171.     90  Basic Psychological Needs
+172.     88  Brand Trust
+173.     88  Fear of Missing Out
+174.     87  Meaning in life
+175.     83  Perfectionism
+176.     83  Self-Regulated Learning
+177.     81  Organizational Silence
+178.     80  Generalized Anxiety
+179.     80  Presenteeism
+180.     79  Empowering Leadership
+181.     74  Social Connectedness
+182.     73  Psychological Ownership
+183.     69  Procrastination
+184.     67  Cultural Intelligence
+185.     66  Flow at Work
+186.     66  Market Orientation
+187.     66  Relationship Satisfaction
+188.     64  Electronic Word-of-Mouth
+189.     64  Protean Career
+190.     64  Social Desirability
+191.     61  Thriving at Work
+192.     58  Belongingness
+193.     56  High-Performance Work Systems
+194.     56  Materialism
+195.     55  Depression, Anxiety, and Stress
+196.     51  Counterproductive work behaviors
+197.     50  Organizational Trust
+198.     48  Perceived Overqualification
+199.     48  Positive and Negative Affect
+200.     46  General Self-Efficacy
+201.     45  Internet Addiction
+202.     45  Self-Monitoring
+203.     44  Work Role Performance
+204.     41  Alexithymia
+205.     41  Social Media Addiction
+206.     41  Technology Readiness
+207.     39  Academic Motivation
+208.     39  Psychological contract breach
+209.     38  Brand experience
+210.     38  Time Perspective
+211.     36  Brand Love
+212.     35  Workaholism
+213.     34  Intolerance of uncertainty
+214.     31  Cyberloafing
+215.     31  Green Purchase Intention
+216.     28  Emotion Regulation Difficulties
+217.     27  Academic Self-Efficacy
+218.     26  Daytime Sleepiness
+219.     26  Smartphone Addiction
+220.     25  Career Commitment
+221.     25  Generativity
+222.     25  Idiosyncratic Deals
+223.     25  Problematic Internet Use
+224.     23  Academic Burnout
+225.     23  Fear of Negative Evaluation
+226.     23  Role Stress
+227.     23  Sensation Seeking
+228.     22  Organizational Cynicism
+229.     22  Professional Quality of Life
+230.     21  Illness Perception
+231.     21  Positive Mental Health
+232.     20  Academic Resilience
+233.     20  AI Anxiety
+234.     20  Impulsiveness
+235.     20  Knowledge hiding behavior
+236.     19  Subjective Happiness
+237.     18  Brand Authenticity
+238.     18  Job Involvement
+239.     18  Organization-Based Self-Esteem
+240.     18  Workplace Friendship
+241.     17  Brand Personality
+242.     17  Need for cognition
+243.     16  Anxiety and Depression Symptoms
+244.     16  Experiential Avoidance
+245.     16  Sense of Coherence
+246.     15  Cognitive Emotion Regulation
+247.     15  Compulsive Buying
+248.     15  Savoring
+249.     14  Anxiety Sensitivity
+250.     14  Frugality
+251.     14  HEXACO Personality
+252.     14  Impostor Phenomenon
+253.     13  Algorithm Aversion
+254.     13  Core self-evaluations
+255.     13  Need to Belong
+256.     13  Perceived corporate social responsibility
+257.     13  Self-Concept Clarity
+258.     12  Fatigue Severity
+259.     12  Health Anxiety
+260.     12  Social comparison orientation
+261.     12  Teacher Self-Efficacy
+262.     11  Felt Obligation
+263.     11  Nomophobia
+264.     10  Achievement Goals
+265.     10  Body Appreciation
+266.     10  Consumer Involvement
+267.     10  Mathematics anxiety
+268.     10  Pain Catastrophizing
+269.     10  Social media marketing activities
+270.     10  Trait Emotional Intelligence
+271.      9  Approaches to Learning
+272.      9  Emotional labor strategies
+273.      9  Pay Satisfaction
+274.      9  Perceived Insider Status
+275.      9  Subjective Vitality
+276.      8  Dispositional Gratitude
+277.      8  Dispositional Mindfulness
+278.      8  Distress Tolerance
+279.      8  eHealth Literacy
+280.      8  Harmonious and Obsessive Passion
+281.      8  Intercultural Sensitivity
+282.      8  Mindful Eating
+283.      8  Perceived Organizational Politics
+284.      8  Price Consciousness
+285.      8  PTSD Symptom Severity
+286.      8  Resilient Coping
+287.      7  Attitudes Toward Artificial Intelligence
+288.      7  Consumer innovativeness
+289.      7  Green Consumption Values
+290.      7  Motivational Systems
+291.      7  Social Media Fatigue
+292.      6  Self-Brand Connection
+293.      5  Academic buoyancy
+294.      5  Achievement goal orientation
+295.      5  Consumer Animosity
+296.      5  Consumer Ethnocentrism
+297.      5  Humor Styles
+298.      5  Need for Cognitive Closure
+299.      5  State Self-Esteem
+300.      4  Connectedness to Nature
+301.      4  Consideration of Future Consequences
+302.      4  Consumer perceived value
+303.      4  Emotional Brand Attachment
+304.      4  Ethical Work Climate
+305.      4  Health Locus of Control
+306.      4  Intuitive Eating
+307.      4  Partner Phubbing
+308.      4  Perceived Brand Globalness
+309.      4  Social Interaction Anxiety
+310.      3  Boredom Proneness
+311.      3  Career Decision Self-Efficacy
+312.      3  Compassion for Others
+313.      3  Dispositional hope
+314.      3  Dispositional Optimism
+315.      3  Epistemic curiosity
+316.      3  Impulse Buying Tendency
+317.      3  Need for Touch
+318.      3  Psychological Flourishing
+319.      3  Somatic Symptom Severity
+320.      3  Trait Curiosity
+321.      3  Work Locus of Control
+322.      3  Workplace Telepressure
+323.      2  Cognitive Fusion
+324.      2  Computer Self-Efficacy
+325.      2  Consumer Cosmopolitanism
+326.      2  Consumer-Based Brand Equity
+327.      2  Independent and Interdependent Self-Construal
+328.      2  Insomnia Symptom Severity
+329.      2  Online Trust
+330.      2  Pain Self-Efficacy
+331.      2  Sense of School Belonging
+332.      2  Value Consciousness
+333.      1  Academic Grit
+334.      1  Adult Romantic Attachment
+335.      1  Brand Engagement in Self-Concept
+336.      1  Calling and Vocation
+337.      1  Consumer Susceptibility to Interpersonal Influence
+338.      1  Core job characteristics
+339.      1  Depression symptom severity
+340.      1  Dispositional Forgiveness
+341.      1  E-Learning Satisfaction
+342.      1  eWOM Adoption
+343.      1  Online Civic Engagement
+344.      1  Proactive voice behavior
+345.      1  Regulatory Focus (Promotion vs. Prevention)
+346.      1  Status Consumption
+347.      1  Video Game Addiction
+348.      0  Academic entitlement
+349.      0  Achievement goals (2×2 framework)
+350.      0  Affective commitment to organizational change
+351.      0  Basic psychological need satisfaction at work
+352.      0  Behavioral Consequences of Service Quality
+353.      0  Behavioral inhibition and activation sensitivity
+354.      0  Behavioral Loyalty Intentions
+355.      0  Causality Orientations (Self-Determination)
+356.      0  Cognitive Test Anxiety
+357.      0  Consumer Confusion Proneness
+358.      0  Consumer Decision-Making Styles
+359.      0  Consumer Need for Uniqueness
+360.      0  Consumer Self-Confidence
+361.      0  Consumer Technology Acceptance
+362.      0  Consumer Vanity
+363.      0  Customer Experience Quality
+364.      0  Customer Orientation of Salespeople
+365.      0  Customer Value Co-Creation Behavior
+366.      0  Depressive Rumination
+367.      0  Dispositional Authenticity
+368.      0  Exploratory Consumer Buying Behavior
+369.      0  General (Dispositional) Trust
+370.      0  Generalized anxiety disorder symptom severity
+371.      0  Global job satisfaction
+372.      0  Hazardous and Harmful Alcohol Use
+373.      0  Hedonic and Utilitarian Attitude
+374.      0  Illness Intrusiveness
+375.      0  Internet Users' Information Privacy Concerns
+376.      0  Intrinsic and Extrinsic Life Goals
+377.      0  Leader expressed humility
+378.      0  Market Mavenism
+379.      0  Maximizing vs. Satisficing
+380.      0  Multidimensional empathy
+381.      0  Need for Affect
+382.      0  Nostalgia Proneness
+383.      0  Occupational stressors (challenge and hindrance)
+384.      0  Online consumer trust
+385.      0  Online Privacy Concerns
+386.      0  Opinion Leadership and Opinion Seeking
+387.      0  Optimum Stimulation Level
+388.      0  Patient Activation and Self-Management
+389.      0  Person-Environment Fit Perceptions
+390.      0  Personal Shopping Value
+391.      0  Political skill at work
+392.      0  Positive Mental Wellbeing
+393.      0  Pro-Environmental Attitudes / Ecological Worldview
+394.      0  Protean and Boundaryless Career Attitudes
+395.      0  Psychological inflexibility / experiential avoidance
+396.      0  Psychological recovery from work
+397.      0  Psychological Wellbeing / Common Mental Disorders
+398.      0  Rumination and Reflection
+399.      0  Service Quality (Performance)
+400.      0  Skepticism toward advertising
+401.      0  Source / Endorser Credibility
+402.      0  Spending Disposition (Tightwad–Spendthrift)
+403.      0  Student Academic Engagement
+404.      0  Subjective Product Knowledge
+405.      0  Trait Materialism
+406.      0  Ultra-Brief Anxiety and Depression Screening
+407.      0  Work motivation (self-determination theory)
+408.      0  Worry / Trait Anxiety
