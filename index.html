@@ -396,6 +396,14 @@
   .x-clr:hover{color:var(--accent);background:var(--chip)}
   @media (prefers-reduced-motion:reduce){.mx-mode{transition:none}}
 </style>
+<!-- SYED-PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Research Book">
+<!-- /SYED-PWA -->
 </head>
 <body>
 <a class="skip-link" href="#app">Skip to content</a>
@@ -1931,5 +1939,8 @@ function ttCsv(){
 })();
 </script>
 <!-- /SYED-AMBIENT -->
+<!-- SYED-PWA-SW -->
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<!-- /SYED-PWA-SW -->
 </body>
 </html>
