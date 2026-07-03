@@ -112,6 +112,20 @@
   .resbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 0 6px}
   .count{font-weight:700}.count b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
   .clear{font-size:12.5px;color:var(--accent);background:none;border:0;cursor:pointer;font-weight:600}
+  #starBtn.on{color:#f59e0b}
+  .pstar{float:right;margin-left:10px;cursor:pointer;font-size:17px;line-height:1;color:var(--ink3);transition:color .15s,transform .15s}
+  .pstar:hover{transform:scale(1.2)}
+  .pstar.on{color:#f59e0b}
+  .rvrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:0 0 10px;font-size:12px}
+  .rvrow .rv-lbl{color:var(--ink3);letter-spacing:.05em;text-transform:uppercase;font-size:11px}
+  .rvrow .rv{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer;color:var(--ink2)}
+  .rvrow .rv:hover{border-color:var(--accent);color:var(--accent)}
+  @media print{
+    .nav,.filters,.pager,.resbar .clear,#rvRow,.hero p,#freshNote,.pstar,#syed-scroll-prog,.navbtn{display:none !important}
+    body{background:#fff;color:#111}
+    .pcard,.panel{break-inside:avoid;border-color:#ddd;background:#fff;box-shadow:none}
+    .modal{box-shadow:none}
+  }
 
   /* paper rows */
   .list{display:flex;flex-direction:column;gap:10px;padding-bottom:24px}
@@ -421,7 +435,7 @@
   <button class="iconbtn" id="themeBtn" title="Toggle theme">◐</button>
 </div>
 
-<div id="loading" class="loading"><div class="spin"></div>Loading the corpus… (9,388 papers)</div>
+<div id="loading" class="loading"><div class="spin"></div>Loading the corpus… (9,388 papers) <span id="loadMB" style="font-variant-numeric:tabular-nums"></span></div>
 
 <main id="app" class="hidden" tabindex="-1">
   <!-- LIBRARY -->
@@ -457,12 +471,17 @@
       <label class="oa" id="fAbsBox" title="Also match abstract text (loads abstracts on first use, ~9 MB)"><input type="checkbox" id="fAbs"> <span id="fAbsLbl">Search abstracts</span></label>
       <label class="oa" id="fRecentBox" title="Add recent papers (2024→) auto-fetched from OpenAlex — real records, machine-assigned constructs, badged. Verify before citing; the hand-coded corpus stays the verified set."><input type="checkbox" id="fRecent"> <span id="fRecentLbl">+ Recent 2024→</span></label>
     </div>
-    <div class="resbar">
+    <div class="resbar" aria-live="polite">
       <div class="count"><b id="resCount">0</b> papers</div>
       <span id="xfilterNote" class="xfilter" hidden></span>
       <button class="clear hidden" id="clearBtn">clear filters</button>
       <span id="freshNote" style="font-size:12px;color:var(--ink3)"></span>
+      <span style="flex:1"></span>
+      <button class="clear" id="starBtn" title="Show only the papers you've starred (saved on this device)">☆ Starred</button>
+      <button class="clear" id="csvBtn" title="Download the current filtered list as a CSV — real fields only">⬇ CSV</button>
+      <button class="clear" id="linkBtn" title="Copy a link that reopens this exact filtered view">🔗 Copy link</button>
     </div>
+    <div id="rvRow" class="rvrow" hidden></div>
     <div class="list" id="list"></div>
     <div class="pager">
       <button id="prev">← Prev</button>
@@ -610,7 +629,7 @@
   <footer>Syed's Research Book · 9,388 papers · 167 constructs · a 24-month systematic-review corpus · <b>no fabrication — all hand-coded</b></footer>
 </main>
 
-<div class="ov" id="ov"><div class="modal" style="position:relative"><button class="iconbtn mclose" id="mclose">✕</button><div id="mcontent"></div></div></div>
+<div class="ov" id="ov" role="dialog" aria-modal="true"><div class="modal" style="position:relative"><button class="iconbtn mclose" id="mclose" aria-label="Close">✕</button><div id="mcontent"></div></div></div>
 
 <script>
 const TOOLS={
@@ -639,6 +658,12 @@ function applyUrlParams(){
   const j=u.get('journal'); if(j){F.journal=j;$('#fJournal').value=j;}
   const a=u.get('author'); if(a){F.author=a;$('#fAuthor').value=a;}
   const y=u.get('year'); if(y&&/^\d{4}$/.test(y)){F.yearExact=+y;$('#fYear').value=y;}
+  const ym=u.get('ymin'); if(ym&&/^\d{4}$/.test(ym)){F.yMin=+ym;$('#yMin').value=ym;}
+  const yx=u.get('ymax'); if(yx&&/^\d{4}$/.test(yx)){F.yMax=+yx;$('#yMax').value=yx;}
+  const bd=u.get('band'); if(bd){F.band=bd;$('#fBand').value=bd;}
+  const so=u.get('sort'); if(so&&$('#fSort').querySelector(`option[value="${so}"]`)){F.sort=so;$('#fSort').value=so;}
+  if(u.get('oa')==='1'){F.oa=true;$('#fOa').checked=true;}
+  if(u.get('art')==='1'){F.art=true;$('#fArt').checked=true;}
   const doi=u.get('doi');
   const vw=u.get('view'); if(vw)S.initView=vw;   // e.g. ?view=termtrends (the folded-in Wordmap redirect lands here)
   history.replaceState({},'',location.pathname);   // clean the URL after consuming params
@@ -646,9 +671,21 @@ function applyUrlParams(){
 }
 
 /* ---------- load ---------- */
+// Stream the big index so the loading screen shows honest progress (MB received —
+// content-length is gzip-compressed, so a % would lie; bytes received never do).
+async function fetchMB(url,el){
+  const r=await fetch(url); if(!r.ok)throw new Error('HTTP '+r.status);
+  if(!r.body)return r.json();
+  const reader=r.body.getReader(); const chunks=[]; let got=0;
+  for(;;){const{done,value}=await reader.read(); if(done)break;
+    chunks.push(value); got+=value.length;
+    if(el)el.textContent=(got/1048576).toFixed(1)+' MB';}
+  const buf=new Uint8Array(got); let o=0; for(const c of chunks){buf.set(c,o);o+=c.length;}
+  return JSON.parse(new TextDecoder().decode(buf));
+}
 Promise.all([
   fetch('./data/constructs.json').then(r=>r.json()),
-  fetch('./data/papers.index.json').then(r=>r.json())
+  fetchMB('./data/papers.index.json',$('#loadMB'))
 ]).then(([constructs,papers])=>{
   S.constructs=constructs; S.papers=papers;
   constructs.forEach(c=>S.byCode[c.code]=c);
@@ -658,6 +695,7 @@ Promise.all([
   buildConstructSelect(); buildJournalSelect(); buildAuthorSelect(); buildYearSelect();
   $('#loading').classList.add('hidden'); $('#app').classList.remove('hidden');
   const openDoi=applyUrlParams();
+  updateStarBtn(); renderRv();
   applyAndRender(); renderOverview();
   if(S.initView&&VIEWS.includes(S.initView))setView(S.initView);   // deep-link to a view (?view=termtrends)
   if(openDoi)openDetail(openDoi);
@@ -714,7 +752,70 @@ function buildYearSelect(){
     const o=document.createElement('option');o.value=y;o.textContent=`${y} (${yc[y]})`;sel.appendChild(o);
   });
 }
-const F={q:'',construct:'',constructs:[],journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false,recent:false,sort:'year'};
+const F={q:'',construct:'',constructs:[],journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false,recent:false,sort:'year',starred:false};
+
+/* ── ★ reading list + 🕘 recently viewed (on-device only) ─────────── */
+const STARS=(()=>{try{return new Set(JSON.parse(localStorage.getItem('srb_stars')||'[]'));}catch(_){return new Set();}})();
+function saveStars(){try{localStorage.setItem('srb_stars',JSON.stringify([...STARS]));}catch(_){}}
+function toggleStar(id){STARS.has(id)?STARS.delete(id):STARS.add(id);saveStars();updateStarBtn();}
+function updateStarBtn(){const b=$('#starBtn');if(!b)return;
+  b.textContent=(F.starred?'★':'☆')+' Starred'+(STARS.size?' ('+STARS.size+')':'');
+  b.classList.toggle('on',F.starred);}
+$('#starBtn').onclick=()=>{F.starred=!F.starred;S.page=0;updateStarBtn();applyAndRender();};
+const RV_KEY='srb_recent_view';
+function rvGet(){try{return JSON.parse(localStorage.getItem(RV_KEY)||'[]');}catch(_){return[];}}
+function rvAdd(id){try{const l=rvGet().filter(x=>x!==id);l.unshift(id);localStorage.setItem(RV_KEY,JSON.stringify(l.slice(0,6)));}catch(_){}renderRv();}
+function renderRv(){
+  const el=$('#rvRow'); if(!el)return;
+  const items=rvGet().map(id=>S.papers.find(p=>p.id===id)).filter(Boolean);
+  if(!items.length){el.hidden=true;el.innerHTML='';return;}
+  el.hidden=false;
+  el.innerHTML='<span class="rv-lbl">Recently viewed</span>'+items.map(p=>
+    `<span class="rv" data-rv="${esc(p.id)}" title="${esc(p.title||'')}">${esc((p.title||'Untitled').slice(0,60))}${(p.title||'').length>60?'…':''}</span>`).join('');
+}
+$('#rvRow').onclick=e=>{const c=e.target.closest('[data-rv]');if(c)openDetail(c.dataset.rv);};
+
+/* ── ⬇ CSV: export the current filtered list — real fields only ───── */
+$('#csvBtn').onclick=()=>{
+  const rows=[['title','authors','year','journal','doi','scopus_percentile','citations','open_access','constructs','tier']];
+  S.filtered.forEach(p=>rows.push([p.title||'',(p.authors||[]).join('; '),p.year||'',p.journal||'',p.doi||'',
+    p.scopusPercentile??'',p.citations??'',p.openAccess?'yes':'',
+    p.constructCodes.map(c=>(S.byCode[c]||{}).name||c).join('; '),
+    p._live?'live (verify)':p._recent?'recent auto-fetched (verify)':'hand-coded']));
+  const csv=rows.map(r=>r.map(v=>{v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='research-book-'+S.filtered.length+'-papers.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+};
+
+/* ── 🔗 copy a link that reopens this exact filtered view ─────────── */
+$('#linkBtn').onclick=async()=>{
+  const u=new URL(location.origin+location.pathname);
+  if(F.q)u.searchParams.set('q',$('#q').value.trim());
+  if(F.construct)u.searchParams.set('construct',F.construct);
+  if(F.journal)u.searchParams.set('journal',F.journal);
+  if(F.author)u.searchParams.set('author',F.author);
+  if(F.yearExact!=null)u.searchParams.set('year',F.yearExact);
+  if(F.yMin!=null)u.searchParams.set('ymin',F.yMin);
+  if(F.yMax!=null)u.searchParams.set('ymax',F.yMax);
+  if(F.band)u.searchParams.set('band',F.band);
+  if(F.sort!=='year')u.searchParams.set('sort',F.sort);
+  if(F.oa)u.searchParams.set('oa','1');
+  if(F.art)u.searchParams.set('art','1');
+  const b=$('#linkBtn'),t=b.textContent;
+  try{await navigator.clipboard.writeText(u.toString());b.textContent='✓ Copied';}
+  catch(_){prompt('Copy this link:',u.toString());b.textContent=t;return;}
+  setTimeout(()=>b.textContent=t,1300);
+};
+
+/* ── "/" jumps to the Library search, from anywhere ───────────────── */
+document.addEventListener('keydown',e=>{
+  if(e.key==='/'&&!/^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName||''))&&!e.ctrlKey&&!e.metaKey){
+    e.preventDefault(); if(S.view!=='library')setView('library');
+    const q=$('#q'); q.focus(); q.select();
+  }
+});
 let qTimer;
 $('#q').oninput=e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();S.page=0;applyAndRender();fetchLive().then(n=>{if(n)applyAndRender();});},180);};
 $('#fConstruct').onchange=e=>{F.construct=e.target.value;S.page=0;applyAndRender();fetchLive().then(n=>{if(n)applyAndRender();});};
@@ -855,6 +956,7 @@ function renderXfilterNote(){
 
 function applyAndRender(){
   let r=S.papers;
+  if(F.starred)r=r.filter(p=>STARS.has(p.id));
   if(F.dois)r=r.filter(p=>F.dois.has(p.doi||p.id));   // matrix drill-down: an exact DOI set
   if(!F.recent)r=r.filter(p=>!p._recent);   // recent tier hidden unless toggled on
   if(F.q)r=r.filter(p=>(F.searchAbs&&p._sa||p._s).includes(F.q));
@@ -875,7 +977,7 @@ function applyAndRender(){
   r=r.slice().sort(dir);
   S.filtered=r;
   $('#resCount').textContent=r.length.toLocaleString();
-  const active=F.q||F.construct||(F.constructs&&F.constructs.length)||F.dois||F.journal||F.author||F.yearExact!=null||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art;
+  const active=F.q||F.construct||(F.constructs&&F.constructs.length)||F.dois||F.journal||F.author||F.yearExact!=null||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art||F.starred;
   $('#clearBtn').classList.toggle('hidden',!active);
   renderXfilterNote();
   renderList();
@@ -895,6 +997,7 @@ function renderList(){
   const slice=S.filtered.slice(S.page*PAGE,S.page*PAGE+PAGE);
   $('#list').innerHTML=slice.map(p=>`
     <div class="pcard" data-id="${esc(p.id)}">
+      <span class="pstar${STARS.has(p.id)?' on':''}" data-star="${esc(p.id)}" title="${STARS.has(p.id)?'Remove from':'Add to'} your reading list (saved on this device)" role="button" aria-label="Star this paper">${STARS.has(p.id)?'★':'☆'}</span>
       <p class="pt">${esc(p.title||p.briefTitle||'Untitled')}</p>
       <div class="pmeta">
         ${authors(p.authors)} ${p.authors&&p.authors.length?'<span class="dot">·</span>':''}
@@ -914,6 +1017,11 @@ $('#next').onclick=()=>{S.page++;renderList();window.scrollTo(0,0);};
 
 /* clicks: filter by author / journal / construct chip, else open the paper */
 $('#list').onclick=e=>{
+  const st=e.target.closest('[data-star]');
+  if(st){const id=st.dataset.star;toggleStar(id);
+    st.classList.toggle('on',STARS.has(id));st.textContent=STARS.has(id)?'★':'☆';
+    if(F.starred)applyAndRender();
+    return;}
   const au=e.target.closest('[data-author]');
   if(au){F.author=au.dataset.author;$('#fAuthor').value=au.dataset.author;S.page=0;applyAndRender();window.scrollTo(0,0);return;}
   const jr=e.target.closest('[data-journal]');
@@ -952,10 +1060,25 @@ function openConstructModal(kind,key){
   const rc=kind==='phrase'&&S.recentConstructs?S.recentConstructs.constructs.find(c=>c.t===key):null;
   const title=hand?hand.name:key;
   const nPapers=hand?hand.paperCount+' papers (hand-coded corpus)':rc?rc.n+' recent papers (2024→, machine-extracted)':'';
+  // per-year distribution for hand-coded constructs — pure counts from the verified corpus
+  let spark='';
+  if(hand){
+    const yc={}; S.papers.forEach(p=>{if(!p._recent&&!p._live&&p.year&&p.constructCodes.includes(key))yc[p.year]=(yc[p.year]||0)+1;});
+    const ys=Object.keys(yc).map(Number);
+    if(ys.length>1){
+      const y0=Math.min(...ys),y1=Math.max(...ys),max=Math.max(...Object.values(yc));
+      let bars='';
+      for(let y=y0;y<=y1;y++){const n=yc[y]||0;
+        bars+=`<div title="${y}: ${n} paper${n===1?'':'s'}" style="flex:1;min-width:2px;background:${n?'linear-gradient(180deg,#F14575,#9270F4)':'var(--chip)'};height:${n?Math.max(8,Math.round(n/max*46)):2}px;border-radius:2px 2px 0 0"></div>`;}
+      spark=`<div class="secttl">Papers per year <span style="font-weight:400;font-size:11px;color:var(--ink3)">· hand-coded corpus, ${y0}–${y1}</span></div>
+        <div style="display:flex;gap:2px;align-items:flex-end;height:50px;margin-bottom:4px">${bars}</div>`;
+    }
+  }
   $('#mcontent').innerHTML=`
     <div class="mhead"><p class="mtitle">${esc(title)}</p>
       <div class="mrow">${hand?'<span class="badge">✋ '+esc(hand.code)+'</span>':'<span class="badge" style="background:rgba(241,69,117,.15);color:#F14575">↑ recent · machine-extracted</span>'}<span class="dot">·</span><span>${esc(nPapers)}</span></div></div>
     <div class="mbody">
+      ${spark}
       <div class="secttl">Theories that use it <span style="font-weight:400;font-size:11px;color:var(--ink3)">· TheoryScope, label-matched — verify</span></div>
       ${e.theories.length?'<div class="links">'+e.theories.map(t=>`<a class="lnk" href="${esc(TOOLS.theoryscope)}#/theory/${esc(t.s)}" target="_blank" rel="noopener">🧠 ${esc(t.n)} ↗</a>`).join('')+'</div>':'<p class="muted" style="font-size:13px">None label-matched in the 632-theory catalog.</p>'}
       <div class="secttl">Scales that measure it <span style="font-weight:400;font-size:11px;color:var(--ink3)">· ScaleScope, label-matched — verify</span></div>
@@ -1031,8 +1154,17 @@ async function recentAbstract(doi){
   if(!_recentAbsCache[sh])_recentAbsCache[sh]=fetch('./data/recent.abstracts/'+sh+'.json').then(r=>r.ok?r.json():{}).catch(()=>({}));
   const m=await _recentAbsCache[sh];return m[doi]||'';
 }
+/* BibTeX from the record's real fields only — no volume/pages invented */
+function bibtex(p){
+  const first=((p.authors||[])[0]||'').split(/\s+/).pop()||'paper';
+  const key=(first+(p.year||'')).toLowerCase().replace(/[^a-z0-9]/g,'')||'paper';
+  const f=[['title',p.title],['author',(p.authors||[]).join(' and ')],['journal',p.journal],['year',p.year],['doi',p.doi]]
+    .filter(([,v])=>v).map(([k,v])=>`  ${k} = {${v}}`).join(',\n');
+  return `@article{${key},\n${f}\n}`;
+}
 async function openDetail(id){
   const p=S.papers.find(x=>x.id===id); if(!p)return;
+  rvAdd(id);
   const doiUrl=p.doi?('https://doi.org/'+p.doi):null;
   await ensureConstructMap();  /* so the chips carry their 🧠·📏 crosswalk badges */
   const cChips=p.constructCodes.map(c=>{const cc=S.byCode[c]||{name:c};
@@ -1066,10 +1198,15 @@ async function openDetail(id){
         ${p.rgUrl?`<a class="lnk" href="${esc(p.rgUrl)}" target="_blank" rel="noopener">ResearchGate ↗</a>`:''}
         ${p.connectedPapersUrl?`<a class="lnk" href="${esc(p.connectedPapersUrl)}" target="_blank" rel="noopener">Connected Papers ↗</a>`:''}
         ${p.scihubUrl?`<a class="lnk" href="${esc(p.scihubUrl)}" target="_blank" rel="noopener">Sci-Hub ↗</a>`:''}
+        <a class="lnk" href="#" id="bibBtn" title="Copy a BibTeX entry built from this record's real fields (title/authors/journal/year/DOI only)">📋 Copy BibTeX</a>
       </div>
       <div class="secttl">Constructs (${p.constructCodes.length})</div>
       <div class="chips">${cChips}</div>
     </div>`;
+  const bb=$('#bibBtn'); if(bb)bb.onclick=async ev=>{ev.preventDefault();
+    try{await navigator.clipboard.writeText(bibtex(p));bb.textContent='✓ BibTeX copied';}
+    catch(_){prompt('Copy this BibTeX:',bibtex(p));}
+    setTimeout(()=>{if(bb.isConnected)bb.textContent='📋 Copy BibTeX';},1300);};
   $('#ov').classList.add('on'); document.body.style.overflow='hidden';
   if(p.hasAbstract){let txt;if(p._live){txt=p._abs||'';}else if(p._recent){txt=await recentAbstract(p.id);}else{const a=await ensureAbstracts();txt=a[p.id];}const box=$('#absBox');if(box)box.textContent=txt||'Abstract not found.';}
 }
