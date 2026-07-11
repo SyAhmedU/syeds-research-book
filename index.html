@@ -412,6 +412,15 @@
 </style>
 <style id="syed-hero-motion">@media (prefers-reduced-motion:no-preference){.hero>*{opacity:0;animation:syedHeroRise .7s cubic-bezier(.22,1,.36,1) both}.hero>*:nth-child(1){animation-delay:.04s}.hero>*:nth-child(2){animation-delay:.13s}.hero>*:nth-child(3){animation-delay:.22s}.hero>*:nth-child(4){animation-delay:.31s}.hero>*:nth-child(5){animation-delay:.40s}.hero>*:nth-child(6){animation-delay:.49s}}@keyframes syedHeroRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}</style>
 <style id="syed-wave3">@media (prefers-reduced-motion:no-preference){.hero h1 em{background-size:220% 220%;animation:sydGradDrift 9s ease-in-out infinite alternate}@keyframes sydGradDrift{from{background-position:0% 50%}to{background-position:100% 50%}}}</style>
+<style id="syed-cathedral">
+/* SYED-CONCEPT · Corpus Cathedral mote wall */
+#corpusHero{position:relative}
+#corpusMotes{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 1.4s ease}
+#corpusMotes.lit{opacity:.5}
+#corpusHero h1,#corpusHero p{position:relative;z-index:1}
+.motes-cap{position:relative;z-index:1;margin-top:10px;font-family:var(--mono,'IBM Plex Mono',monospace);font-size:.64rem;letter-spacing:.08em;color:var(--muted,#8a8096)}
+@media print{#corpusMotes,.motes-cap{display:none}}
+</style>
 <!-- SYED-PWA -->
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -442,9 +451,14 @@
 <main id="app" class="hidden" tabindex="-1">
   <!-- LIBRARY -->
   <section id="v-library" class="wrap">
-    <div class="hero">
+    <div class="hero" id="corpusHero">
+      <!-- SYED-CONCEPT · "Corpus Cathedral": one mote of light per hand-coded
+           paper, banded by REAL decade counts from summary.json — the shape of
+           the field's history, drawn from the data itself. -->
+      <canvas id="corpusMotes" aria-hidden="true"></canvas>
       <h1>The <em>corpus</em></h1>
       <p>9,388 unique papers across 167 management &amp; organizational-behavior constructs — every record hand-coded over 24 months, DOI-keyed and Scopus-graded. Nothing here is AI-generated. A badged <b>recent tier</b> of real OpenAlex records (auto-fetched, machine-tagged) extends the library past 2024 to the present — and picking a construct or searching also pulls <b>this month's papers live</b>, marked ⚡.</p>
+      <div id="corpusMotesCap" class="motes-cap" hidden></div>
     </div>
     <div class="filters">
       <input type="text" id="q" placeholder="Search title, author, journal…" autocomplete="off">
@@ -2223,5 +2237,52 @@ function ttCsv(){
 })();
 </script>
 <!-- /SYED-DYNAMIC -->
+<script>
+// SYED-CONCEPT · Corpus Cathedral — draw one mote per hand-coded paper, banded
+// by the REAL decade counts in data/summary.json. Density = the field's history.
+(function(){
+  var SUM = null;
+  function draw(){
+    var cv = document.getElementById('corpusMotes'); // re-query: the view may re-render
+    if (!cv || !SUM) return false;
+    if (cv.classList.contains('lit')) return true;
+    var host = cv.parentElement, W = host.clientWidth, H = host.clientHeight;
+    if (!W || !H) return false;
+    var decades = Object.keys(SUM.byDecade).sort();
+    var total = decades.reduce(function(n, d){ return n + SUM.byDecade[d]; }, 0);
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = W * dpr; cv.height = H * dpr;
+    var g = cv.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, W, H);
+    var bandW = W / decades.length;
+    var warm = ['rgba(255,150,86,', 'rgba(241,69,117,', 'rgba(146,112,244,'];
+    decades.forEach(function(d, i){
+      var n = SUM.byDecade[d];
+      var x0 = i * bandW;
+      for (var k = 0; k < n; k++) {
+        // deterministic scatter — same sky every load
+        var hx = ((k * 2654435761) % 10000) / 10000, hy = ((k * 40503 + i * 9973) % 10000) / 10000;
+        g.fillStyle = warm[(k + i) % 3] + (0.25 + hy * 0.45) + ')';
+        g.fillRect(x0 + hx * (bandW - 2), 4 + hy * (H - 8), 1.3, 1.3);
+      }
+    });
+    cv.classList.add('lit');
+    var cap = document.getElementById('corpusMotesCap');
+    if (cap) { cap.hidden = false; cap.textContent = 'each light = one hand-coded paper with a clean year · ' + total.toLocaleString() + ' across ' + decades.length + ' decades, ' + decades[0] + ' → ' + decades[decades.length - 1]; }
+    return true;
+  }
+  fetch('data/summary.json').then(function(r){ return r.ok ? r.json() : null; }).then(function(s){
+    if (!s || !s.byDecade) return;
+    SUM = s;
+    // the app re-renders views after data loads — retry until the canvas sticks
+    var tries = 0;
+    (function attempt(){ if (!draw() && ++tries < 12) setTimeout(attempt, 700); })();
+    var rt = 0;
+    window.addEventListener('resize', function(){
+      clearTimeout(rt);
+      rt = setTimeout(function(){ var c = document.getElementById('corpusMotes'); if (c) c.classList.remove('lit'); draw(); }, 250);
+    });
+  }).catch(function(){});
+})();
+</script>
 </body>
 </html>
