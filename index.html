@@ -623,6 +623,11 @@
   <!-- TRENDS -->
   <section id="v-trends" class="wrap hidden">
     <div class="hero"><h1>Trends</h1><p>When each construct surged. Rows = the busiest constructs, columns = years, darker = more papers. Click a row to see its papers.</p></div>
+    <div style="display:flex;gap:8px;align-items:center;margin:2px 0 0">
+      <button class="chip" id="trendCounts">Counts</button>
+      <button class="chip" id="trendShare">Share of year</button>
+      <span class="mx-note" id="trendModeNote" style="margin:0">darker = more papers that year</span>
+    </div>
     <div id="trendsWrap" style="margin:14px 0 40px;overflow-x:auto"></div>
   </section>
 
@@ -633,6 +638,7 @@
       <input class="tt-scrub" id="tt-scrub" type="range" min="0" max="0" value="0" aria-label="Year">
       <div class="tt-year"><span id="tt-year">—</span><span class="tt-yearnow" id="tt-yearnow"></span></div>
       <button class="tt-speed" id="tt-speed">1×</button>
+      <button class="tt-speed" id="tt-mode" title="Switch between the treemap and the growth × novelty quadrant">◧ Quadrant</button>
       <input class="tt-search" id="tt-search" type="text" placeholder="Filter terms…" autocomplete="off">
       <span class="tt-stat" id="tt-stat"></span>
     </div>
@@ -1819,26 +1825,42 @@ $('#mxLeads').onclick=e=>{const r=e.target.closest('.mx-lead-row');if(!r)return;
 })();
 
 /* ---------- trends heatmap ---------- */
+/* Two reads over the same hand-coded counts: Counts (absolute, darker = more
+   papers) and Share (each cell as % of that YEAR's construct-codings among the
+   top-40 — composition drift, so a construct can "surge" even in a thin year). */
+let TREND_SHARE=false;
 function renderTrends(){
   const top=S.constructs.slice().sort((a,b)=>b.paperCount-a.paperCount).slice(0,40);
   const y0=Math.max(2005,S.yMin),years=[];for(let y=y0;y<=S.yMax;y++)years.push(y);
   const cnt={};top.forEach(c=>cnt[c.code]={});
   for(const p of S.papers){if(p._recent)continue;/* trends = the hand-coded story only */if(!p.year||p.year<y0)continue;for(const code of p.constructCodes)if(cnt[code])cnt[code][p.year]=(cnt[code][p.year]||0)+1;}
-  let mx=1;top.forEach(c=>years.forEach(y=>{if((cnt[c.code][y]||0)>mx)mx=cnt[c.code][y];}));
+  const colTot={};years.forEach(y=>{colTot[y]=0;top.forEach(c=>{colTot[y]+=cnt[c.code][y]||0;});});
+  let mx=1e-9;
+  top.forEach(c=>years.forEach(y=>{const v=cnt[c.code][y]||0,t=TREND_SHARE?(colTot[y]?v/colTot[y]:0):v;if(t>mx)mx=t;}));
   let h='<table class="hm"><thead><tr><th></th>'+years.map(y=>`<th>'${String(y).slice(2)}</th>`).join('')+'</tr></thead><tbody>';
   for(const c of top){
     h+=`<tr><td class="lbl" data-code="${esc(c.code)}" title="${esc(c.name)} (${c.paperCount})">${esc(c.name)}</td>`;
-    for(const y of years){const v=cnt[c.code][y]||0,t=v/mx,bg=v?`background:rgba(241,69,117,${(0.10+t*0.85).toFixed(3)})`:'background:var(--chip)';h+=`<td class="cell" style="${bg}" title="${esc(c.name)} · ${y}: ${v}"></td>`;}
+    for(const y of years){
+      const v=cnt[c.code][y]||0,share=colTot[y]?v/colTot[y]:0,t=(TREND_SHARE?share:v)/mx,
+        bg=v?`background:rgba(241,69,117,${(0.10+t*0.85).toFixed(3)})`:'background:var(--chip)',
+        tip=TREND_SHARE?`${esc(c.name)} · ${y}: ${(share*100).toFixed(1)}% of that year's codings (${v} papers)`:`${esc(c.name)} · ${y}: ${v}`;
+      h+=`<td class="cell" style="${bg}" title="${tip}"></td>`;
+    }
     h+='</tr>';
   }
   $('#trendsWrap').innerHTML=h+'</tbody></table>';
+  const bc=$('#trendCounts'),bs=$('#trendShare'),note=$('#trendModeNote');
+  if(bc){bc.classList.toggle('on',!TREND_SHARE);bs.classList.toggle('on',TREND_SHARE);
+    note.textContent=TREND_SHARE?'darker = bigger slice of that year’s construct-codings (composition, not volume)':'darker = more papers that year';}
 }
+$('#trendCounts').onclick=()=>{TREND_SHARE=false;renderTrends();};
+$('#trendShare').onclick=()=>{TREND_SHARE=true;renderTrends();};
 $('#trendsWrap').onclick=e=>{const l=e.target.closest('.lbl');if(!l)return;F.construct=l.dataset.code;$('#fConstruct').value=l.dataset.code;S.page=0;applyAndRender();setView('library');};
 
 /* ───────── Term Trends — animated 50-year term treemap, folded in from Wordmap ─────────
    Pure client-side over data/words.json (425 OpenAlex social-science terms, 1970–2054;
    real ≤2024 + logistic projection, badged). d3 + words.json lazy-loaded on first open. */
-const TT={data:null,year:0,playing:false,timer:null,speed:1,search:'',wired:false,loaded:false};
+const TT={data:null,year:0,playing:false,timer:null,speed:1,search:'',wired:false,loaded:false,mode:'map'};
 const TT_SPEEDS=[0.5,1,2,4], TT_TICK=900;
 let _ttD3=null;
 function ttEnsureD3(){ if(window.d3)return Promise.resolve(window.d3); if(!_ttD3)_ttD3=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';s.onload=()=>res(window.d3);s.onerror=()=>rej(new Error('could not load d3'));document.head.appendChild(s);}); return _ttD3; }
@@ -1866,9 +1888,11 @@ function ttHierarchy(){
   return {name:'root',children:Object.entries(byGroup).map(([gid,kids])=>({name:(gm[gid]||{}).label||gid,color:(gm[gid]||{}).color||'#888',children:kids}))};
 }
 function ttRender(){
+  if(TT.mode==='quad'){ttRenderQuad();return;}
   const d3=window.d3, wrap=$('#tt-wrap'), W=wrap.clientWidth, H=wrap.clientHeight;
   if(!W||!H)return;
   const svg=d3.select('#tt-map').attr('width',W).attr('height',H).attr('viewBox',`0 0 ${W} ${H}`);
+  svg.selectAll('g.quad').remove();
   const root=d3.hierarchy(ttHierarchy()).sum(d=>d.value||0).sort((a,b)=>b.value-a.value);
   d3.treemap().size([W,H]).paddingInner(2).paddingTop(d=>d.depth===1?20:0).paddingOuter(2).round(true)(root);
   const DUR=window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:240, ease=d3.easeCubicInOut;
@@ -1907,6 +1931,49 @@ function ttPlay(){
   else if(ic)ic.setAttribute('d','M0 0 L13 7 L0 14 Z');
 }
 function ttPick(term){ ttStop(); F.q=term.toLowerCase(); $('#q').value=term; S.page=0; applyAndRender(); setView('library'); }
+/* Quadrant read of the SAME words.json year slice: x = 5-yr CAGR (g), y =
+   novelty (n), dot area = doc share (s), colour = subfield. Quadrant labels
+   describe the axes only — no term is ever re-scored or invented. */
+function ttRenderQuad(){
+  const d3=window.d3, wrap=$('#tt-wrap'), W=wrap.clientWidth, H=wrap.clientHeight;
+  if(!W||!H||!TT.data)return;
+  const svg=d3.select('#tt-map').attr('width',W).attr('height',H).attr('viewBox',`0 0 ${W} ${H}`);
+  svg.selectAll('g.group,g.cell').remove();
+  let g=svg.select('g.quad'); if(g.empty())g=svg.append('g').attr('class','quad');
+  const y=String(TT.year), gm=ttGroups(), pts=[];
+  for(const t of TT.data.terms){
+    const v=t.by_year[y]; if(!v||v.s<=0)continue;
+    if(TT.search&&!t.term.toLowerCase().includes(TT.search))continue;
+    pts.push({term:t.term,gColor:(gm[t.group]||{}).color||'#888',gLabel:(gm[t.group]||{}).label||t.group,v});
+  }
+  if(!pts.length){g.selectAll('*').remove();g.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle').attr('fill','var(--ink3)').text('no terms match');return;}
+  const m={t:26,r:16,b:34,l:44};
+  const gq=arr=>{const s=arr.slice().sort((a,b)=>a-b);return p=>s[Math.min(s.length-1,Math.max(0,Math.floor(p*(s.length-1))))];};
+  const gVals=gq(pts.map(p=>p.v.g||0)), nVals=gq(pts.map(p=>p.v.n||0));
+  const gLo=Math.min(gVals(0.03),-0.02), gHi=Math.max(gVals(0.97),0.02);
+  const nLo=0, nHi=Math.max(nVals(0.99),0.05), nMid=nVals(0.5);
+  const X=v=>m.l+((Math.max(gLo,Math.min(gHi,v))-gLo)/(gHi-gLo))*(W-m.l-m.r);
+  const Y=v=>H-m.b-((Math.max(nLo,Math.min(nHi,v))-nLo)/(nHi-nLo||1))*(H-m.t-m.b);
+  const sMax=Math.max(...pts.map(p=>p.v.s)), R=s=>2.5+Math.sqrt(s/sMax)*16;
+  g.selectAll('*').remove();
+  g.append('line').attr('x1',X(0)).attr('y1',m.t).attr('x2',X(0)).attr('y2',H-m.b).attr('stroke','var(--ink3)').attr('stroke-dasharray','4 3').attr('opacity',.6);
+  g.append('line').attr('x1',m.l).attr('y1',Y(nMid)).attr('x2',W-m.r).attr('y2',Y(nMid)).attr('stroke','var(--ink3)').attr('stroke-dasharray','4 3').attr('opacity',.6);
+  const lab=(x,yy,txt,anchor)=>g.append('text').attr('x',x).attr('y',yy).attr('text-anchor',anchor).attr('fill','var(--ink3)').attr('font-size',11).text(txt);
+  lab(W-m.r-4,m.t+12,'newer & growing','end'); lab(m.l+4,m.t+12,'newer & shrinking','start');
+  lab(W-m.r-4,H-m.b-6,'established & growing','end'); lab(m.l+4,H-m.b-6,'established & shrinking','start');
+  lab((m.l+W-m.r)/2,H-8,'5-yr growth (CAGR) →','middle');
+  g.append('text').attr('x',12).attr('y',(m.t+H-m.b)/2).attr('text-anchor','middle').attr('fill','var(--ink3)').attr('font-size',11)
+    .attr('transform',`rotate(-90 12 ${(m.t+H-m.b)/2})`).text('novelty →');
+  [gLo,0,gHi].forEach(v=>lab(X(v),H-m.b+14,Math.round(v*100)+'%','middle'));
+  g.selectAll('circle').data(pts.sort((a,b)=>b.v.s-a.v.s)).enter().append('circle')
+    .attr('cx',d=>X(d.v.g||0)).attr('cy',d=>Y(d.v.n||0)).attr('r',d=>R(d.v.s))
+    .attr('fill',d=>d.gColor).attr('opacity',.72).attr('stroke','rgba(0,0,0,.25)').style('cursor','pointer')
+    .on('mousemove',(e,d)=>ttTip(e,{data:d})).on('mouseleave',ttHideTip).on('click',(e,d)=>ttPick(d.term));
+  const big=pts.slice(0,14);
+  g.selectAll('text.qlab').data(big).enter().append('text').attr('class','qlab')
+    .attr('x',d=>X(d.v.g||0)).attr('y',d=>Y(d.v.n||0)-R(d.v.s)-3).attr('text-anchor','middle')
+    .attr('font-size',10).attr('fill','var(--ink)').text(d=>d.term);
+}
 function ttTip(e,d){ const tip=$('#tt-tip'),v=d.data.v; tip.style.display='block'; tip.style.left=(e.clientX+13)+'px'; tip.style.top=(e.clientY+13)+'px';
   tip.innerHTML=`<b>${esc(d.data.term)}</b> · ${esc(d.data.gLabel)}<br>${(v.s*100).toFixed(3)}% doc share · ${(v.c||0).toLocaleString()} papers<br>CAGR ${Math.round((v.g||0)*100)}% · novelty ${Math.round((v.n||0)*100)}%`; }
 function ttHideTip(){ const t=$('#tt-tip'); if(t)t.style.display='none'; }
@@ -1916,6 +1983,7 @@ function ttWire(){
   $('#tt-speed').onclick=()=>{ const i=TT_SPEEDS.indexOf(TT.speed); TT.speed=TT_SPEEDS[(i+1)%TT_SPEEDS.length]; const b=$('#tt-speed'); b.textContent=(TT.speed===0.5?'½':TT.speed)+'×'; b.classList.toggle('on',TT.speed!==1); if(TT.playing){TT.playing=false;ttPlay();} };
   let tq; $('#tt-search').oninput=e=>{ clearTimeout(tq); tq=setTimeout(()=>{TT.search=e.target.value.trim().toLowerCase();ttApplyAll();},150); };
   $('#tt-csv').onclick=ttCsv;
+  $('#tt-mode').onclick=()=>{ TT.mode=TT.mode==='map'?'quad':'map'; const b=$('#tt-mode'); b.textContent=TT.mode==='quad'?'▦ Treemap':'◧ Quadrant'; b.classList.toggle('on',TT.mode==='quad'); ttRender(); };
   window.addEventListener('resize',()=>{ if(S.view==='termtrends'&&TT.data)ttRender(); });
   window.addEventListener('keydown',e=>{
     if(S.view!=='termtrends'||!TT.data)return; const tag=(e.target.tagName||'').toLowerCase(); if(tag==='input'||tag==='textarea')return; const m=TT.data.meta;
