@@ -17,6 +17,7 @@ crossref_path = DATA / 'openalex-refresh/management/crossref-checkpoint.json'
 crossref = read(crossref_path) if crossref_path.exists() else None
 db = sqlite3.connect(DATA / 'openalex-refresh/management/harvest.sqlite')
 db.execute('PRAGMA query_only=ON')
+referenced_ids = {row[0] for row in db.execute('SELECT DISTINCT cited FROM edges')}
 short = lambda value: str(value).rsplit('/', 1)[-1]
 source_map = {}
 for source in catalog['sources']:
@@ -61,7 +62,8 @@ for work_id, text, abstract in db.execute('SELECT id,record,abstract FROM works 
     identity = record['id']
     record['constructCodes'] = codes_for(record['title'] + '. ' + abstract)
     target = {field: record.get(field) for field in ['id', 'doi', 'openalexId', 'title', 'year', 'journal', 'sourceType']}
-    targets[shard_of(work_id)][work_id] = target
+    if work_id in referenced_ids:
+        targets[shard_of(work_id)][work_id] = target
     stored_records[work_id] = record
     if abstract:
         abstracts[shard_of(identity)][identity] = abstract

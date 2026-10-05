@@ -75,9 +75,11 @@ async function renderManagementReferences(paper){
     if(!references){container.textContent=paper.referenceCount===0?'OpenAlex returned no indexed references for this record; this does not establish that the paper has no references.':'Reference evidence has not been imported for this paper.';return;}
     const groups=new Map();for(const id of references){const sh=managementShardOf(id);if(!groups.has(sh))groups.set(sh,[]);groups.get(sh).push(id);}
     const resolved=[];
-    for(const ids of groups.values()){
-      const targets=await managementShard('targets',ids[0]);
-      for(const id of ids)if(targets[id])resolved.push(targets[id]);
+    const batches=[...groups.values()];
+    for(let start=0;start<batches.length;start+=4){
+      const batch=batches.slice(start,start+4);
+      const pages=await Promise.all(batch.map(ids=>managementShard('targets',ids[0])));
+      for(let i=0;i<batch.length;i++)for(const id of batch[i])if(pages[i][id])resolved.push(pages[i][id]);
     }
     if(!container.isConnected)return;
     container.innerHTML=`<p>${references.length.toLocaleString()} indexed reference identities; ${resolved.length.toLocaleString()} with imported management metadata. Resolution is partial and scoped; absent metadata does not mean an absent citation.</p>`+

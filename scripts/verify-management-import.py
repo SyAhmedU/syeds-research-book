@@ -44,6 +44,11 @@ with_abstract = []
 shard = lambda key: f'{__import__("functools").reduce(lambda h,c:(h*31+ord(c))&0xffffffff,key,0)%64:02}'
 abstracts = {k: v for path in (DATA / 'management/abstracts').glob('*.json') for k, v in read(path).items()}
 references = {k: v for path in (DATA / 'management/references').glob('*.json') for k, v in read(path).items()}
+targets = {k: v for path in (DATA / 'management/targets').glob('*.json') for k, v in read(path).items()}
+expected_targets = {key:json.loads(record) for key,record in database.execute('SELECT works.id,works.record FROM works JOIN (SELECT DISTINCT cited FROM edges) links ON works.id=links.cited')}
+assert targets.keys() == expected_targets.keys(), 'all resolved referenced identities must remain available'
+for key, target in targets.items():
+    assert target == {field:expected_targets[key].get(field) for field in ['id','doi','openalexId','title','year','journal','sourceType']}
 for paper in added:
     work_key = paper['openalexId'].split('/')[-1] if paper.get('openalexId') else 'doi:'+paper['doi']
     original, abstract = database.execute('SELECT record,abstract FROM works WHERE id=?', (work_key,)).fetchone()
