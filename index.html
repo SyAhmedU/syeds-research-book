@@ -464,7 +464,7 @@
     <div class="filters">
       <input type="text" id="q" placeholder="Search title, author, journal…" autocomplete="off">
       <select id="fConstruct"><option value="">All constructs</option></select>
-      <select id="fJournal" title="Journals, ordered by number of articles"><option value="">All journals</option></select>
+      <select id="fJournal" title="Journals, ordered by locally available papers; management registry entries show coverage"><option value="">All journals</option></select>
       <select id="fAuthor" title="Authors with 2+ papers, ordered by number of articles (search finds the rest)"><option value="">All authors</option></select>
       <select id="fYear" title="Pick a single year"><option value="">All years</option></select>
       <div class="yr"><input type="number" id="yMin" placeholder="from"> – <input type="number" id="yMax" placeholder="to"></div>
@@ -716,6 +716,7 @@ Promise.all([
   // year bounds
   const ys=papers.map(p=>p.year).filter(Boolean); S.yMin=Math.min(...ys); S.yMax=Math.max(...ys);
   buildConstructSelect(); buildJournalSelect(); buildAuthorSelect(); buildYearSelect();
+  loadManagementJournals();
   $('#loading').classList.add('hidden'); $('#app').classList.remove('hidden');
   const openDoi=applyUrlParams();
   updateStarBtn(); renderRv();
@@ -727,7 +728,7 @@ Promise.all([
   // library reaches the present without slowing the first render.
   let wantRecent=true; try{wantRecent=localStorage.getItem('srb_recent')!=='0';}catch(_){}
   if(wantRecent){const cb=$('#fRecent');if(cb)cb.checked=true;F.recent=true;
-    loadRecent().then(()=>{applyAndRender();updateFreshNote();return fetchLive();}).then(n=>{if(n)applyAndRender();});}
+    loadRecent().then(()=>{applyAndRender();updateFreshNote();return fetchLive();}).then(n=>{if(n){refreshLibraryFacets();applyAndRender();}});}
 }).catch(e=>{$('#loading').innerHTML='Could not load data. Run on a server (file:// blocks fetch).<br><small>'+esc(e.message)+'</small>';});
 
 /* ---------- nav ---------- */
@@ -753,15 +754,41 @@ function buildConstructSelect(){
 }
 function buildJournalSelect(){
   const sel=$('#fJournal');
-  const jc={}; S.papers.forEach(p=>{if(p.journal)jc[p.journal]=(jc[p.journal]||0)+1;});
-  // sorted by number of articles (article share), most first, then A–Z
-  Object.entries(jc).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).forEach(([j,n])=>{
-    const o=document.createElement('option');o.value=j;o.textContent=`${j} (${n})`;sel.appendChild(o);
+  const selected=F.journal||sel.value;
+  sel.replaceChildren(new Option('All journals',''));
+  const jc=new Map(); libraryPapers().forEach(p=>{if(p.journal)jc.set(p.journal,(jc.get(p.journal)||0)+1);});
+  for(const j of S.managementJournals||[])if(!jc.has(j.name))jc.set(j.name,0);
+  if(selected&&!jc.has(selected))jc.set(selected,0);
+  [...jc].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).forEach(([j,n])=>{
+    const o=new Option(n?`${j} (${n.toLocaleString()})`:`${j} (not imported)`,j);sel.appendChild(o);
   });
+  sel.value=selected;
+}
+function libraryPapers(){return F.recent?S.papers:S.papers.filter(p=>!p._recent);}
+async function loadManagementJournals(){
+  try{
+    const response=await fetch('./data/management-journals.json');
+    if(!response.ok)throw Error('Journal registry unavailable');
+    const catalog=await response.json();
+    S.managementJournals=catalog.journals;
+    S.managementCoverage=catalog.coverage;
+    buildJournalSelect();updateFreshNote();
+  }catch(error){S.managementError=true;updateFreshNote();}
+}
+function refreshLibraryFacets(){
+  const papers=libraryPapers(),years=papers.map(p=>p.year).filter(y=>Number.isInteger(y));
+  S.yMin=years.length?years.reduce((a,b)=>Math.min(a,b)):0;
+  S.yMax=years.length?years.reduce((a,b)=>Math.max(a,b)):0;
+  $('#fAuthor').replaceChildren(new Option('All authors',''));
+  $('#fYear').replaceChildren(new Option('All years',''));
+  buildJournalSelect();buildAuthorSelect();buildYearSelect();
+  $('#fAuthor').value=F.author;$('#fYear').value=F.yearExact==null?'':String(F.yearExact);
+  renderOverview();
+  if(S.view==='trends')renderTrends();
 }
 function buildAuthorSelect(){
   const sel=$('#fAuthor');
-  const ac={}; S.papers.forEach(p=>{(p.authors||[]).forEach(a=>{a=(a||'').trim();if(a)ac[a]=(ac[a]||0)+1;});});
+  const ac={}; libraryPapers().forEach(p=>{(p.authors||[]).forEach(a=>{a=(a||'').trim();if(a)ac[a]=(ac[a]||0)+1;});});
   // authors with 2+ papers, ordered by number of articles (most first), then A–Z; the rest stay searchable
   Object.entries(ac).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).forEach(([a,n])=>{
     const o=document.createElement('option');o.value=a;o.textContent=`${a} (${n})`;sel.appendChild(o);
@@ -769,7 +796,7 @@ function buildAuthorSelect(){
 }
 function buildYearSelect(){
   const sel=$('#fYear');
-  const yc={}; S.papers.forEach(p=>{if(p.year)yc[p.year]=(yc[p.year]||0)+1;});
+  const yc={}; libraryPapers().forEach(p=>{if(p.year)yc[p.year]=(yc[p.year]||0)+1;});
   // each year with its paper count, newest first
   Object.keys(yc).map(Number).sort((a,b)=>b-a).forEach(y=>{
     const o=document.createElement('option');o.value=y;o.textContent=`${y} (${yc[y]})`;sel.appendChild(o);
@@ -868,6 +895,7 @@ function loadRecent(){
       if(p.addedAt&&p.addedAt>through)through=p.addedAt;
     });
     S.recentLoaded=true; S.recentN=n; S.recentThrough=through;
+    refreshLibraryFacets();
     if(lbl)lbl.textContent=`+ Recent 2024→ (${n.toLocaleString()})`;
     updateFreshNote();
   }).catch(()=>{S.recentLoaded=true; if(lbl)lbl.textContent='+ Recent 2024→';});
@@ -875,14 +903,15 @@ function loadRecent(){
 }
 function updateFreshNote(){
   const el=$('#freshNote'); if(!el)return;
-  if(!F.recent){el.textContent='';return;}
   const bits=[];
-  if(S.recentN)bits.push(`+ ${S.recentN.toLocaleString()} recent auto-fetched${S.recentThrough?' (through '+S.recentThrough+')':''}`);
-  bits.push('⚡ pick a construct or search to also pull this month’s papers live');
+  if(S.managementCoverage)bits.push(`${S.managementCoverage.registryJournals.toLocaleString()} management journals in the Scopus March 2026 registry · ${S.managementCoverage.resolved.toLocaleString()} matched to OpenAlex · full paper/reference import pending · registry rankings unknown`);
+  if(S.managementError)bits.push('Management journal registry could not load');
+  if(F.recent&&S.recentN)bits.push(`+ ${S.recentN.toLocaleString()} auto-fetched papers${S.recentThrough?' (through '+S.recentThrough+')':''}`);
+  if(F.recent)bits.push('⚡ pick a construct or search to also pull this month’s papers live');
   el.textContent=bits.join(' · ');
 }
 $('#fRecent').onchange=e=>{F.recent=e.target.checked;try{localStorage.setItem('srb_recent',e.target.checked?'1':'0');}catch(_){}
-  S.page=0;if(e.target.checked){loadRecent().then(()=>{applyAndRender();updateFreshNote();fetchLive().then(n=>{if(n)applyAndRender();});});}else{updateFreshNote();applyAndRender();}};
+  S.page=0;if(e.target.checked){loadRecent().then(()=>{refreshLibraryFacets();applyAndRender();updateFreshNote();fetchLive().then(n=>{if(n){refreshLibraryFacets();applyAndRender();}});});}else{refreshLibraryFacets();updateFreshNote();applyAndRender();}};
 
 /* ── ⚡ Live layer: today's papers, fetched from OpenAlex on demand ──────────
    When the recent tier is on and the user picks a construct (or types a search
@@ -1249,10 +1278,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
 /* ---------- overview ---------- */
 function renderOverview(){
-  const ps=S.papers;
+  const ps=libraryPapers();
   const withAbs=ps.filter(p=>p.hasAbstract).length, oa=ps.filter(p=>p.openAccess).length;
   $('#ovStats').innerHTML=[
-    ['9,388','papers'],['167','constructs'],
+    [ps.length.toLocaleString(),'available papers'],[S.constructs.length.toLocaleString(),'hand-coded constructs'],
     [withAbs.toLocaleString(),'with abstract'],[oa.toLocaleString(),'open access'],
     [S.yMin+'–'+S.yMax,'year span']
   ].map(s=>`<div class="stat"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('');
@@ -1831,10 +1860,12 @@ $('#mxLeads').onclick=e=>{const r=e.target.closest('.mx-lead-row');if(!r)return;
    top-40 — composition drift, so a construct can "surge" even in a thin year). */
 let TREND_SHARE=false;
 function renderTrends(){
-  const top=S.constructs.slice().sort((a,b)=>b.paperCount-a.paperCount).slice(0,40);
+  const papers=libraryPapers(),totals={};
+  for(const p of papers)for(const code of p.constructCodes||[])totals[code]=(totals[code]||0)+1;
+  const top=S.constructs.map(c=>({...c,paperCount:totals[c.code]||0})).sort((a,b)=>b.paperCount-a.paperCount).slice(0,40);
   const y0=Math.max(2005,S.yMin),years=[];for(let y=y0;y<=S.yMax;y++)years.push(y);
   const cnt={};top.forEach(c=>cnt[c.code]={});
-  for(const p of S.papers){if(p._recent)continue;/* trends = the hand-coded story only */if(!p.year||p.year<y0)continue;for(const code of p.constructCodes)if(cnt[code])cnt[code][p.year]=(cnt[code][p.year]||0)+1;}
+  for(const p of papers){if(!p.year||p.year<y0)continue;for(const code of p.constructCodes)if(cnt[code])cnt[code][p.year]=(cnt[code][p.year]||0)+1;}
   const colTot={};years.forEach(y=>{colTot[y]=0;top.forEach(c=>{colTot[y]+=cnt[c.code][y]||0;});});
   let mx=1e-9;
   top.forEach(c=>years.forEach(y=>{const v=cnt[c.code][y]||0,t=TREND_SHARE?(colTot[y]?v/colTot[y]:0):v;if(t>mx)mx=t;}));
@@ -1852,7 +1883,7 @@ function renderTrends(){
   $('#trendsWrap').innerHTML=h+'</tbody></table>';
   const bc=$('#trendCounts'),bs=$('#trendShare'),note=$('#trendModeNote');
   if(bc){bc.classList.toggle('on',!TREND_SHARE);bs.classList.toggle('on',TREND_SHARE);
-    note.textContent=TREND_SHARE?'darker = bigger slice of that year’s construct-codings (composition, not volume)':'darker = more papers that year';}
+    note.textContent=(F.recent?'Hand-coded + imported machine tags · verify. ':'Hand-coded corpus. ')+(TREND_SHARE?'darker = bigger slice of that year’s construct-codings (composition, not volume)':'darker = more papers that year');}
 }
 $('#trendCounts').onclick=()=>{TREND_SHARE=false;renderTrends();};
 $('#trendShare').onclick=()=>{TREND_SHARE=true;renderTrends();};
