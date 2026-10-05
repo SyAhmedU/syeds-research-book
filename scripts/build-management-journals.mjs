@@ -3,18 +3,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyRankings } from './management-rankings.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const data = path.join(root, 'data');
 const cacheDir = path.join(data, 'openalex-refresh');
 fs.mkdirSync(cacheDir, { recursive: true });
 const read = (p, fallback) => { try { return JSON.parse(fs.readFileSync(p, 'utf8').replace(/^\uFEFF/, '')); } catch { return fallback; } };
 const normIssn = s => String(s || '').replace(/[^0-9X]/gi, '').toUpperCase();
-const registry = read(path.resolve(root, '../journal-timelines/data/journals.json'), []).filter(j => String(j.field).split(';').some(c => /^14\d\d$/.test(c.trim())));
+const registry = read(path.join(data, 'management-source-types.json'), { sources: [] }).sources;
 if (!registry.length) throw Error('Management journal registry unavailable');
 const cachePath = path.join(cacheDir, 'management.sources.json');
 const cache = read(cachePath, { checked: [], sources: {} });
 const checked = new Set(cache.checked);
-const issns = [...new Set(registry.flatMap(j => [j.issn, j.eissn]).map(normIssn).filter(s => s.length === 8))];
+const issns = [...new Set(registry.flatMap(j => j.issns).map(normIssn).filter(s => s.length === 8))];
 const pending = issns.filter(s => !checked.has(s));
 for (let i = 0; i < pending.length; i += 50) {
   const batch = pending.slice(i, i + 50);
@@ -40,11 +41,16 @@ for (const source of Object.values(cache.sources)) for (const issn of source.iss
   if (!byIssn.has(key)) byIssn.set(key, []);
   byIssn.get(key).push(source);
 }
-const journals = registry.map(j => {
-  const candidates = [...new Map([j.issn, j.eissn].flatMap(s => byIssn.get(normIssn(s)) || []).filter(s => s.type === 'journal').map(s => [s.id, s])).values()];
+const sources = registry.map(j => {
+  const candidates = [...new Map(j.issns.flatMap(s => byIssn.get(normIssn(s)) || []).filter(s => j.sourceType === 'journal' ? s.type === 'journal' : j.sourceType === 'conference-series' ? s.type === 'conference' : j.sourceType === 'book-series' ? s.type === 'book series' : true).map(s => [s.id, s])).values()];
   const source = candidates.length === 1 ? candidates[0] : null;
-  return { name: j.journal, publisher: j.publisher, issns: [j.issn, j.eissn].filter(Boolean), asjc: String(j.field).split(';').map(c => c.trim()).filter(Boolean), sourceId: source?.id || null, sourceName: source?.name || null, worksCount: source?.worksCount ?? null, sourceMatch: source ? 'exact-issn' : candidates.length ? 'ambiguous' : 'unresolved', quartile: null, rankingYear: null, rankingSource: null, registrySource: 'Elsevier Scopus Source List March 2026' };
+  return { ...j, sourceId: source?.id || null, sourceName: source?.name || null, openalexSourceType: source?.type || null, worksCount: source?.worksCount ?? null, sourceMatch: source ? 'exact-issn' : candidates.length ? 'ambiguous' : 'unresolved', quartile: null, rankingYear: null, rankingSource: null, registrySource: 'Elsevier Scopus Source List March 2026' };
 });
+const journals = sources.filter(s => s.sourceType === 'journal');
 const output = { version: 1, generatedAt: new Date().toISOString(), scope: 'Scopus journals classified in Business, Management and Accounting (ASJC 14xx); ranks not supplied by this registry.', registryUrl: 'https://downloads.ctfassets.net/o78em1y1w4i4/7xtaTxNiNcWRTeZkV86eNy/d232405141a2654fdc6dab977f047a6a/ext_list_Mar_2026.xlsx', journals, coverage: { registryJournals: journals.length, resolved: journals.filter(j => j.sourceId).length, ambiguous: journals.filter(j => j.sourceMatch === 'ambiguous').length, unresolved: journals.filter(j => j.sourceMatch === 'unresolved').length, ranked: 0, referencesHarvested: 0 } };
+output.sources = sources;
+output.coverage.registrySources = sources.length;
+output.coverage.sourceTypes = Object.fromEntries([...new Set(sources.map(s => s.sourceType))].map(type => [type, sources.filter(s => s.sourceType === type).length]));
+applyRankings(output, read(path.join(data, 'management-rankings.json'), null));
 fs.writeFileSync(path.join(data, 'management-journals.json'), JSON.stringify(output));
 console.log(JSON.stringify(output.coverage));

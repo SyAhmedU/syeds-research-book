@@ -3,7 +3,7 @@
 // onto a fresh cache. Scope is derived from this worker's own URL, so the same code
 // works at a domain root and under a /<project>/ path.
 const PREFIX = 'syed-pwa-syeds-research-book-';
-const CACHE = PREFIX + 'v1';
+const CACHE = PREFIX + 'v2-management-20261005';
 const ROOT = new URL('./', self.location).href;          // scope root (absolute)
 const SHELL = [ROOT, ROOT + 'manifest.webmanifest', ROOT + 'icon.svg'];
 

@@ -12,6 +12,7 @@
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { appendManagementCorpus } from './imported-corpus.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -56,6 +57,7 @@ for (const f of readdirSync(join(DATA, 'recent.abstracts')).filter((f) => f.ends
     if (typeof text === 'string' && text.length > 30) abstracts.set(doi, text);
   }
 }
+appendManagementCorpus(DATA,papers,abstracts);
 console.log(`[scan] ${papers.length} papers, ${abstracts.size} abstracts`);
 
 // ---------- scan ----------
@@ -93,7 +95,7 @@ constructs.forEach((c) => { /* keep byYear small-ish; fine as-is */ });
 writeFileSync(join(DATA, 'construct-memberships.json'), JSON.stringify({
   version: 1,
   generatedAt: new Date().toISOString(),
-  source: 'recent tier titles+abstracts × construct-lexicon.json — verbatim word-boundary match, no AI',
+  source: 'recent tier + all-years management journal import titles/abstracts × construct-lexicon.json — verbatim word-boundary match, no AI; conferences excluded from management journal import',
   papersScanned: papers.length,
   abstractsPresent: withAbs,
   withConstruct: Object.keys(memberships).length,

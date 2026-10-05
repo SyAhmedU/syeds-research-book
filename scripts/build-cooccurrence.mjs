@@ -50,7 +50,8 @@ writeFileSync(join(DATA, 'construct-cooccurrence.json'), JSON.stringify({
   generatedAt: new Date().toISOString(),
   source: 'construct-memberships.json — pairwise co-occurrence counts (papers studying both). Counting only; no effect sign.',
   N,
-  papersWithPair: [...pairCount.values()].filter((n) => n >= 2).length,
+  papersWithPair: Object.values(mem.memberships).filter(ids=>new Set(ids).size>=2).length,
+  distinctPairs: pairs.length,
   constructs,
   pairs,
 }));

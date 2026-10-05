@@ -34,7 +34,28 @@ with sync_playwright() as p:
         options = page.locator('#fJournal option').evaluate_all('(opts)=>opts.map(o=>o.value)')
         assert imported_only['journal'] in options
         assert all(j['name'] in options for j in catalog['journals'])
+        assert all(s['name'] in options for s in catalog['sources'])
         assert len(options) == len(set(options)), 'duplicate journal options'
+        assert 'highest-category quartiles' in page.locator('#freshNote').inner_text()
+        assert 'registry rankings unknown' not in page.locator('#freshNote').inner_text()
+        for source_type, label in [('journal', 'Journals'), ('conference-series', 'Conference series / proceedings'), ('book-series', 'Book series'), ('trade-publication', 'Trade publications')]:
+            page.select_option('#fSourceType', source_type)
+            groups = page.locator('#fJournal optgroup').evaluate_all('(groups)=>groups.map(g=>g.label)')
+            assert groups == [label], (source_type, groups)
+            values = page.locator('#fJournal option').evaluate_all('(opts)=>opts.map(o=>o.value).filter(Boolean)')
+            assert all(s['name'] in values for s in catalog['sources'] if s['sourceType'] == source_type)
+            assert all(s['name'] not in values for s in catalog['sources'] if s['sourceType'] != source_type)
+            assert page.evaluate('S.filtered.every(p=>sourceTypeOf(p.journal)===F.sourceType)'), 'source types mixed in results'
+        conference = next(s for s in catalog['sources'] if s['sourceType'] == 'conference-series')
+        page.select_option('#fSourceType', 'conference-series')
+        page.select_option('#fJournal', conference['name'])
+        assert page.locator('#fJournal').input_value() == conference['name']
+        page.uncheck('#fRecent')
+        page.check('#fRecent')
+        assert page.locator('#fJournal').input_value() == conference['name'], 'conference selection lost on tier change'
+        assert page.locator('#fSourceType').input_value() == 'conference-series'
+        page.locator('#clearBtn').click()
+        assert page.locator('#fSourceType').input_value() == ''
         page.select_option('#fJournal', imported_only['journal'])
         expected_count = sum(p.get('journal') == imported_only['journal'] for p in expected)
         assert page.evaluate('S.filtered.length') == expected_count
@@ -59,7 +80,7 @@ with sync_playwright() as p:
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), 'mobile overflow'
         page.screenshot(path=str(root / '_smoke_journal_expansion.png'), full_page=True)
         assert not errors, errors
-        print(f'PASS: {len(expected):,} real papers, {len(catalog["journals"]):,} registry journals; imported journal selection/counts, toggle preservation, overview totals, trends, zero coverage, mobile layout; no JS errors.')
+        print(f'PASS: {len(expected):,} real papers, {len(catalog["journals"]):,} registry journals, {len(catalog["sources"]):,} classified sources; source-type isolation, conference selection, ranked labels, imported journal selection/counts, toggle preservation, overview totals, trends, zero coverage, mobile layout; no JS errors.')
     finally:
         browser.close()
         server.shutdown()

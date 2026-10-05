@@ -421,6 +421,7 @@
 .motes-cap{position:relative;z-index:1;margin-top:10px;font-family:var(--mono,'IBM Plex Mono',monospace);font-size:.64rem;letter-spacing:.08em;color:var(--muted,#8a8096)}
 @media print{#corpusMotes,.motes-cap{display:none}}
 </style>
+<link rel="stylesheet" href="product-design.css?v=20260912">
 <!-- SYED-PWA -->
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -429,7 +430,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Research Book">
 <!-- /SYED-PWA -->
-<link rel="stylesheet" href="product-design.css?v=20260912">
 </head>
 <body>
 <a class="skip-link" href="#app">Skip to content</a>
@@ -464,7 +464,15 @@
     <div class="filters">
       <input type="text" id="q" placeholder="Search title, author, journal…" autocomplete="off">
       <select id="fConstruct"><option value="">All constructs</option></select>
-      <select id="fJournal" title="Journals, ordered by locally available papers; management registry entries show coverage"><option value="">All journals</option></select>
+      <select id="fSourceType" title="Source types from the official Scopus registry; unmatched names remain unclassified">
+        <option value="">All source types</option>
+        <option value="journal">Journals</option>
+        <option value="conference-series">Conference series / proceedings</option>
+        <option value="book-series">Book series</option>
+        <option value="trade-publication">Trade publications</option>
+        <option value="unclassified">Unclassified sources</option>
+      </select>
+      <select id="fJournal" title="Sources grouped by official type; counts reflect locally available papers"><option value="">All sources</option></select>
       <select id="fAuthor" title="Authors with 2+ papers, ordered by number of articles (search finds the rest)"><option value="">All authors</option></select>
       <select id="fYear" title="Pick a single year"><option value="">All years</option></select>
       <div class="yr"><input type="number" id="yMin" placeholder="from"> – <input type="number" id="yMax" placeholder="to"></div>
@@ -487,6 +495,7 @@
       <label class="oa"><input type="checkbox" id="fArt"> Articles only</label>
       <label class="oa" id="fAbsBox" title="Also match abstract text (loads abstracts on first use, ~9 MB)"><input type="checkbox" id="fAbs"> <span id="fAbsLbl">Search abstracts</span></label>
       <label class="oa" id="fRecentBox" title="Add recent papers (2024→) auto-fetched from OpenAlex — real records, machine-assigned constructs, badged. Verify before citing; the hand-coded corpus stays the verified set."><input type="checkbox" id="fRecent"> <span id="fRecentLbl">+ Recent 2024→</span></label>
+      <label class="oa" id="fManagementBox" title="Load the separate all-years Q1/Q2 source import and management works referenced by those papers. Partial until all cursors finish."><input type="checkbox" id="fManagement"> <span id="fManagementLbl">+ All-years management import</span></label>
     </div>
     <div class="resbar" aria-live="polite">
       <div class="count"><b id="resCount">0</b> papers</div>
@@ -499,6 +508,7 @@
       <button class="clear" id="linkBtn" title="Copy a link that reopens this exact filtered view">🔗 Copy link</button>
     </div>
     <div id="rvRow" class="rvrow" hidden></div>
+    <details id="managementCoverage" hidden style="font-size:13px;color:var(--ink2);margin:14px 0;overflow-wrap:anywhere"></details>
     <div class="list" id="list"></div>
     <div class="pager">
       <button id="prev">← Prev</button>
@@ -509,10 +519,10 @@
 
   <!-- CONSTRUCTS -->
   <section id="v-constructs" class="wrap hidden">
-    <div class="hero"><h1>167 constructs</h1><p>The taxonomy spine — each construct carries the controlled keyword vocabulary used to build the corpus. Click any to see its papers. The <strong>↑ recent</strong> tier adds construct phrases extracted verbatim from the 79.5K-paper recent corpus (machine-extracted, frequency-gated — verify).</p></div>
+    <div class="hero"><h1>167 constructs</h1><p>The taxonomy spine — each construct carries the controlled keyword vocabulary used to build the corpus. Click any to see its papers. The <strong>imported phrases</strong> tier adds phrases extracted verbatim from recent and all-years management journal titles/abstracts (machine-extracted, frequency-gated — verify).</p></div>
     <div class="ctier" id="ctier">
       <button class="ct-btn on" data-tier="hand">✋ Hand-coded · 167</button>
-      <button class="ct-btn" data-tier="recent">↑ Recent tier · <span id="ctRecentN">…</span></button>
+      <button class="ct-btn" data-tier="recent">↑ Imported phrases · <span id="ctRecentN">…</span></button>
     </div>
     <div class="filters" style="grid-template-columns:1fr auto">
       <input type="text" id="cq" placeholder="Search constructs…" autocomplete="off">
@@ -544,7 +554,7 @@
       <span class="mx-tier" style="margin-left:auto">
         <button id="mxTierHand" class="mx-tier-btn on" type="button" title="Syed's hand-coded corpus — the verified set (167 constructs)">Hand-coded</button>
         <button id="mxTierRec" class="mx-tier-btn" type="button" title="Also count the recent auto-fetched tier (2024→, single fetch-tag). Machine-matched — verify.">+ Recent</button>
-        <button id="mxTierCorpus" class="mx-tier-btn" type="button" title="Recent corpus: 408 clean constructs extracted from 79K titles + abstracts; real multi-construct co-occurrence. Machine-matched — verify before citing.">Recent corpus · 408</button>
+        <button id="mxTierCorpus" class="mx-tier-btn" type="button" title="Imported journal corpus: 408 lexicon constructs matched in recent and all-years management titles/abstracts. Conference imports excluded. Machine-matched — verify before citing.">Imported corpus · 408</button>
       </span>
       <button id="heatExport" class="mx-mode" type="button" style="margin-left:8px" title="Download the full co-occurrence matrix + pair list + construct totals as an .xlsx workbook (active tier)">⬇ Excel</button>
     </div>
@@ -654,6 +664,7 @@
 
 <div class="ov" id="ov" role="dialog" aria-modal="true"><div class="modal" style="position:relative"><button class="iconbtn mclose" id="mclose" aria-label="Close">✕</button><div id="mcontent"></div></div></div>
 
+<script src="management.js"></script>
 <script>
 const TOOLS={
   papercards:'https://papercards.vercel.app/',
@@ -679,6 +690,8 @@ function applyUrlParams(){
   const q=u.get('q'); if(q){F.q=q.toLowerCase();$('#q').value=q;}
   const c=u.get('construct'); if(c&&S.byCode[c]){F.construct=c;$('#fConstruct').value=c;}
   const j=u.get('journal'); if(j){F.journal=j;$('#fJournal').value=j;}
+  const st=u.get('sourceType');if(st&&SOURCE_TYPE_LABELS[st]){F.sourceType=st;$('#fSourceType').value=st;buildJournalSelect();}
+  if(u.get('management')==='1'){F.management=true;$('#fManagement').checked=true;}
   const a=u.get('author'); if(a){F.author=a;$('#fAuthor').value=a;}
   const y=u.get('year'); if(y&&/^\d{4}$/.test(y)){F.yearExact=+y;$('#fYear').value=y;}
   const ym=u.get('ymin'); if(ym&&/^\d{4}$/.test(ym)){F.yMin=+ym;$('#yMin').value=ym;}
@@ -717,6 +730,7 @@ Promise.all([
   const ys=papers.map(p=>p.year).filter(Boolean); S.yMin=Math.min(...ys); S.yMax=Math.max(...ys);
   buildConstructSelect(); buildJournalSelect(); buildAuthorSelect(); buildYearSelect();
   loadManagementJournals();
+  initManagementImport();
   $('#loading').classList.add('hidden'); $('#app').classList.remove('hidden');
   const openDoi=applyUrlParams();
   updateStarBtn(); renderRv();
@@ -752,27 +766,51 @@ function buildConstructSelect(){
     const o=document.createElement('option');o.value=c.code;o.textContent=`${c.name} (${c.paperCount})`;sel.appendChild(o);
   });
 }
+const SOURCE_TYPE_LABELS={'journal':'Journals','conference-series':'Conference series / proceedings','book-series':'Book series','trade-publication':'Trade publications','unclassified':'Unclassified sources'};
+function sourceTypeOf(name){return S.sourceTypes?.get(sourceTitleKey(name))||'unclassified';}
+function sourceTitleKey(name){return String(name||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();}
 function buildJournalSelect(){
   const sel=$('#fJournal');
   const selected=F.journal||sel.value;
-  sel.replaceChildren(new Option('All journals',''));
+  sel.replaceChildren(new Option(F.sourceType?`All ${SOURCE_TYPE_LABELS[F.sourceType].toLowerCase()}`:'All sources',''));
   const jc=new Map(); libraryPapers().forEach(p=>{if(p.journal)jc.set(p.journal,(jc.get(p.journal)||0)+1);});
-  for(const j of S.managementJournals||[])if(!jc.has(j.name))jc.set(j.name,0);
+  for(const j of S.managementSources||S.managementJournals||[])if(!jc.has(j.name))jc.set(j.name,0);
   if(selected&&!jc.has(selected))jc.set(selected,0);
-  [...jc].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).forEach(([j,n])=>{
-    const o=new Option(n?`${j} (${n.toLocaleString()})`:`${j} (not imported)`,j);sel.appendChild(o);
-  });
+  for(const [type,label] of Object.entries(SOURCE_TYPE_LABELS)){
+    if(F.sourceType&&F.sourceType!==type)continue;
+    const entries=[...jc].filter(([name])=>sourceTypeOf(name)===type).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+    if(!entries.length)continue;
+    const group=document.createElement('optgroup');group.label=label;
+    for(const [name,n] of entries){
+      const rank=S.sourceRankings?.get(sourceTitleKey(name));
+      const badge=rank?.quartile?` · ${rank.rankingYear} ${rank.quartile} highest-category`:'';
+      const option=new Option((n?`${name} (${n.toLocaleString()})`:`${name} (not imported)`)+badge,name);
+      if(rank?.quartile)option.title='CiteScore highest-category quartile; exact-title attachment, verify. Not a management-category quartile.';
+      group.appendChild(option);
+    }
+    sel.appendChild(group);
+  }
   sel.value=selected;
 }
-function libraryPapers(){return F.recent?S.papers:S.papers.filter(p=>!p._recent);}
+function libraryPapers(){return S.papers.filter(p=>(F.recent||!p._recent)&&(F.management||!p._management));}
 async function loadManagementJournals(){
   try{
     const response=await fetch('./data/management-journals.json');
     if(!response.ok)throw Error('Journal registry unavailable');
     const catalog=await response.json();
     S.managementJournals=catalog.journals;
+    S.managementSources=catalog.sources||catalog.journals;
+    S.sourceTypes=new Map();S.sourceRankings=new Map();
+    const byName=new Map();
+    for(const source of S.managementSources){const key=sourceTitleKey(source.name);byName.set(key,[...(byName.get(key)||[]),source]);}
+    for(const [key,sources] of byName){
+      const types=new Set(sources.map(s=>s.sourceType||'unclassified'));
+      if(types.size===1)S.sourceTypes.set(key,[...types][0]);
+      if(sources.length===1)S.sourceRankings.set(key,sources[0]);
+    }
     S.managementCoverage=catalog.coverage;
-    buildJournalSelect();updateFreshNote();
+    S.managementRanking=catalog.ranking;
+    buildJournalSelect();applyAndRender();updateFreshNote();
   }catch(error){S.managementError=true;updateFreshNote();}
 }
 function refreshLibraryFacets(){
@@ -802,7 +840,7 @@ function buildYearSelect(){
     const o=document.createElement('option');o.value=y;o.textContent=`${y} (${yc[y]})`;sel.appendChild(o);
   });
 }
-const F={q:'',construct:'',constructs:[],journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false,recent:false,sort:'year',starred:false};
+const F={q:'',construct:'',constructs:[],journal:'',sourceType:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false,recent:false,management:false,sort:'year',starred:false};
 
 /* ── ★ reading list + 🕘 recently viewed (on-device only) ─────────── */
 const STARS=(()=>{try{return new Set(JSON.parse(localStorage.getItem('srb_stars')||'[]'));}catch(_){return new Set();}})();
@@ -831,7 +869,7 @@ $('#csvBtn').onclick=()=>{
   S.filtered.forEach(p=>rows.push([p.title||'',(p.authors||[]).join('; '),p.year||'',p.journal||'',p.doi||'',
     p.scopusPercentile??'',p.citations??'',p.openAccess?'yes':'',
     p.constructCodes.map(c=>(S.byCode[c]||{}).name||c).join('; '),
-    p._live?'live (verify)':p._recent?'recent auto-fetched (verify)':'hand-coded']));
+    p._live?'live (verify)':p._management?'all-years management import (verify)':p._recent?'recent auto-fetched (verify)':'hand-coded']));
   const csv=rows.map(r=>r.map(v=>{v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(',')).join('\r\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
@@ -845,6 +883,8 @@ $('#linkBtn').onclick=async()=>{
   if(F.q)u.searchParams.set('q',$('#q').value.trim());
   if(F.construct)u.searchParams.set('construct',F.construct);
   if(F.journal)u.searchParams.set('journal',F.journal);
+  if(F.sourceType)u.searchParams.set('sourceType',F.sourceType);
+  if(F.management)u.searchParams.set('management','1');
   if(F.author)u.searchParams.set('author',F.author);
   if(F.yearExact!=null)u.searchParams.set('year',F.yearExact);
   if(F.yMin!=null)u.searchParams.set('ymin',F.yMin);
@@ -870,6 +910,7 @@ let qTimer;
 $('#q').oninput=e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();S.page=0;applyAndRender();fetchLive().then(n=>{if(n)applyAndRender();});},180);};
 $('#fConstruct').onchange=e=>{F.construct=e.target.value;S.page=0;applyAndRender();fetchLive().then(n=>{if(n)applyAndRender();});};
 $('#fJournal').onchange=e=>{F.journal=e.target.value;S.page=0;applyAndRender();};
+$('#fSourceType').onchange=e=>{F.sourceType=e.target.value;F.journal='';S.page=0;buildJournalSelect();applyAndRender();};
 $('#fAuthor').onchange=e=>{F.author=e.target.value;S.page=0;applyAndRender();};
 $('#fYear').onchange=e=>{F.yearExact=e.target.value?+e.target.value:null;S.page=0;applyAndRender();};
 $('#yMin').onchange=e=>{F.yMin=e.target.value?+e.target.value:null;S.page=0;applyAndRender();};
@@ -904,8 +945,15 @@ function loadRecent(){
 function updateFreshNote(){
   const el=$('#freshNote'); if(!el)return;
   const bits=[];
-  if(S.managementCoverage)bits.push(`${S.managementCoverage.registryJournals.toLocaleString()} management journals in the Scopus March 2026 registry · ${S.managementCoverage.resolved.toLocaleString()} matched to OpenAlex · full paper/reference import pending · registry rankings unknown`);
+  if(S.managementCoverage){
+    const coverage=S.managementCoverage,ranking=S.managementRanking;
+    bits.push(`${coverage.registryJournals.toLocaleString()} journals in management registry / export selection · ${coverage.resolved.toLocaleString()} matched to OpenAlex`);
+    if(coverage.sourceTypes)bits.push(`${coverage.sourceTypes['conference-series'].toLocaleString()} conference series · ${coverage.sourceTypes['book-series'].toLocaleString()} book series · ${coverage.sourceTypes['trade-publication'].toLocaleString()} trade publications (separate source types)`);
+    bits.push(ranking?`${coverage.ranked.toLocaleString()} with ${ranking.year} CiteScore highest-category quartiles · title-matched, verify · not management-category quartiles`:'registry rankings unknown');
+    bits.push(S.managementManifest?`${S.managementManifest.publishedNewPapers.toLocaleString()} additional papers imported · ${S.managementManifest.status==='complete'?'complete':'partial coverage; more pages remain'}`:'full paper/reference import pending');
+  }
   if(S.managementError)bits.push('Management journal registry could not load');
+  if(S.managementImportError)bits.push('Management import could not fully load; retry the import checkbox');
   if(F.recent&&S.recentN)bits.push(`+ ${S.recentN.toLocaleString()} auto-fetched papers${S.recentThrough?' (through '+S.recentThrough+')':''}`);
   if(F.recent)bits.push('⚡ pick a construct or search to also pull this month’s papers live');
   el.textContent=bits.join(' · ');
@@ -978,6 +1026,7 @@ $('#fAbs').onchange=async e=>{
     try{
       const a=await ensureAbstracts();
       S.papers.forEach(p=>{const t=a[p.id];if(t)p._sa=p._s+' '+t.toLowerCase();});
+      if(F.management){const cache=new Map();for(const p of S.papers.filter(p=>p._management&&p.hasAbstract)){const sh=managementShardOf(p.id);if(!cache.has(sh))cache.set(sh,managementShard('abstracts',p.id));const texts=await cache.get(sh);if(texts[p.id])p._sa=p._s+' '+texts[p.id].toLowerCase();}}
       S.absIndexed=true;
     }catch(err){
       F.searchAbs=false; e.target.checked=false;
@@ -988,8 +1037,8 @@ $('#fAbs').onchange=async e=>{
   }
   S.page=0; applyAndRender();
 };
-$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',constructs:[],dois:null,doisLabel:'',journal:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false});
-  $('#q').value='';$('#fConstruct').value='';$('#fJournal').value='';$('#fAuthor').value='';$('#fYear').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;$('#fAbs').checked=false;S.page=0;applyAndRender();};
+$('#clearBtn').onclick=()=>{Object.assign(F,{q:'',construct:'',constructs:[],dois:null,doisLabel:'',journal:'',sourceType:'',author:'',yearExact:null,yMin:null,yMax:null,band:'',oa:false,art:false,searchAbs:false});
+  $('#q').value='';$('#fConstruct').value='';$('#fJournal').value='';$('#fSourceType').value='';$('#fAuthor').value='';$('#fYear').value='';$('#yMin').value='';$('#yMax').value='';$('#fBand').value='';$('#fOa').checked=false;$('#fArt').checked=false;$('#fAbs').checked=false;S.page=0;buildJournalSelect();applyAndRender();};
 /* multi-construct (matrix) intersection filter — shown as a removable chip in the result bar */
 function renderXfilterNote(){
   const el=$('#xfilterNote'); if(!el)return;
@@ -1011,10 +1060,12 @@ function applyAndRender(){
   if(F.starred)r=r.filter(p=>STARS.has(p.id));
   if(F.dois)r=r.filter(p=>F.dois.has(p.doi||p.id));   // matrix drill-down: an exact DOI set
   if(!F.recent)r=r.filter(p=>!p._recent);   // recent tier hidden unless toggled on
+  if(!F.management)r=r.filter(p=>!p._management);
   if(F.q)r=r.filter(p=>(F.searchAbs&&p._sa||p._s).includes(F.q));
   if(F.construct)r=r.filter(p=>p.constructCodes.includes(F.construct));
   if(F.constructs&&F.constructs.length)r=r.filter(p=>F.constructs.every(c=>p.constructCodes.includes(c)));
   if(F.journal)r=r.filter(p=>p.journal===F.journal);
+  if(F.sourceType)r=r.filter(p=>sourceTypeOf(p.journal)===F.sourceType);
   if(F.author)r=r.filter(p=>p.authors&&p.authors.includes(F.author));
   if(F.yearExact!=null)r=r.filter(p=>p.year===F.yearExact);
   if(F.yMin!=null)r=r.filter(p=>p.year&&p.year>=F.yMin);
@@ -1029,7 +1080,7 @@ function applyAndRender(){
   r=r.slice().sort(dir);
   S.filtered=r;
   $('#resCount').textContent=r.length.toLocaleString();
-  const active=F.q||F.construct||(F.constructs&&F.constructs.length)||F.dois||F.journal||F.author||F.yearExact!=null||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art||F.starred;
+  const active=F.q||F.construct||(F.constructs&&F.constructs.length)||F.dois||F.journal||F.sourceType||F.author||F.yearExact!=null||F.yMin!=null||F.yMax!=null||F.band||F.oa||F.art||F.starred;
   $('#clearBtn').classList.toggle('hidden',!active);
   renderXfilterNote();
   renderList();
@@ -1056,7 +1107,7 @@ function renderList(){
         <span>${p.year||'—'}</span><span class="dot">·</span>
         ${journalLink(p.journal)}
         ${band(p)} ${p.openAccess?'<span class="badge b-oa">OA</span>':''} ${typeBadge(p)}
-        ${p._live?'<span class="badge" style="background:rgba(64,221,242,.16);color:#22d3ee" title="Fetched live from OpenAlex just now — published in the last ~45 days. Machine-matched to this construct/search; verify before citing.">⚡ live · just published</span>':p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656" title="Auto-fetched from OpenAlex (2024→); machine-assigned construct. Verify before citing.">↑ recent · auto-fetched</span>':''}
+        ${p._management?'<span class="badge" title="Real OpenAlex record from the separate all-years import; construct tags are machine-matched, verify.">Imported · machine tags · verify</span>':p._live?'<span class="badge" style="background:rgba(64,221,242,.16);color:#22d3ee" title="Fetched live from OpenAlex just now — published in the last ~45 days. Machine-matched to this construct/search; verify before citing.">⚡ live · just published</span>':p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656" title="Auto-fetched from OpenAlex (2024→); machine-assigned construct. Verify before citing.">↑ recent · auto-fetched</span>':''}
         ${p.citations?'<span class="dot">·</span><span>'+p.citations+' cites</span>':''}
       </div>
       <div class="chips">${p.constructCodes.slice(0,6).map(c=>`<span class="chip" data-code="${esc(c)}">${esc((S.byCode[c]||{}).name||c)}</span>`).join('')}${p.constructCodes.length>6?'<span class="chip" style="border:0">+'+(p.constructCodes.length-6)+'</span>':''}</div>
@@ -1111,11 +1162,11 @@ function openConstructModal(kind,key){
   const hand=kind==='code'?S.constructs.find(c=>c.code===key):null;
   const rc=kind==='phrase'&&S.recentConstructs?S.recentConstructs.constructs.find(c=>c.t===key):null;
   const title=hand?hand.name:key;
-  const nPapers=hand?hand.paperCount+' papers (hand-coded corpus)':rc?rc.n+' recent papers (2024→, machine-extracted)':'';
+  const nPapers=hand?hand.paperCount+' papers (hand-coded corpus)':rc?rc.n+' imported journal papers (machine-extracted)':'';
   // per-year distribution for hand-coded constructs — pure counts from the verified corpus
   let spark='';
   if(hand){
-    const yc={}; S.papers.forEach(p=>{if(!p._recent&&!p._live&&p.year&&p.constructCodes.includes(key))yc[p.year]=(yc[p.year]||0)+1;});
+    const yc={}; S.papers.forEach(p=>{if(!p._recent&&!p._management&&!p._live&&p.year&&p.constructCodes.includes(key))yc[p.year]=(yc[p.year]||0)+1;});
     const ys=Object.keys(yc).map(Number);
     if(ys.length>1){
       const y0=Math.min(...ys),y1=Math.max(...ys),max=Math.max(...Object.values(yc));
@@ -1154,7 +1205,7 @@ function renderConstructs(){
     if(q)cs=cs.filter(c=>c.t.includes(q)||(c.code&&c.code.toLowerCase().includes(q)));
     const handByCode={};S.constructs.forEach(h=>handByCode[h.code]=h);
     $('#cgrid').innerHTML=cs.map(c=>`
-      <div class="ccard rc" data-q="${esc(c.t)}" title="Phrase appears verbatim in ${c.n} recent papers (2024→) — machine-extracted, verify">
+      <div class="ccard rc" data-q="${esc(c.t)}" title="Phrase appears verbatim in ${c.n} imported journal papers — machine-extracted, verify">
         <div class="ccode">↑ ${c.n} papers</div>
         <div class="cname">${esc(c.t)}</div>
         <div class="ccount">${Object.entries(c.byYear||{}).sort().map(([y,n])=>y+': '+n).join(' · ')}</div>
@@ -1231,7 +1282,7 @@ async function openDetail(id){
         ${journalLink(p.journal)}
         ${p.publisher?'<span class="dot">·</span><span>'+esc(p.publisher)+'</span>':''}
         ${band(p)} ${p.openAccess?'<span class="badge b-oa">Open access</span>':''} ${typeBadge(p)}
-        ${p._live?'<span class="badge" style="background:rgba(64,221,242,.16);color:#22d3ee">⚡ live · fetched from OpenAlex just now</span>':p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656">↑ recent · auto-fetched (OpenAlex, 2024→)</span>':''}
+        ${p._management?'<span class="badge">All-years import · machine tags · verify</span>':p._live?'<span class="badge" style="background:rgba(64,221,242,.16);color:#22d3ee">⚡ live · fetched from OpenAlex just now</span>':p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656">↑ recent · auto-fetched (OpenAlex, 2024→)</span>':''}
         ${p.citations!=null?'<span class="dot">·</span><span>'+p.citations+' citations</span>':''}
       </div>
       ${p.scopusCategory?'<div class="mrow" style="font-size:12px;color:var(--ink3)">'+esc(p.scopusCategory)+'</div>':''}
@@ -1246,6 +1297,7 @@ async function openDetail(id){
         ${doiUrl&&p.hasAbstract?`<a class="lnk" href="${esc(TOOLS.papercards)}#explain=${encodeURIComponent(p.doi)}" target="_blank" rel="noopener" title="Narrated scene-by-scene walkthrough in PaperCards — speaks only what was extracted, verbatim">🎬 Video explainer</a>`:''}
         ${p.title?`<a class="lnk" href="${esc(TOOLS.researchflow)}?idea=${encodeURIComponent(p.title)}" target="_blank" rel="noopener">🧭 Start in ResearchFlow</a>`:''}
         ${doiUrl?`<a class="lnk" href="${esc(doiUrl)}" target="_blank" rel="noopener">DOI ↗</a>`:''}
+        ${p.openalexId?`<a class="lnk" href="${esc(p.openalexId)}" target="_blank" rel="noopener">OpenAlex record ↗</a>`:''}
         ${p.oaUrl?`<a class="lnk" href="${esc(p.oaUrl)}" target="_blank" rel="noopener">Open access ↗</a>`:''}
         ${p.rgUrl?`<a class="lnk" href="${esc(p.rgUrl)}" target="_blank" rel="noopener">ResearchGate ↗</a>`:''}
         ${p.connectedPapersUrl?`<a class="lnk" href="${esc(p.connectedPapersUrl)}" target="_blank" rel="noopener">Connected Papers ↗</a>`:''}
@@ -1254,13 +1306,15 @@ async function openDetail(id){
       </div>
       <div class="secttl">Constructs (${p.constructCodes.length})</div>
       <div class="chips">${cChips}</div>
+      ${S.managementManifest?'<div class="secttl">Indexed references · OpenAlex</div><div id="managementReferences">Loading imported reference evidence…</div>':''}
     </div>`;
   const bb=$('#bibBtn'); if(bb)bb.onclick=async ev=>{ev.preventDefault();
     try{await navigator.clipboard.writeText(bibtex(p));bb.textContent='✓ BibTeX copied';}
     catch(_){prompt('Copy this BibTeX:',bibtex(p));}
     setTimeout(()=>{if(bb.isConnected)bb.textContent='📋 Copy BibTeX';},1300);};
   $('#ov').classList.add('on'); document.body.style.overflow='hidden';
-  if(p.hasAbstract){let txt;if(p._live){txt=p._abs||'';}else if(p._recent){txt=await recentAbstract(p.id);}else{const a=await ensureAbstracts();txt=a[p.id];}const box=$('#absBox');if(box)box.textContent=txt||'Abstract not found.';}
+  if(S.managementManifest)renderManagementReferences(p);
+  if(p.hasAbstract){let txt;if(p._live){txt=p._abs||'';}else if(p._management){txt=await managementAbstract(p.id);}else if(p._recent){txt=await recentAbstract(p.id);}else{const a=await ensureAbstracts();txt=a[p.id];}const box=$('#absBox');if(box)box.textContent=txt||'Abstract not found.';}
 }
 function closeModal(){$('#ov').classList.remove('on');document.body.style.overflow='';}
 $('#mclose').onclick=closeModal;
@@ -1320,7 +1374,7 @@ $('#ovBand').onclick=e=>{const d=e.target.closest('[data-band]');if(!d)return;
 function coocPairs(){
   if(S.cooc)return S.cooc;
   const m=new Map();
-  for(const p of S.papers){if(p._recent)continue;/* map = the hand-coded story only */const cs=p.constructCodes;for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){const a=cs[i],b=cs[j];const k=a<b?a+'|'+b:b+'|'+a;m.set(k,(m.get(k)||0)+1);}}
+  for(const p of S.papers){if(p._recent||p._management)continue;/* map = the hand-coded story only */const cs=p.constructCodes;for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){const a=cs[i],b=cs[j];const k=a<b?a+'|'+b:b+'|'+a;m.set(k,(m.get(k)||0)+1);}}
   S.cooc=[...m.entries()].map(([k,w])=>{const x=k.split('|');return{a:x[0],b:x[1],w};});
   return S.cooc;
 }
@@ -1373,7 +1427,7 @@ function renderGraphCorpus(){
   // keep it readable: cap to the 60 biggest nodes, drop edges to the rest
   if(nodes.length>60){nodes.sort((a,b)=>b.pc-a.pc);nodes=nodes.slice(0,60);const keep=new Set(nodes.map(n=>n.code));edges=edges.filter(e=>keep.has(e.a)&&keep.has(e.b));}
   const by={};nodes.forEach(n=>by[n.code]=n);
-  $('#mapInfo').textContent=`${nodes.length} constructs · ${edges.length} links · recent corpus (machine-matched — verify)`;
+  $('#mapInfo').textContent=`${nodes.length} constructs · ${edges.length} links · imported journal corpus (machine-matched — verify)`;
   if(!nodes.length){svg.innerHTML='<text x="20" y="40" fill="var(--ink3)">No links at this threshold — lower it.</text>';return;}
   const W=Math.max(320,$('#mapWrap').clientWidth),H=640,pad=46;
   nodes.forEach((n,i)=>{const a=i/nodes.length*Math.PI*2;n.x=W/2+Math.cos(a)*Math.min(W,H)*0.34;n.y=H/2+Math.sin(a)*Math.min(W,H)*0.34;});
@@ -1472,7 +1526,7 @@ function ccOpenPapers(ids){
     F.recent=true;const cb=$('#fRecent');if(cb)cb.checked=true;
     F.dois=ccDois(ids);F.doisLabel=ids.map(id=>(CC.byId[id]||{}).label||id).join(' × ');
     S.page=0;applyAndRender();setView('library');window.scrollTo(0,0);};
-  if(!S.recentLoaded)loadRecent().then(go);else go();
+  Promise.all([loadRecent(),S.managementManifest?loadManagementImport():Promise.resolve()]).then(()=>{if(S.managementManifest){F.management=true;$('#fManagement').checked=true;}go();});
 }
 
 /* ===== FULL HEATMAP — every construct × every construct on a canvas ===== */
@@ -1489,7 +1543,7 @@ function mxHeatData(){
     max=Math.max(...CC.pairs.map(p=>p[2]),1);
   }else{
     const sm={},pm=new Map();
-    for(const p of S.papers){if(!MX.recent&&p._recent)continue;const cs=[...new Set(p.constructCodes)];for(const c of cs)sm[c]=(sm[c]||0)+1;for(let a=0;a<cs.length;a++)for(let b=a+1;b<cs.length;b++){const k=cs[a]<cs[b]?cs[a]+'::'+cs[b]:cs[b]+'::'+cs[a];pm.set(k,(pm.get(k)||0)+1);}}
+    for(const p of S.papers){if(!MX.recent&&(p._recent||p._management))continue;const cs=[...new Set(p.constructCodes)];for(const c of cs)sm[c]=(sm[c]||0)+1;for(let a=0;a<cs.length;a++)for(let b=a+1;b<cs.length;b++){const k=cs[a]<cs[b]?cs[a]+'::'+cs[b]:cs[b]+'::'+cs[a];pm.set(k,(pm.get(k)||0)+1);}}
     const ord=Object.keys(sm).sort((a,b)=>sm[b]-sm[a]);
     labels=ord.map(c=>(S.byCode[c]||{}).name||c); ids=ord; solo=ord.map(c=>sm[c]); N=ord.length;
     valOf=(a,b)=>{if(a===b)return sm[ord[a]];const ca=ord[a],cb=ord[b],k=ca<cb?ca+'::'+cb:cb+'::'+ca;return pm.get(k)||0;};
@@ -1525,7 +1579,7 @@ function mxClusterOrder(D,K){
 function heatColor(t){const a=(0.15+0.85*t).toFixed(3);const c=t<0.55?[241,69,117]:[150,110,245];return`rgba(${c[0]},${c[1]},${c[2]},${a})`;}
 const shortLbl=(s,n=16)=>s.length>n?s.slice(0,n-1)+'…':s;
 function vizDrill(D,a,b){const ids=b==null?[D.ids[a]]:[D.ids[a],D.ids[b]];if(MX.corpus)ccOpenPapers(ids);else mxOpenPapers(ids);}
-const tierLbl=()=>MX.corpus?'recent corpus — machine-matched, verify':MX.recent?'hand + recent':'hand-coded';
+const tierLbl=()=>MX.corpus?'imported journal corpus — machine-matched, verify':MX.recent?'hand + recent':'hand-coded';
 
 /* ---- HEATMAP (readable: top ~40, labelled, camp-ordered) ---- */
 function renderHeatmap(){
@@ -1664,14 +1718,14 @@ function mxTopDefault(n){
   const m=Object.create(null);for(const p of S.papers)for(const c of p.constructCodes)m[c]=(m[c]||0)+1;
   return Object.keys(m).sort((a,b)=>m[b]-m[a]).slice(0,n);
 }
-function mxPartners(code){if(MX.corpus)return ccPartners(code);const t=new Map();for(const p of S.papers){if(!MX.recent&&p._recent)continue;const cs=p.constructCodes;if(cs.indexOf(code)<0)continue;for(const c of cs)if(c!==code)t.set(c,(t.get(c)||0)+1);}return [...t.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);}
+function mxPartners(code){if(MX.corpus)return ccPartners(code);const t=new Map();for(const p of S.papers){if(!MX.recent&&(p._recent||p._management))continue;const cs=p.constructCodes;if(cs.indexOf(code)<0)continue;for(const c of cs)if(c!==code)t.set(c,(t.get(c)||0)+1);}return [...t.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);}
 function mxCompute(codeList){if(MX.corpus)return ccCompute(codeList);const n=codeList.length,idx={};codeList.forEach((c,i)=>idx[c]=i);const set=new Set(codeList);
   const pair=Array.from({length:n},()=>Array.from({length:n},()=>({h:0,r:0})));const solo=codeList.map(()=>({h:0,r:0}));
-  for(const p of S.papers){const rec=!!p._recent;const pr=[];for(const c of p.constructCodes)if(set.has(c))pr.push(idx[c]);if(!pr.length)continue;
+  for(const p of S.papers){const rec=!!(p._recent||p._management);const pr=[];for(const c of p.constructCodes)if(set.has(c))pr.push(idx[c]);if(!pr.length)continue;
     for(const i of pr){if(rec)solo[i].r++;else solo[i].h++;}
     for(let a=0;a<pr.length;a++)for(let b=a+1;b<pr.length;b++){const i=pr[a],j=pr[b];if(rec){pair[i][j].r++;pair[j][i].r++;}else{pair[i][j].h++;pair[j][i].h++;}}}
   return {pair,solo};}
-function mxMulti(codes){if(MX.corpus)return ccMulti(codes);const o={h:0,r:0};for(const p of S.papers){if(codes.every(c=>p.constructCodes.indexOf(c)>=0)){if(p._recent)o.r++;else o.h++;}}return o;}
+function mxMulti(codes){if(MX.corpus)return ccMulti(codes);const o={h:0,r:0};for(const p of S.papers){if(codes.every(c=>p.constructCodes.indexOf(c)>=0)){if(p._recent||p._management)o.r++;else o.h++;}}return o;}
 const mxVal=cell=>MX.recent?cell.h+cell.r:cell.h;
 const mxBg=t=>`rgba(241,69,117,${(0.05+t*0.85).toFixed(3)})`;
 const mxNm=c=>MX.corpus?esc((CC.byId[c]||{}).label||c):esc((S.byCode[c]||{}).name||c);
@@ -1707,7 +1761,7 @@ function renderMatrix(){
   // "prominent" = a construct studied at/above the grid's median; a 0-cell between
   // two prominent constructs is research white-space; a studied cell far below its
   // expected co-occurrence (lift<0.35) is "rarely studied together".
-  const N=MX.corpus?CC.N:((MX.recent?S.papers:S.papers.filter(p=>!p._recent)).length||1);
+  const N=MX.corpus?CC.N:((MX.recent?S.papers:S.papers.filter(p=>!p._recent&&!p._management)).length||1);
   const solos=codeList.map((_,i)=>mxVal(solo[i]));
   // "prominent" bar = 30th percentile of the grid's construct sizes (floor 15) — low
   // enough that a deliberate 2–3 pick flags correctly, high enough to mean "studied".
@@ -1758,7 +1812,7 @@ function mxLeadsData(){
   if(MX._leads[key])return MX._leads[key];
   const solo=Object.create(null),pair=new Map();let N=0;
   for(const p of S.papers){
-    if(!MX.recent&&p._recent)continue;N++;
+    if(!MX.recent&&(p._recent||p._management))continue;N++;
     const cs=p.constructCodes;if(!cs||!cs.length)continue;
     const u=[...new Set(cs)];
     for(const c of u)solo[c]=(solo[c]||0)+1;
@@ -1883,7 +1937,7 @@ function renderTrends(){
   $('#trendsWrap').innerHTML=h+'</tbody></table>';
   const bc=$('#trendCounts'),bs=$('#trendShare'),note=$('#trendModeNote');
   if(bc){bc.classList.toggle('on',!TREND_SHARE);bs.classList.toggle('on',TREND_SHARE);
-    note.textContent=(F.recent?'Hand-coded + imported machine tags · verify. ':'Hand-coded corpus. ')+(TREND_SHARE?'darker = bigger slice of that year’s construct-codings (composition, not volume)':'darker = more papers that year');}
+    note.textContent=((F.recent||F.management)?'Hand-coded + imported machine tags · verify. ':'Hand-coded corpus. ')+(TREND_SHARE?'darker = bigger slice of that year’s construct-codings (composition, not volume)':'darker = more papers that year');}
 }
 $('#trendCounts').onclick=()=>{TREND_SHARE=false;renderTrends();};
 $('#trendShare').onclick=()=>{TREND_SHARE=true;renderTrends();};
@@ -2192,9 +2246,6 @@ function ttCsv(){
 })();
 </script>
 <!-- /SYED-AMBIENT -->
-<!-- SYED-PWA-SW -->
-<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
-<!-- /SYED-PWA-SW -->
 <!-- SYED-DYNAMIC (generated by research-suite/tools/dynamic/inject.mjs - edit there) -->
 <script>
 (function () {
@@ -2384,5 +2435,8 @@ function ttCsv(){
   }).catch(function(){});
 })();
 </script>
+<!-- SYED-PWA-SW -->
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<!-- /SYED-PWA-SW -->
 </body>
 </html>

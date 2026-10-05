@@ -16,6 +16,7 @@
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { appendManagementCorpus } from './imported-corpus.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -27,7 +28,7 @@ const readJson = (p) => JSON.parse(readFileSync(p, 'utf8').replace(/^﻿/, ''));
 // ---------- load ----------
 console.log('[constructs] loading recent tier…');
 const index = readJson(join(DATA, 'recent.index.json'));
-const papers = Array.isArray(index) ? index : index.papers;
+let papers = Array.isArray(index) ? index : index.papers;
 const abstracts = new Map();
 for (const f of readdirSync(join(DATA, 'recent.abstracts')).filter((f) => f.endsWith('.json'))) {
   const shard = readJson(join(DATA, 'recent.abstracts', f));
@@ -35,6 +36,8 @@ for (const f of readdirSync(join(DATA, 'recent.abstracts')).filter((f) => f.ends
     if (typeof text === 'string' && text.length > 40) abstracts.set(doi, text);
   }
 }
+appendManagementCorpus(DATA,papers,abstracts);
+papers=papers.filter(p=>p.doi); // phrase evidence links are explicitly DOI-based
 console.log(`[constructs] ${papers.length} papers, ${abstracts.size} abstracts`);
 
 const hand = readJson(join(DATA, 'constructs.json'));
@@ -71,6 +74,7 @@ const TAIL_TRIM = /\s+(?:of|in|on|at|for|with|among|amongst|towards?|between|and
 
 // whole-phrase junk (not constructs): study furniture, methods, geographies, populations
 const STOP_PHRASES = new Set([
+  'other', 'button below', 'read more', 'full text', 'click here',
   'this study', 'the study', 'the present study', 'present study', 'this research', 'this paper', 'this article',
   'the research', 'study', 'research', 'paper', 'article', 'literature', 'the literature', 'findings', 'results',
   'the findings', 'the results', 'data', 'the data', 'analysis', 'the analysis', 'the model', 'model', 'models',
@@ -152,7 +156,7 @@ writeFileSync(
   JSON.stringify({
     version: 1,
     generatedAt: new Date().toISOString(),
-    source: 'recent tier (OpenAlex 2024→) titles + abstracts — verbatim frame extraction, no AI',
+    source: 'recent tier + all-years management journal import titles/abstracts — verbatim frame extraction, no AI; conferences excluded from management journal import',
     papersScanned: papers.length,
     abstracts: abstracts.size,
     minPapers: MIN_PAPERS,
