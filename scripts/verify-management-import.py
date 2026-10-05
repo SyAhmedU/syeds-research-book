@@ -1,4 +1,5 @@
 """Check published records against staged API evidence, then exercise the actual UI."""
+import argparse
 import json
 import sqlite3
 import subprocess
@@ -10,6 +11,9 @@ from threading import Thread
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--url',help='Optional deployed URL; API calls remain blocked for deterministic testing')
+args=parser.parse_args()
 DATA = ROOT / 'data'
 read = lambda p: json.loads(p.read_text(encoding='utf-8-sig'))
 manifest = read(DATA / 'management/manifest.json')
@@ -70,11 +74,11 @@ with sync_playwright() as runtime:
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.route('https://api.openalex.org/**', lambda route: route.fulfill(status=200, json={'results': []}))
-        page.goto(f'http://127.0.0.1:{server.server_port}/', wait_until='networkidle')
-        page.wait_for_function('S.recentLoaded && S.managementManifest')
+        page.goto(args.url or f'http://127.0.0.1:{server.server_port}/', wait_until='networkidle',timeout=60000)
+        page.wait_for_function('S.recentLoaded && S.managementManifest',timeout=60000)
         before = page.evaluate('libraryPapers().length')
         page.check('#fManagement')
-        page.wait_for_function('S.managementLoaded', timeout=120000)
+        page.wait_for_function('S.managementLoaded', timeout=180000)
         assert page.evaluate('S.managementAdded') == len(added)
         assert page.evaluate('libraryPapers().length') == before + len(added)
         assert page.evaluate('new Set(S.papers.map(p=>p.id.toLowerCase())).size===S.papers.length')
@@ -113,7 +117,7 @@ with sync_playwright() as runtime:
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         page.screenshot(path=str(ROOT / '_smoke_management_import.png'))
         assert not errors, errors
-        print(f'PASS: {len(added):,} additional real records; {abstract_count:,} verbatim abstracts; {manifest["referenceEdges"]:,} source reference edges; tier counts/toggles, source isolation, historical abstracts, references, updated trends/map, mobile, and immutable hand-coded corpus.')
+        print(f'PASS {"LIVE" if args.url else "LOCAL"}: {len(added):,} additional real records; {abstract_count:,} verbatim abstracts; {manifest["referenceEdges"]:,} source reference edges; tier counts/toggles, source isolation, historical abstracts, references, updated trends/map, mobile, and immutable hand-coded corpus.')
     finally:
         browser.close()
         server.shutdown()
