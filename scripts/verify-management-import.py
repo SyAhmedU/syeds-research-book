@@ -1,6 +1,7 @@
 """Check published records against staged API evidence, then exercise the actual UI."""
 import argparse
 import json
+import gzip
 import sqlite3
 import subprocess
 from functools import partial
@@ -15,20 +16,20 @@ parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--url',help='Optional deployed URL; API calls remain blocked for deterministic testing')
 args=parser.parse_args()
 DATA = ROOT / 'data'
-read = lambda p: json.loads(p.read_text(encoding='utf-8-sig'))
+read = lambda p: json.loads(gzip.decompress(p.read_bytes()).decode('utf-8') if p.suffix=='.gz' else p.read_text(encoding='utf-8-sig'))
 manifest = read(DATA / 'management/manifest.json')
 baseline = read(DATA / 'papers.index.json') + read(DATA / 'recent.index.json')
 have = {p['id'].lower() for p in baseline}
 registry = read(DATA / 'management-journals.json')
 source_issns = {}
-ranked_source_ids = {s['sourceId'] for s in registry['sources'] if s.get('sourceId') and s['sourceType']=='journal' and s.get('quartile') in ['Q1','Q2']}
+ranked_source_ids = {s.get('sourceId') or 'https://www.scopus.com/sourceid/'+s['scopusSourceId'] for s in registry['sources'] if s['sourceType'] in ['journal','conference-series'] and s.get('quartile') in ['Q1','Q2']}
 for source in registry['sources']:
-    if source.get('sourceId') and source['sourceType']=='journal':
-        source_issns.setdefault(source['sourceId'],set()).update(source['issns'])
+    if source['sourceType'] in ['journal','conference-series']:
+        source_issns.setdefault(source.get('sourceId') or 'https://www.scopus.com/sourceid/'+source['scopusSourceId'],set()).update(source['issns'])
 added = []
 for file in manifest['files']:
     rows = read(DATA / 'management' / file['path'])
-    assert len(rows) == file['count'] <= 500
+    assert len(rows) == file['count'] <= manifest.get('indexChunkSize',500)
     for paper in rows:
         assert paper['id'].lower() not in have, 'duplicate baseline/import identity'
         have.add(paper['id'].lower())
@@ -42,9 +43,10 @@ abstract_count = 0
 with_references = []
 with_abstract = []
 shard = lambda key: f'{__import__("functools").reduce(lambda h,c:(h*31+ord(c))&0xffffffff,key,0)%64:02}'
-abstracts = {k: v for path in (DATA / 'management/abstracts').glob('*.json') for k, v in read(path).items()}
-references = {k: v for path in (DATA / 'management/references').glob('*.json') for k, v in read(path).items()}
-targets = {k: v for path in (DATA / 'management/targets').glob('*.json') for k, v in read(path).items()}
+pattern = '*.json.gz' if manifest.get('compression')=='gzip' else '*.json'
+abstracts = {k: v for path in (DATA / 'management/abstracts').glob(pattern) for k, v in read(path).items()}
+references = {k: v for path in (DATA / 'management/references').glob(pattern) for k, v in read(path).items()}
+targets = {k: v for path in (DATA / 'management/targets').glob(pattern) for k, v in read(path).items()}
 expected_targets = {key:json.loads(record) for key,record in database.execute('SELECT works.id,works.record FROM works JOIN (SELECT DISTINCT cited FROM edges) links ON works.id=links.cited')}
 assert targets.keys() == expected_targets.keys(), 'all resolved referenced identities must remain available'
 for key, target in targets.items():
@@ -55,7 +57,7 @@ for paper in added:
     if paper.get('metadataSource') == 'crossref':
         evidence = json.loads(database.execute('SELECT payload FROM crossref_evidence WHERE doi=?',(paper['doi'],)).fetchone()[0])
         assert paper['title'] == evidence['title'][0] and paper['doi'] == evidence['DOI'].lower()
-        assert evidence['type'] == 'journal-article'
+        assert evidence['type'] == ('journal-article' if paper['sourceType']=='journal' else 'proceedings-article')
         assert paper['sourceId'] in ranked_source_ids
         assert source_issns[paper['sourceId']].intersection(x.replace('-','') for x in evidence.get('ISSN',[]))
     original = json.loads(original)

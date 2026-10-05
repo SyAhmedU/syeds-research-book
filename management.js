@@ -1,12 +1,23 @@
 // All-years imports are separate from hand coding and the 2024+ tier.
 const managementShardCache=new Map();
+async function managementJson(path){
+  const response=await fetch(path);if(!response.ok)throw Error('Import evidence unavailable');
+  if(!path.endsWith('.gz'))return response.json();
+  return new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json();
+}
 function managementShardOf(value){let h=0;for(let i=0;i<value.length;i++)h=(h*31+value.charCodeAt(i))>>>0;return String(h%64).padStart(2,'0');}
 async function managementShard(kind,key){
-  const path=`./data/management/${kind}/${managementShardOf(key)}.json`;
-  if(!managementShardCache.has(path))managementShardCache.set(path,fetch(path).then(r=>{if(!r.ok)throw Error('Import evidence unavailable');return r.json();}).catch(error=>{managementShardCache.delete(path);throw error;}));
+  const path=`./data/management/${kind}/${managementShardOf(key)}.json${S.managementManifest?.compression==='gzip'?'.gz':''}`;
+  if(!managementShardCache.has(path))managementShardCache.set(path,managementJson(path).catch(error=>{managementShardCache.delete(path);throw error;}));
   return managementShardCache.get(path);
 }
 async function managementAbstract(id){const shard=await managementShard('abstracts',id);return shard[id]||'';}
+function managementCrossrefCoverage(manifest){
+  const report=manifest.crossref;if(!report)return '';
+  if(report.mode!=='full-cursor')return `Crossref adds ${report.records.toLocaleString()} DOI-deduplicated records from bounded batches in ${report.batches.length} Q1/Q2 journals. `;
+  const states=report.sourceStatus||{};
+  return `Crossref contributes ${report.records.toLocaleString()} DOI-deduplicated records and ${report.abstracts.toLocaleString()} publisher-deposited abstracts. Full pagination completed for ${(states.complete||0).toLocaleString()} of ${report.batches.length.toLocaleString()} selected sources; ${(states.unavailable||0).toLocaleString()} have no matching Crossref endpoint and ${(states.error||0).toLocaleString()} require review. Journal and conference queues are separate. `;
+}
 async function initManagementImport(){
   const checkbox=$('#fManagement'),label=$('#fManagementLbl');
   checkbox.disabled=true;
@@ -23,7 +34,7 @@ async function initManagementImport(){
     const manifest=S.managementManifest;
     label.textContent=`+ All-years import (${manifest.publishedNewPapers.toLocaleString()} · ${manifest.status==='complete'?'complete':'partial'})`;
     const panel=$('#managementCoverage');panel.hidden=false;
-    panel.innerHTML=`<summary>Management import coverage · ${manifest.publishedNewPapers.toLocaleString()} additional papers</summary><p>${manifest.receivedJournalWorks.toLocaleString()} OpenAlex Q1/Q2 journal records retrieved from searches returning ${manifest.knownAvailableJournalWorks.toLocaleString()} all-years records. The current snapshot starts with older records; newer years are also covered by the separate recent tier. ${manifest.crossref?`Crossref adds ${manifest.crossref.records.toLocaleString()} DOI-deduplicated records from the newest 1,000 records in each of ${manifest.crossref.batches.length} Q1/Q2 journals, with ${manifest.crossref.abstracts.toLocaleString()} publisher-deposited abstracts. This is a bounded partial batch. ${manifest.crossref.unimportedSelectedSources?.length?`${manifest.crossref.unimportedSelectedSources.length} selected journals still have no successful Crossref batch.`:''}`:''} ${manifest.papersWithAbstract.toLocaleString()} additional papers have provider-supplied abstracts. ${manifest.papersWithoutDoi.toLocaleString()} have an OpenAlex identity but no DOI.</p><p>${manifest.referenceEdges.toLocaleString()} observed reference links; ${(manifest.referenceTargets.pending||0).toLocaleString()} referenced identities still pending metadata resolution. ${manifest.citedManagementJournals.toLocaleString()} management journals identified in resolved references. Conference records remain a separate source type. Highest-category 2025 rankings describe the source selection, not each historical paper.</p><p>${manifest.status==='complete'?'All current source imports and reference lookups completed.':'Partial snapshot: more records remain. '+(manifest.status==='daily-budget-limited'?'The OpenAlex daily API budget prevents finishing the import today. ':'The import has a saved continuation checkpoint. ')}Construct tags are machine-matched against the existing lexicon; verify before citing.</p><div id="managementCitedJournals"></div>`;
+    panel.innerHTML=`<summary>Management import coverage · ${manifest.publishedNewPapers.toLocaleString()} additional papers</summary><p>${manifest.receivedJournalWorks.toLocaleString()} OpenAlex Q1/Q2 journal records retrieved from searches returning ${manifest.knownAvailableJournalWorks.toLocaleString()} all-years records. The current snapshot starts with older records; newer years are also covered by the separate recent tier. ${managementCrossrefCoverage(manifest)} ${manifest.papersWithAbstract.toLocaleString()} additional papers have provider-supplied abstracts. ${manifest.papersWithoutDoi.toLocaleString()} have an OpenAlex identity but no DOI.</p><p>${manifest.referenceEdges.toLocaleString()} observed reference links; ${(manifest.referenceTargets.pending||0).toLocaleString()} referenced identities still pending metadata resolution. ${manifest.citedManagementJournals.toLocaleString()} management journals identified in resolved references. Conference records remain a separate source type. Highest-category 2025 rankings describe the source selection, not each historical paper.</p><p>${manifest.status==='complete'?'All current source imports and reference lookups completed.':'Partial snapshot: more records remain. '+(manifest.status==='daily-budget-limited'?'The OpenAlex daily API budget prevents finishing the import today. ':'The import has a saved continuation checkpoint. ')}Construct tags are machine-matched against the existing lexicon; verify before citing.</p><div id="managementCitedJournals"></div>`;
     const citedResponse=await fetch('./data/management/cited-journals.json');
     if(citedResponse.ok){
       const cited=await citedResponse.json();
@@ -49,7 +60,7 @@ async function loadManagementImport(){
     let added=0;
     for(let start=0;start<files.length;start+=4){
       const pages=await Promise.all(files.slice(start,start+4).map(async file=>{
-        const response=await fetch('./data/management/'+file.path);if(!response.ok)throw Error('Paper shard unavailable');return response.json();
+        return managementJson('./data/management/'+file.path);
       }));
       for(const rows of pages)for(const paper of rows){
         if(!paper.id||have.has(paper.id.toLowerCase()))continue;
