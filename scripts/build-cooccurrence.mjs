@@ -48,7 +48,7 @@ pairs.sort((a, b) => b[2] - a[2]);
 writeFileSync(join(DATA, 'construct-cooccurrence.json'), JSON.stringify({
   version: 1,
   generatedAt: new Date().toISOString(),
-  source: 'construct-memberships.json — pairwise co-occurrence counts (papers studying both). Counting only; no effect sign.',
+  source: 'construct-memberships.json — papers whose titles or abstracts match both lexicon constructs. Machine matches, verify; no effect sign or validation claim.',
   N,
   papersWithPair: Object.values(mem.memberships).filter(ids=>new Set(ids).size>=2).length,
   distinctPairs: pairs.length,
@@ -58,5 +58,5 @@ writeFileSync(join(DATA, 'construct-cooccurrence.json'), JSON.stringify({
 
 console.log(`[cooc] N(≥1 construct)=${N}  distinct pairs(≥2)=${pairs.length}  totalPairIncrements=${pairIncrements}`);
 const lbl = (i) => constructs[i].label;
-console.log('\nTop 30 co-studied construct pairs:');
+console.log('\nTop 30 co-mentioned construct pairs:');
 for (const [i, j, n] of pairs.slice(0, 30)) console.log(`  ${String(n).padStart(5)}  ${lbl(i)}  ×  ${lbl(j)}`);

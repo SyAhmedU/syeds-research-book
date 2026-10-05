@@ -74,7 +74,7 @@ const TAIL_TRIM = /\s+(?:of|in|on|at|for|with|among|amongst|towards?|between|and
 
 // whole-phrase junk (not constructs): study furniture, methods, geographies, populations
 const STOP_PHRASES = new Set([
-  'other', 'button below', 'read more', 'full text', 'click here',
+  'other', 'button below', 'read more', 'full text', 'click here', 'contrary', 'the contrary',
   'this study', 'the study', 'the present study', 'present study', 'this research', 'this paper', 'this article',
   'the research', 'study', 'research', 'paper', 'article', 'literature', 'the literature', 'findings', 'results',
   'the findings', 'the results', 'data', 'the data', 'analysis', 'the analysis', 'the model', 'model', 'models',

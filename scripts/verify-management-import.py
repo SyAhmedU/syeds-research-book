@@ -21,6 +21,7 @@ baseline = read(DATA / 'papers.index.json') + read(DATA / 'recent.index.json')
 have = {p['id'].lower() for p in baseline}
 registry = read(DATA / 'management-journals.json')
 source_issns = {}
+ranked_source_ids = {s['sourceId'] for s in registry['sources'] if s.get('sourceId') and s['sourceType']=='journal' and s.get('quartile') in ['Q1','Q2']}
 for source in registry['sources']:
     if source.get('sourceId') and source['sourceType']=='journal':
         source_issns.setdefault(source['sourceId'],set()).update(source['issns'])
@@ -50,6 +51,7 @@ for paper in added:
         evidence = json.loads(database.execute('SELECT payload FROM crossref_evidence WHERE doi=?',(paper['doi'],)).fetchone()[0])
         assert paper['title'] == evidence['title'][0] and paper['doi'] == evidence['DOI'].lower()
         assert evidence['type'] == 'journal-article'
+        assert paper['sourceId'] in ranked_source_ids
         assert source_issns[paper['sourceId']].intersection(x.replace('-','') for x in evidence.get('ISSN',[]))
     original = json.loads(original)
     for field in ['title', 'doi', 'authors', 'year', 'journal', 'sourceId', 'sourceType', 'importRole']:
@@ -63,6 +65,9 @@ for paper in added:
         if references[paper['id']]:
             with_references.append(paper)
 assert abstract_count == manifest['papersWithAbstract']
+if manifest.get('crossref'):
+    assert manifest['crossref']['records'] == sum(p.get('metadataSource')=='crossref' for p in added)
+    assert manifest['crossref']['abstracts'] == sum(p.get('metadataSource')=='crossref' and p['hasAbstract'] for p in added)
 assert database.execute('SELECT COUNT(*) FROM edges').fetchone()[0] == manifest['referenceEdges']
 database.close()
 subprocess.run(['git', 'diff', '--quiet', 'HEAD', '--', 'data/papers.index.json', 'data/papers.json', 'data/constructs.json', 'data/memberships.json'], cwd=ROOT, check=True)

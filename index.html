@@ -543,7 +543,7 @@
 
   <!-- MAP -->
   <section id="v-map" class="wrap hidden">
-    <div class="hero"><h1>Construct co-occurrence</h1><p>Two constructs go together when papers code both — the real shape of the field. <b>Graph</b> = the whole web at a glance; <b>Matrix</b> = pick two or three constructs and read exactly how often they're studied together, then jump to those papers.</p></div>
+    <div class="hero"><h1>Construct co-occurrence</h1><p>Constructs appear together through hand coding or machine matches in paper titles and abstracts. <b>Graph</b> shows the connections; <b>Matrix</b> compares occurrence counts and opens the supporting papers.</p></div>
     <div class="mx-modebar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button id="mapModeGraph" class="mx-mode on" type="button">◌ Graph</button>
       <button id="mapModeMatrix" class="mx-mode" type="button">▦ Matrix</button>
@@ -603,7 +603,7 @@
         <svg id="chordSvg" width="100%" height="660" style="display:block"></svg>
         <div id="chordTip" class="spec-tip"></div>
       </div>
-      <p class="mx-note">The most-studied constructs on a ring; each ribbon links two studied together — thicker = more papers. Hover a construct to isolate its links, click a ribbon to read those papers. Recent corpus — machine-matched, verify; <b>weight = how much, not direction</b>.</p>
+      <p class="mx-note">The most frequent construct matches on a ring; each ribbon links two found in the same paper — thicker = more papers. Hover a construct to isolate its links, click a ribbon to read those papers. Recent corpus — machine-matched, verify; <b>weight = how much, not direction</b>.</p>
     </div>
 
     <!-- CLUSTERS (research camps) -->
@@ -627,7 +627,7 @@
     <div id="mapHeat" hidden>
       <div id="heatInfo" style="font-size:12px;color:var(--ink3);margin:10px 0 4px"></div>
       <div id="heatGridWrap" class="mx-gridwrap"><div id="heatGrid"></div><div id="heatTip" class="spec-tip"></div></div>
-      <p class="mx-note">The top ~40 constructs as a labelled grid, reordered so camp-mates sit together (blocks = related constructs). Cell = papers studying both; click to read them. Recent corpus — machine-matched, verify; <b>colour = how much, not direction</b>.</p>
+      <p class="mx-note">The top ~40 constructs as a labelled grid, reordered so camp-mates sit together (blocks = related constructs). Cell = papers matching both constructs; click to read them. Recent corpus — machine-matched, verify; <b>colour = how much, not direction</b>.</p>
     </div>
   </section>
 
@@ -1697,7 +1697,7 @@ async function exportMatrixExcel(){
     // Constructs sheet
     const cs=[['Rank','Construct','Papers']];for(let i=0;i<N;i++)cs.push([i+1,D.labels[i],D.solo[i]]);
     // Pairs (long) sheet — every co-studied pair
-    const ps=[['Construct A','Construct B','Papers studying both']];
+    const ps=[['Construct A','Construct B','Papers matching both']];
     for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){const v=D.valOf(i,j);if(v)ps.push([D.labels[i],D.labels[j],v]);}
     ps.length>1&&ps.splice(1,ps.length,...ps.slice(1).sort((a,b)=>b[2]-a[2]));
     // Full square matrix sheet
