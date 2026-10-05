@@ -13,6 +13,8 @@ OUT.mkdir(parents=True, exist_ok=True)
 read = lambda path: json.loads(path.read_text(encoding='utf-8-sig'))
 catalog = read(DATA / 'management-journals.json')
 checkpoint = read(DATA / 'openalex-refresh/management/checkpoint.json')
+crossref_path = DATA / 'openalex-refresh/management/crossref-checkpoint.json'
+crossref = read(crossref_path) if crossref_path.exists() else None
 db = sqlite3.connect(DATA / 'openalex-refresh/management/harvest.sqlite')
 db.execute('PRAGMA query_only=ON')
 short = lambda value: str(value).rsplit('/', 1)[-1]
@@ -121,7 +123,7 @@ published = sum(types.values())
 manifest = {'version': 1, 'generatedAt': datetime.now(timezone.utc).isoformat(), 'status': checkpoint['status'],
             'scope': checkpoint['scope'], 'selectionNote': 'Source identities are exact ISSN matches; export rankings attach by unique normalized title, verify. All-years queues are incomplete until each cursor finishes.',
             'seedJournalSources': checkpoint['seedJournalSources'], 'seedConferenceSources': checkpoint['seedConferenceSources'],
-            'harvestedWorks': checkpoint['storedWorks'], 'publishedNewPapers': published, 'baselineDuplicates': duplicate,
+            'harvestedWorks': db.execute('SELECT COUNT(*) FROM works').fetchone()[0], 'publishedNewPapers': published, 'baselineDuplicates': duplicate,
             'excludedInvalidRecords': invalid, 'papersWithoutDoi': without_doi, 'papersWithAbstract': with_abstract,
             'sourceTypes': dict(types), 'importRoles': dict(roles), 'byYear': dict(sorted(by_year.items())), 'files': files,
             'abstractShards': 64, 'referenceShards': 64, 'referenceEdges': checkpoint['referenceEdges'],
@@ -131,5 +133,9 @@ manifest = {'version': 1, 'generatedAt': datetime.now(timezone.utc).isoformat(),
             'receivedJournalWorks': sum(batch['received'] for batch in checkpoint['journals']),
             'sourceCounts': dict(source_counts), 'provenance': 'OpenAlex work records and verbatim inverted-index abstracts; no AI; construct tags are word-boundary matches against the existing verified lexicon, machine · verify.'}
 write(OUT / 'manifest.json', manifest)
+if crossref:
+    manifest['crossref'] = crossref
+    manifest['provenance'] = 'OpenAlex records plus Crossref publisher-deposited records matched by exact registry ISSN; original provider abstracts, no AI. Construct tags are machine word-boundary matches; verify.'
+    write(OUT / 'manifest.json', manifest)
 print(json.dumps({key: manifest[key] for key in ['status', 'harvestedWorks', 'publishedNewPapers', 'baselineDuplicates', 'papersWithAbstract', 'sourceTypes', 'importRoles', 'referenceEdges', 'referenceTargets', 'citedManagementJournals']}))
 db.close()

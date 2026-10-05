@@ -19,6 +19,11 @@ read = lambda p: json.loads(p.read_text(encoding='utf-8-sig'))
 manifest = read(DATA / 'management/manifest.json')
 baseline = read(DATA / 'papers.index.json') + read(DATA / 'recent.index.json')
 have = {p['id'].lower() for p in baseline}
+registry = read(DATA / 'management-journals.json')
+source_issns = {}
+for source in registry['sources']:
+    if source.get('sourceId') and source['sourceType']=='journal':
+        source_issns.setdefault(source['sourceId'],set()).update(source['issns'])
 added = []
 for file in manifest['files']:
     rows = read(DATA / 'management' / file['path'])
@@ -27,7 +32,7 @@ for file in manifest['files']:
         assert paper['id'].lower() not in have, 'duplicate baseline/import identity'
         have.add(paper['id'].lower())
         assert paper['sourceType'] == file['sourceType']
-        assert paper['openalexId'].startswith('https://openalex.org/W')
+        assert (paper.get('openalexId') or '').startswith('https://openalex.org/W') or paper.get('metadataSource') == 'crossref'
         assert 'scopusPercentile' not in paper, 'source ranking backfilled onto historical paper'
     added.extend(rows)
 assert len(added) == manifest['publishedNewPapers']
@@ -39,7 +44,13 @@ shard = lambda key: f'{__import__("functools").reduce(lambda h,c:(h*31+ord(c))&0
 abstracts = {k: v for path in (DATA / 'management/abstracts').glob('*.json') for k, v in read(path).items()}
 references = {k: v for path in (DATA / 'management/references').glob('*.json') for k, v in read(path).items()}
 for paper in added:
-    original, abstract = database.execute('SELECT record,abstract FROM works WHERE id=?', (paper['openalexId'].split('/')[-1],)).fetchone()
+    work_key = paper['openalexId'].split('/')[-1] if paper.get('openalexId') else 'doi:'+paper['doi']
+    original, abstract = database.execute('SELECT record,abstract FROM works WHERE id=?', (work_key,)).fetchone()
+    if paper.get('metadataSource') == 'crossref':
+        evidence = json.loads(database.execute('SELECT payload FROM crossref_evidence WHERE doi=?',(paper['doi'],)).fetchone()[0])
+        assert paper['title'] == evidence['title'][0] and paper['doi'] == evidence['DOI'].lower()
+        assert evidence['type'] == 'journal-article'
+        assert source_issns[paper['sourceId']].intersection(x.replace('-','') for x in evidence.get('ISSN',[]))
     original = json.loads(original)
     for field in ['title', 'doi', 'authors', 'year', 'journal', 'sourceId', 'sourceType', 'importRole']:
         assert paper[field] == original[field], (field, paper['id'])
@@ -92,6 +103,14 @@ with sync_playwright() as runtime:
         assert page.locator('#absBox').inner_text() == abstracts[example['id']]
         assert 'All-years import' in page.locator('#mcontent').inner_text()
         page.locator('#mclose').click()
+        crossref_example = next((p for p in with_abstract if p.get('metadataSource')=='crossref'),None)
+        if crossref_example:
+            page.evaluate('(id)=>openDetail(id)',crossref_example['id'])
+            page.wait_for_function('!document.querySelector("#absBox").textContent.includes("Loading")')
+            assert page.locator('#absBox').inner_text() == abstracts[crossref_example['id']]
+            assert 'via Crossref' in page.locator('#mcontent').text_content(), page.locator('#mcontent').text_content()[:1500]
+            assert page.get_by_role('link',name='Crossref publisher record ↗').count() == 1
+            page.locator('#mclose').click()
         reference_example = max(with_references, key=lambda p: len(references[p['id']]))
         page.evaluate('(id)=>openDetail(id)', reference_example['id'])
         page.wait_for_function('document.querySelector("#managementReferences")?.textContent.includes("indexed reference identities")', timeout=60000)

@@ -1107,7 +1107,7 @@ function renderList(){
         <span>${p.year||'—'}</span><span class="dot">·</span>
         ${journalLink(p.journal)}
         ${band(p)} ${p.openAccess?'<span class="badge b-oa">OA</span>':''} ${typeBadge(p)}
-        ${p._management?'<span class="badge" title="Real OpenAlex record from the separate all-years import; construct tags are machine-matched, verify.">Imported · machine tags · verify</span>':p._live?'<span class="badge" style="background:rgba(64,221,242,.16);color:#22d3ee" title="Fetched live from OpenAlex just now — published in the last ~45 days. Machine-matched to this construct/search; verify before citing.">⚡ live · just published</span>':p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656" title="Auto-fetched from OpenAlex (2024→); machine-assigned construct. Verify before citing.">↑ recent · auto-fetched</span>':''}
+        ${p._management?'<span class="badge" title="Real provider record from the separate all-years import; construct tags are machine-matched, verify.">Imported · machine tags · verify</span>':p._live?'<span class="badge" style="background:rgba(64,221,242,.16);color:#22d3ee" title="Fetched live from OpenAlex just now — published in the last ~45 days. Machine-matched to this construct/search; verify before citing.">⚡ live · just published</span>':p._recent?'<span class="badge" style="background:rgba(255,150,86,.18);color:#FF9656" title="Auto-fetched from OpenAlex (2024→); machine-assigned construct. Verify before citing.">↑ recent · auto-fetched</span>':''}
         ${p.citations?'<span class="dot">·</span><span>'+p.citations+' cites</span>':''}
       </div>
       <div class="chips">${p.constructCodes.slice(0,6).map(c=>`<span class="chip" data-code="${esc(c)}">${esc((S.byCode[c]||{}).name||c)}</span>`).join('')}${p.constructCodes.length>6?'<span class="chip" style="border:0">+'+(p.constructCodes.length-6)+'</span>':''}</div>
@@ -1298,6 +1298,7 @@ async function openDetail(id){
         ${p.title?`<a class="lnk" href="${esc(TOOLS.researchflow)}?idea=${encodeURIComponent(p.title)}" target="_blank" rel="noopener">🧭 Start in ResearchFlow</a>`:''}
         ${doiUrl?`<a class="lnk" href="${esc(doiUrl)}" target="_blank" rel="noopener">DOI ↗</a>`:''}
         ${p.openalexId?`<a class="lnk" href="${esc(p.openalexId)}" target="_blank" rel="noopener">OpenAlex record ↗</a>`:''}
+        ${p.metadataSource==='crossref'?`<a class="lnk" href="${esc(p.metadataUrl)}" target="_blank" rel="noopener">Crossref publisher record ↗</a>`:''}
         ${p.oaUrl?`<a class="lnk" href="${esc(p.oaUrl)}" target="_blank" rel="noopener">Open access ↗</a>`:''}
         ${p.rgUrl?`<a class="lnk" href="${esc(p.rgUrl)}" target="_blank" rel="noopener">ResearchGate ↗</a>`:''}
         ${p.connectedPapersUrl?`<a class="lnk" href="${esc(p.connectedPapersUrl)}" target="_blank" rel="noopener">Connected Papers ↗</a>`:''}
@@ -1306,7 +1307,7 @@ async function openDetail(id){
       </div>
       <div class="secttl">Constructs (${p.constructCodes.length})</div>
       <div class="chips">${cChips}</div>
-      ${S.managementManifest?'<div class="secttl">Indexed references · OpenAlex</div><div id="managementReferences">Loading imported reference evidence…</div>':''}
+      ${S.managementManifest?'<div class="secttl">Indexed references · OpenAlex coverage</div><div id="managementReferences">Loading imported reference evidence…</div>':''}
     </div>`;
   const bb=$('#bibBtn'); if(bb)bb.onclick=async ev=>{ev.preventDefault();
     try{await navigator.clipboard.writeText(bibtex(p));bb.textContent='✓ BibTeX copied';}
