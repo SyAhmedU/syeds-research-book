@@ -124,6 +124,7 @@ refs={f'{i:02}':JsonMapStream(OUT/f'references/{i:02}.json') for i in range(64)}
 targets={f'{i:02}':JsonMapStream(OUT/f'targets/{i:02}.json') for i in range(64)}
 types, roles, source_counts, by_year = Counter(), Counter(), Counter(), Counter()
 provider_counts, provider_abstracts = Counter(), Counter()
+abstract_problems=Counter()
 stored_records = {}
 chosen_work = {}
 with_abstract = duplicate = invalid = without_doi = 0
@@ -149,6 +150,7 @@ for work_id, text, abstract in db.execute('SELECT id,record,abstract FROM works 
     provider = record.get('metadataSource') or 'openalex'
     provider_counts[provider] += 1
     provider_abstracts[provider] += bool(abstract)
+    if record.get('abstractUnavailableReason'):abstract_problems[record['abstractUnavailableReason']]+=1
     if source_type not in indices:indices[source_type]=IndexStream(source_type)
     indices[source_type].append(record)
     types[source_type] += 1
@@ -199,6 +201,7 @@ manifest = {'version': 1, 'generatedAt': datetime.now(timezone.utc).isoformat(),
             'seedJournalSources': checkpoint['seedJournalSources'], 'seedConferenceSources': checkpoint['seedConferenceSources'],
             'harvestedWorks': db.execute('SELECT COUNT(*) FROM works').fetchone()[0], 'publishedNewPapers': published, 'baselineDuplicates': duplicate,
             'excludedInvalidRecords': invalid, 'papersWithoutDoi': without_doi, 'papersWithAbstract': with_abstract,
+            'providerAbstractProblems':dict(abstract_problems),
             'sourceTypes': dict(types), 'importRoles': dict(roles), 'byYear': dict(sorted(by_year.items())), 'files': files,
             'abstractShards': 64, 'referenceShards': 64, 'referenceEdges': checkpoint['referenceEdges'],
             'referenceTargets': checkpoint['referenceTargets'], 'citedManagementJournals': len(observed),

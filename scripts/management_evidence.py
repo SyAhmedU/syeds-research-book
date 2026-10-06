@@ -83,6 +83,9 @@ def verify_data(root,manifest,registry,aliases,ui_only=False):
                 assert paper['sourceId']==primary.get('id')
                 assert source.get('sourceId')==primary.get('id') or set(source['issns']).intersection(i.replace('-','') for i in primary.get('issn') or [])
                 inverted=raw.get('abstract_inverted_index') or {}
+                if paper.get('abstractUnavailableReason'):
+                    assert paper['abstractUnavailableReason']==raw.get('abstractUnavailableReason')=='malformed-provider-index'
+                    assert raw.get('abstract_inverted_index_raw') and raw.get('abstract_inverted_index') is None and not abstract
                 words={position:word for word,positions in inverted.items() for position in positions}
                 expected=' '.join(words.get(i,'') for i in range(max(words)+1)).strip() if words else ''
                 assert abstract==expected
