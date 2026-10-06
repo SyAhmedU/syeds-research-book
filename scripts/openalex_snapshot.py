@@ -28,7 +28,7 @@ FIELDS=['id','doi','display_name','publication_year','publication_date',
 SCAN=['id','primary_location.source.id','primary_location.source.issn','is_xpac']
 short=lambda value:str(value).rsplit('/',1)[-1]
 
-def run_snapshot(db, store_work, catalog, source_map, stage, workers):
+def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_only=False):
     root=Path('E:/ResearchBook/openalex-snapshot')
     root.mkdir(parents=True,exist_ok=True)
     groups=root/'groups';groups.mkdir(exist_ok=True)
@@ -209,8 +209,10 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers):
     try:
         status('harvesting-sources');parallel('sources')
         assert evidence.execute("SELECT SUM(scanned) FROM files WHERE phase='sources'").fetchone()[0]==manifest['record_count']
-        db.execute("UPDATE targets SET state='pending' WHERE state IN ('not-returned-by-openalex','missing-title-in-openalex','outside-management-journals','no-source-in-snapshot')")
-        db.commit()
+        prepared=evidence.execute("SELECT value FROM metadata WHERE key='references_prepared'").fetchone()
+        if not prepared or prepared[0]!=fingerprint:
+            db.execute("UPDATE targets SET state='pending' WHERE state IN ('not-returned-by-openalex','missing-title-in-openalex','outside-management-journals','no-source-in-snapshot')")
+            db.commit()
         # Resolve management references from the complete filtered source corpus.
         for identity,raw,official_json,path in evidence.execute('SELECT id,payload,official,path FROM candidates'):
             target=db.execute("SELECT state FROM targets WHERE id=? AND state='pending'",(identity,)).fetchone()
@@ -220,7 +222,11 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers):
             if source_id:source_map[short(source_id)]=official
             apply_work(work,official,'cited-by-q1q2',path)
         db.commit();evidence.commit()
+        evidence.execute("INSERT OR REPLACE INTO metadata VALUES('references_prepared',?)",(fingerprint,));evidence.commit()
         pending={'https://openalex.org/'+r[0] for r in db.execute("SELECT id FROM targets WHERE state='pending'")}
+        if sources_only:
+            (root/'snapshot-targets.json.gz').write_bytes(gzip.compress(json.dumps(sorted(pending)).encode(),mtime=0))
+            status('sources-complete');return
         if len(pending):
             parallel('references',pending)
             assert evidence.execute("SELECT COUNT(*) FROM files WHERE phase='references'").fetchone()[0]==len(manifest['files'])

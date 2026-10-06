@@ -25,7 +25,13 @@ def verify_data(root,manifest,registry,aliases,ui_only=False):
     snapshot_db=None
     if database and manifest.get('openalexSnapshot'):
         snapshot_db=sqlite3.connect('file:E:/ResearchBook/openalex-snapshot/evidence.sqlite?mode=ro',uri=True)
-        assert snapshot_db.execute("SELECT value FROM metadata WHERE key='manifest_sha256'").fetchone()[0]==manifest['openalexSnapshot']['manifestSha256']
+        snapshot=manifest['openalexSnapshot']
+        assert snapshot['status']=='complete' and not snapshot['referenceTargets'].get('pending')
+        assert snapshot_db.execute("SELECT value FROM metadata WHERE key='manifest_sha256'").fetchone()[0]==snapshot['manifestSha256']
+        assert snapshot_db.execute("SELECT COUNT(*),SUM(scanned) FROM files WHERE phase='sources'").fetchone()==(snapshot['filesTotal'],snapshot['snapshotWorks'])
+        if snapshot['filesCompleted'].get('references'):
+            assert snapshot_db.execute("SELECT COUNT(*),SUM(scanned) FROM files WHERE phase='references'").fetchone()==(snapshot['filesTotal'],snapshot['snapshotWorks'])
+        assert dict(database.execute('SELECT state,COUNT(*) FROM targets GROUP BY state'))==snapshot['referenceTargets']
     if database:
         for alias in aliases['aliases']:
             source=official[alias['scopusSourceId']]

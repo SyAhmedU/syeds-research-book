@@ -28,6 +28,7 @@ parser.add_argument('--conference-pages', type=int, default=10)
 parser.add_argument('--workers', type=int, default=4)
 parser.add_argument('--snapshot', action='store_true', help='Complete a dated free public snapshot using projected Parquet reads')
 parser.add_argument('--snapshot-workers', type=int, default=8)
+parser.add_argument('--snapshot-sources-only', action='store_true', help='Prepare all source records and reference IDs before remote reference extraction')
 args = parser.parse_args()
 catalog = json.loads((ROOT / 'data/management-journals.json').read_text(encoding='utf-8'))
 short = lambda value: str(value).rsplit('/', 1)[-1]
@@ -229,7 +230,7 @@ try:
     print(f"Seed sources: {len(seed_ids)} journals; {len(conference_ids)} conferences (separate). All-years cursor paging.", flush=True)
     if args.snapshot:
         from openalex_snapshot import run_snapshot
-        run_snapshot(db, store_work, catalog, source_map, STAGE, args.snapshot_workers)
+        run_snapshot(db, store_work, catalog, source_map, STAGE, args.snapshot_workers, sources_only=args.snapshot_sources_only)
         raise SystemExit(0)
     harvest('conferences', args.conference_pages)
     if not stopped:
