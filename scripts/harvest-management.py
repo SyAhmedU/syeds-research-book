@@ -29,6 +29,7 @@ parser.add_argument('--workers', type=int, default=4)
 parser.add_argument('--snapshot', action='store_true', help='Complete a dated free public snapshot using projected Parquet reads')
 parser.add_argument('--snapshot-workers', type=int, default=8)
 parser.add_argument('--snapshot-sources-only', action='store_true', help='Prepare all source records and reference IDs before remote reference extraction')
+parser.add_argument('--snapshot-available-only', action='store_true', help='Import only downloaded, verified source exports, then save an unfinished checkpoint')
 args = parser.parse_args()
 catalog = json.loads((ROOT / 'data/management-journals.json').read_text(encoding='utf-8'))
 short = lambda value: str(value).rsplit('/', 1)[-1]
@@ -42,12 +43,14 @@ conference_ids = sorted({short(s['sourceId']) for s in catalog['sources'] if s['
 now = lambda: datetime.now(timezone.utc).isoformat()
 db = sqlite3.connect(STAGE / 'harvest.sqlite', timeout=60)
 db.execute('PRAGMA journal_mode=WAL')
+db.execute('PRAGMA cache_size=-262144')
 db.executescript('''
 CREATE TABLE IF NOT EXISTS works(id TEXT PRIMARY KEY, doi TEXT, source_id TEXT, role TEXT, record TEXT, abstract TEXT);
 CREATE INDEX IF NOT EXISTS works_doi ON works(doi);
 CREATE TABLE IF NOT EXISTS edges(citing TEXT, cited TEXT, PRIMARY KEY(citing,cited));
 CREATE INDEX IF NOT EXISTS edges_cited ON edges(cited);
 CREATE TABLE IF NOT EXISTS targets(id TEXT PRIMARY KEY, state TEXT DEFAULT 'pending', source_id TEXT);
+CREATE INDEX IF NOT EXISTS targets_state ON targets(state);
 CREATE TABLE IF NOT EXISTS cursors(queue TEXT, batch INTEGER, ids TEXT, cursor TEXT DEFAULT '*', complete INTEGER DEFAULT 0, total INTEGER, received INTEGER DEFAULT 0, pages INTEGER DEFAULT 0, PRIMARY KEY(queue,batch));
 CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS missing_title_evidence(id TEXT PRIMARY KEY,source_id TEXT,payload TEXT,recorded_at TEXT);
@@ -129,7 +132,8 @@ def store_work(work, role):
     if previous_role and previous_role[0] != 'cited-by-q1q2':
         record['importRole'] = previous_role[0]
     db.execute('INSERT OR REPLACE INTO works VALUES(?,?,?,?,?,?)', (identity, doi or None, source_id, record['importRole'], json.dumps(record, ensure_ascii=False, separators=(',', ':')), abstract))
-    db.execute('UPDATE targets SET state=?,source_id=? WHERE id=?', ('resolved-management-journal', source_id, identity))
+    target_state='resolved-management-journal' if source_type=='journal' else 'outside-management-journals'
+    db.execute('UPDATE targets SET state=?,source_id=? WHERE id=?', (target_state, source_id, identity))
     if role == 'q1q2-published':
         references = {short(ref) for ref in work.get('referenced_works') or []}
         db.executemany('INSERT OR IGNORE INTO edges VALUES(?,?)', ((identity, ref) for ref in references))
@@ -227,11 +231,13 @@ def resolve_references(page_limit):
                 print(f"[references] batches={done} storedWorks={summary['storedWorks']:,} targets={summary['referenceTargets']} remaining={remaining}", flush=True)
 
 try:
-    print(f"Seed sources: {len(seed_ids)} journals; {len(conference_ids)} conferences (separate). All-years cursor paging.", flush=True)
     if args.snapshot:
+        selected=[s for s in catalog['sources'] if s.get('quartile') in ['Q1','Q2']]
+        print(f"Snapshot selection: {sum(s['sourceType']=='journal' for s in selected)} journals; {sum(s['sourceType']=='conference-series' for s in selected)} conference series (separate).",flush=True)
         from openalex_snapshot import run_snapshot
-        run_snapshot(db, store_work, catalog, source_map, STAGE, args.snapshot_workers, sources_only=args.snapshot_sources_only)
+        run_snapshot(db, store_work, catalog, source_map, STAGE, args.snapshot_workers, sources_only=args.snapshot_sources_only, available_only=args.snapshot_available_only)
         raise SystemExit(0)
+    print(f"Seed sources: {len(seed_ids)} journals; {len(conference_ids)} conferences (separate). All-years cursor paging.", flush=True)
     harvest('conferences', args.conference_pages)
     if not stopped:
         harvest('journals', args.journal_pages)

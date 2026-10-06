@@ -29,7 +29,7 @@ FIELDS=['id','doi','display_name','publication_year','publication_date',
 SCAN=['id','primary_location.source.id','primary_location.source.issn','is_xpac']
 short=lambda value:str(value).rsplit('/',1)[-1]
 
-def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_only=False):
+def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_only=False, available_only=False):
     root=Path('E:/ResearchBook/openalex-snapshot')
     root.mkdir(parents=True,exist_ok=True)
     groups=root/'groups';groups.mkdir(exist_ok=True)
@@ -38,6 +38,7 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
     fingerprint=hashlib.sha256(manifest_bytes).hexdigest()
     evidence=sqlite3.connect(root/'evidence.sqlite',timeout=60)
     evidence.execute('PRAGMA journal_mode=WAL')
+    evidence.execute('PRAGMA cache_size=-65536')
     evidence.executescript('''
       CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY,value TEXT);
       CREATE TABLE IF NOT EXISTS files(phase TEXT,path TEXT,scanned INTEGER,matched INTEGER,PRIMARY KEY(phase,path));
@@ -45,6 +46,8 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
       CREATE TABLE IF NOT EXISTS outside_evidence(id TEXT PRIMARY KEY,source_id TEXT,path TEXT);
       CREATE TABLE IF NOT EXISTS applied(id TEXT PRIMARY KEY);
     ''')
+    if 'is_xpac' not in {row[1] for row in evidence.execute('PRAGMA table_info(outside_evidence)')}:
+        evidence.execute('ALTER TABLE outside_evidence ADD COLUMN is_xpac INTEGER')
     old=evidence.execute("SELECT value FROM metadata WHERE key='manifest_sha256'").fetchone()
     if old and old[0]!=fingerprint:
         raise RuntimeError('Snapshot release changed; preserve the checkpoint before starting another release.')
@@ -171,7 +174,7 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
                 time.sleep(min(60,2**attempt))
     def parallel(phase,pending=None):
         done={r[0] for r in evidence.execute('SELECT path FROM files WHERE phase=?',(phase,))}
-        entries=iter(e for e in manifest['files'] if e['url'] not in done)
+        entries=iter(e for e in manifest['files'] if e['url'] not in done and (not available_only or phase!='sources' or (root/'remote'/phase/(hashlib.sha256((fingerprint+phase+e['url']).encode()).hexdigest()+'.json.gz')).exists()))
         with ThreadPoolExecutor(max_workers=workers) as pool:
             active={}
             for _ in range(workers):
@@ -192,14 +195,14 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
                         for work,official in rows:
                             identity=short(work['id']);source_id=((work.get('primary_location') or {}).get('source') or {}).get('id')
                             if source_id:source_map[short(source_id)]=official
-                            raw=gzip.compress(json.dumps(work,ensure_ascii=False).encode(),mtime=0)
+                            raw=gzip.compress(json.dumps(work,ensure_ascii=False).encode(),compresslevel=1,mtime=0)
                             evidence.execute('INSERT OR REPLACE INTO candidates VALUES(?,?,?,?)',(identity,raw,entry['url'],json.dumps(official)))
                             if official.get('quartile') in ['Q1','Q2']:
                                 role='q1q2-published' if official['sourceType']=='journal' else 'conference-published'
                                 apply_work(work,official,role,entry['url'])
                     else:
                         for identity,source_id,xpac in rows:
-                            evidence.execute('INSERT OR REPLACE INTO outside_evidence VALUES(?,?,?)',(identity,source_id,entry['url']))
+                            evidence.execute('INSERT OR REPLACE INTO outside_evidence(id,source_id,path,is_xpac) VALUES(?,?,?,?)',(identity,source_id,entry['url'],int(xpac)))
                             state='excluded-xpac' if xpac else ('outside-management-journals' if source_id else 'no-source-in-snapshot')
                             db.execute("UPDATE targets SET state=?,source_id=? WHERE id=? AND state='pending'",(state,short(source_id or ''),identity))
                     db.commit();evidence.commit()
@@ -209,9 +212,12 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
                     if entry:active[pool.submit(read_file,entry,phase,pending)]=entry
     try:
         status('harvesting-sources');parallel('sources')
+        if available_only and evidence.execute("SELECT COUNT(*) FROM files WHERE phase='sources'").fetchone()[0]<len(manifest['files']):
+            status('awaiting-source-evidence');return
         assert evidence.execute("SELECT SUM(scanned) FROM files WHERE phase='sources'").fetchone()[0]==manifest['record_count']
         prepared=evidence.execute("SELECT value FROM metadata WHERE key='references_prepared'").fetchone()
         if not prepared or prepared[0]!=fingerprint:
+            db.execute("UPDATE targets SET state='outside-management-journals' WHERE state='resolved-management-journal' AND id IN (SELECT id FROM works WHERE json_extract(record,'$.sourceType')!='journal')")
             db.execute("UPDATE targets SET state='pending' WHERE state IN ('not-returned-by-openalex','missing-title-in-openalex','outside-management-journals','no-source-in-snapshot')")
             db.commit()
         # Resolve management references from the complete filtered source corpus.

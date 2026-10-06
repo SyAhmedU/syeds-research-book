@@ -14,7 +14,7 @@ def verify_data(root,manifest,registry,aliases,ui_only=False):
     data=root/'data';folder=data/'management'
     baseline=read(data/'papers.index.json')+read(data/'recent.index.json')
     have={p['id'].lower() for p in baseline};published_keys={}
-    database=sqlite3.connect(data/'openalex-refresh/management/harvest.sqlite') if not ui_only else None
+    database=sqlite3.connect(data/'openalex-refresh/management/harvest.sqlite',uri=True) if not ui_only else None
     official={s['scopusSourceId']:s for s in registry['sources']}
     source_issns=defaultdict(set)
     ranked_sources=set()
@@ -32,6 +32,17 @@ def verify_data(root,manifest,registry,aliases,ui_only=False):
         if snapshot['filesCompleted'].get('references'):
             assert snapshot_db.execute("SELECT COUNT(*),SUM(scanned) FROM files WHERE phase='references'").fetchone()==(snapshot['filesTotal'],snapshot['snapshotWorks'])
         assert dict(database.execute('SELECT state,COUNT(*) FROM targets GROUP BY state'))==snapshot['referenceTargets']
+        database.execute("ATTACH DATABASE ? AS snapshot_audit",('file:E:/ResearchBook/openalex-snapshot/evidence.sqlite?mode=ro',))
+        assert database.execute("""SELECT COUNT(*) FROM snapshot_audit.outside_evidence e LEFT JOIN targets t ON t.id=e.id
+            WHERE t.id IS NULL OR e.is_xpac IS NULL
+            OR COALESCE(e.source_id,'')!=CASE WHEN COALESCE(t.source_id,'')='' THEN '' ELSE 'https://openalex.org/'||t.source_id END
+            OR t.state!=CASE WHEN e.is_xpac=1 THEN 'excluded-xpac' WHEN COALESCE(e.source_id,'')='' THEN 'no-source-in-snapshot' ELSE 'outside-management-journals' END""").fetchone()[0]==0
+        assert database.execute("""SELECT COUNT(*) FROM targets t LEFT JOIN snapshot_audit.outside_evidence e ON e.id=t.id
+            LEFT JOIN snapshot_audit.candidates c ON c.id=t.id WHERE t.state='not-in-snapshot' AND (e.id IS NOT NULL OR c.id IS NOT NULL)""").fetchone()[0]==0
+        assert database.execute("""SELECT COUNT(*) FROM targets t LEFT JOIN works w ON w.id=t.id
+            WHERE t.state='resolved-management-journal' AND (w.id IS NULL OR json_extract(w.record,'$.sourceType')!='journal')""").fetchone()[0]==0
+        assert database.execute("""SELECT COUNT(*) FROM targets t LEFT JOIN missing_title_evidence e ON e.id=t.id
+            WHERE t.state='missing-title-in-openalex' AND (e.id IS NULL OR COALESCE(json_extract(e.payload,'$.display_name'),'')!='')""").fetchone()[0]==0
     if database:
         for alias in aliases['aliases']:
             source=official[alias['scopusSourceId']]
