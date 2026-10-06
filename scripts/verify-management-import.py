@@ -4,6 +4,7 @@ import json
 import gzip
 import sqlite3
 import subprocess
+import time
 import unicodedata
 from collections import defaultdict
 from functools import partial
@@ -11,12 +12,13 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as BrowserTimeout
 
 ROOT = Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--url',help='Optional deployed URL; API calls remain blocked for deterministic testing')
 parser.add_argument('--ui-only',action='store_true',help='Check deployed UI after the same snapshot passed full local provider verification')
+parser.add_argument('--load-timeout',type=int,default=180000,help='Import wait limit in milliseconds; progress is reported every 30 seconds')
 args=parser.parse_args()
 DATA = ROOT / 'data'
 read = lambda p: json.loads(gzip.decompress(p.read_bytes()).decode('utf-8') if p.suffix=='.gz' else p.read_text(encoding='utf-8-sig'))
@@ -133,7 +135,15 @@ with sync_playwright() as runtime:
         page.wait_for_function('S.recentLoaded && S.managementManifest',timeout=60000)
         before = page.evaluate('libraryPapers().length')
         page.check('#fManagement')
-        page.wait_for_function('S.managementLoaded', timeout=180000)
+        deadline=time.monotonic()+args.load_timeout/1000
+        while not page.evaluate('!!S.managementLoaded'):
+            try:
+                page.wait_for_function('S.managementLoaded',timeout=min(30000,max(1,int((deadline-time.monotonic())*1000))))
+            except BrowserTimeout:
+                state=page.evaluate('({label:document.querySelector("#fManagementLbl")?.textContent,error:S.managementImportError,loaded:S.papers.filter(p=>p._management).length})')
+                print('Import progress:',state,flush=True)
+                assert not state['error'], (state,errors)
+                if time.monotonic()>=deadline: raise
         assert page.evaluate('S.managementAdded') == len(added)
         print('PASS browser import load and count.',flush=True)
         assert page.evaluate('libraryPapers().length') == before + len(added)
