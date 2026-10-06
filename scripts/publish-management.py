@@ -11,21 +11,28 @@ from literal_match import literal_pattern
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / 'data'
-OUT = DATA / 'management'
-OUT.mkdir(parents=True, exist_ok=True)
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--gzip', action='store_true', help='Publish compressed evidence and index shards')
+parser.add_argument('--output',type=Path,help='Alternative output folder for deterministic comparison')
+parser.add_argument('--require-complete-snapshot',action='store_true')
 args = parser.parse_args()
+OUT=args.output or DATA/'management'
+OUT.mkdir(parents=True,exist_ok=True)
 chunk_size = 5000 if args.gzip else 500
 read = lambda path: json.loads(path.read_text(encoding='utf-8-sig'))
 catalog = read(DATA / 'management-journals.json')
 checkpoint = read(DATA / 'openalex-refresh/management/checkpoint.json')
+snapshot_path=DATA/'openalex-refresh/management/openalex-snapshot-checkpoint.json'
+snapshot=read(snapshot_path) if snapshot_path.exists() else None
+if args.require_complete_snapshot:
+    assert snapshot and snapshot['status']=='complete' and snapshot['filesCompleted']['sources']==snapshot['filesTotal'], 'Full snapshot traversal is not complete'
 crossref_path = DATA / 'openalex-refresh/management/crossref-checkpoint.json'
 full_crossref_path = DATA / 'openalex-refresh/management/crossref-full-checkpoint.json'
 if full_crossref_path.exists(): crossref_path = full_crossref_path
 crossref = read(crossref_path) if crossref_path.exists() else None
 db = sqlite3.connect(DATA / 'openalex-refresh/management/harvest.sqlite')
 db.execute('PRAGMA query_only=ON')
+db.execute('BEGIN')
 referenced_ids = {row[0] for row in db.execute('SELECT DISTINCT cited FROM edges')}
 short = lambda value: str(value).rsplit('/', 1)[-1]
 source_map = {}
@@ -33,6 +40,17 @@ for source in catalog['sources']:
     if source['sourceId']:
         source_map.setdefault(short(source['sourceId']), []).append(source)
 source_map = {key: rows[0] for key, rows in source_map.items() if len(rows) == 1}
+if snapshot and snapshot['status']=='complete':
+    # Snapshot records can establish exact ISSN identities that the earlier API
+    # source lookup did not resolve. Use their already verified official names,
+    # only when a name/type identifies one registry source.
+    official_names=defaultdict(list)
+    for source in catalog['sources']:
+        official_names[(source['name'],source['sourceType'])].append(source)
+    for source_id,name,source_type in db.execute("SELECT DISTINCT source_id,json_extract(record,'$.journal'),json_extract(record,'$.sourceType') FROM works WHERE json_extract(record,'$.addedVia')='openalex-snapshot'"):
+        matches=official_names[(name,source_type)]
+        if source_id and len(matches)==1 and source_id not in source_map:
+            source_map[source_id]=matches[0]
 known = {p['id'].lower() for name in ['papers.index.json', 'recent.index.json'] for p in read(DATA / name)}
 lex = read(DATA / 'construct-lexicon.json')
 synonyms = defaultdict(set)
@@ -72,10 +90,42 @@ def write_shard(path, value):
     temporary.replace(compressed)
     return compressed
 
-indices, abstracts, refs, targets = defaultdict(list), defaultdict(dict), defaultdict(dict), defaultdict(dict)
+files=[]
+class IndexStream:
+    def __init__(self,source_type):self.source_type=source_type;self.buffer=[];self.number=0
+    def append(self,record):
+        self.buffer.append(record)
+        if len(self.buffer)>=chunk_size:self.flush()
+    def flush(self):
+        if not self.buffer:return
+        filename=f'index/{self.source_type}-{self.number:04}.json'
+        published_path=write_shard(OUT/filename,self.buffer)
+        files.append({'path':published_path.relative_to(OUT).as_posix(),'sourceType':self.source_type,'count':len(self.buffer)})
+        self.number+=1;self.buffer=[]
+    def close(self):self.flush()
+class JsonMapStream:
+    def __init__(self,path):
+        self.path=path.with_suffix(path.suffix+'.gz') if args.gzip else path
+        self.path.parent.mkdir(parents=True,exist_ok=True)
+        self.temp=self.path.with_suffix('.tmp');self.raw=self.temp.open('wb')
+        self.output=gzip.GzipFile(filename='',mode='wb',fileobj=self.raw,mtime=0) if args.gzip else self.raw
+        self.output.write(b'{');self.first=True
+    def __setitem__(self,key,value):
+        if not self.first:self.output.write(b',')
+        self.first=False
+        self.output.write((json.dumps(str(key),ensure_ascii=False)+':'+json.dumps(value,ensure_ascii=False,separators=(',',':'))).encode('utf-8'))
+    def close(self):
+        self.output.write(b'}');self.output.close()
+        if not self.raw.closed:self.raw.close()
+        self.temp.replace(self.path)
+indices={}
+abstracts={f'{i:02}':JsonMapStream(OUT/f'abstracts/{i:02}.json') for i in range(64)}
+refs={f'{i:02}':JsonMapStream(OUT/f'references/{i:02}.json') for i in range(64)}
+targets={f'{i:02}':JsonMapStream(OUT/f'targets/{i:02}.json') for i in range(64)}
 types, roles, source_counts, by_year = Counter(), Counter(), Counter(), Counter()
 provider_counts, provider_abstracts = Counter(), Counter()
 stored_records = {}
+chosen_work = {}
 with_abstract = duplicate = invalid = without_doi = 0
 for work_id, text, abstract in db.execute('SELECT id,record,abstract FROM works ORDER BY id'):
     record = json.loads(text)
@@ -87,7 +137,8 @@ for work_id, text, abstract in db.execute('SELECT id,record,abstract FROM works 
     target = {field: record.get(field) for field in ['id', 'doi', 'openalexId', 'title', 'year', 'journal', 'sourceType']}
     if work_id in referenced_ids:
         targets[shard_of(work_id)][work_id] = target
-    stored_records[work_id] = record
+    stored_records[work_id] = identity
+    chosen_work.setdefault(identity.lower(),work_id)
     if identity.lower() in known:
         duplicate += 1
         continue
@@ -98,6 +149,7 @@ for work_id, text, abstract in db.execute('SELECT id,record,abstract FROM works 
     provider = record.get('metadataSource') or 'openalex'
     provider_counts[provider] += 1
     provider_abstracts[provider] += bool(abstract)
+    if source_type not in indices:indices[source_type]=IndexStream(source_type)
     indices[source_type].append(record)
     types[source_type] += 1
     roles[record['importRole']] += 1
@@ -113,26 +165,19 @@ current = None
 references = []
 for citing, cited in db.execute('SELECT citing,cited FROM edges ORDER BY citing,cited'):
     if citing != current:
-        if current in stored_records:
-            identity = stored_records[current]['id']
+        if current in stored_records and chosen_work[stored_records[current].lower()]==current:
+            identity = stored_records[current]
             refs[shard_of(identity)][identity] = references
         current, references = citing, []
     references.append(cited)
-if current in stored_records:
-    identity = stored_records[current]['id']
+if current in stored_records and chosen_work[stored_records[current].lower()]==current:
+    identity = stored_records[current]
     refs[shard_of(identity)][identity] = references
 
-files = []
-for source_type, records in indices.items():
-    for start in range(0, len(records), chunk_size):
-        filename = f'index/{source_type}-{start // chunk_size:04}.json'
-        published_path = write_shard(OUT / filename, records[start:start + chunk_size])
-        files.append({'path': published_path.relative_to(OUT).as_posix(), 'sourceType': source_type, 'count': len(records[start:start + chunk_size])})
-for index in range(64):
-    shard = f'{index:02}'
-    write_shard(OUT / f'abstracts/{shard}.json', abstracts[shard])
-    write_shard(OUT / f'references/{shard}.json', refs[shard])
-    write_shard(OUT / f'targets/{shard}.json', targets[shard])
+for stream in indices.values():stream.close()
+for maps in [abstracts,refs,targets]:
+    for stream in maps.values():stream.close()
+files.sort(key=lambda file:(file['sourceType'],file['path']))
 
 cited_journals = Counter()
 cited_pairs = Counter()
@@ -145,7 +190,8 @@ for citing_source, cited_source, count in db.execute('SELECT works.source_id,tar
 observed = [{'sourceId': 'https://openalex.org/' + source_id, 'name': source_map[source_id]['name'], 'referenceEdges': count,
              'quartile': source_map[source_id]['quartile'], 'quartileScope': source_map[source_id].get('quartileScope'),
              'papersAdded': source_counts[source_id]} for source_id, count in cited_journals.most_common()]
-write(OUT / 'cited-journals.json', {'basis': 'Observed OpenAlex referenced_works edges from fetched Q1/Q2 journal works; partially resolved, not whole-corpus totals.', 'journals': observed,
+basis=(f"Observed OpenAlex first-hop referenced_works edges from Q1/Q2 journal works in the complete {snapshot['release']} public release plus retained API evidence; target states reported separately, not an impact metric." if snapshot and snapshot['status']=='complete' else 'Observed OpenAlex referenced_works edges from fetched Q1/Q2 journal works; partially resolved, not whole-corpus totals.')
+write(OUT / 'cited-journals.json', {'basis': basis, 'journals': observed,
       'pairs': [{'from': a, 'to': b, 'count': count} for (a, b), count in cited_pairs.most_common()]})
 published = sum(types.values())
 manifest = {'version': 1, 'generatedAt': datetime.now(timezone.utc).isoformat(), 'status': checkpoint['status'],
@@ -160,6 +206,11 @@ manifest = {'version': 1, 'generatedAt': datetime.now(timezone.utc).isoformat(),
             'knownAvailableJournalWorks': sum(batch['available'] or 0 for batch in checkpoint['journals']),
             'receivedJournalWorks': sum(batch['received'] for batch in checkpoint['journals']),
             'sourceCounts': dict(source_counts), 'provenance': 'OpenAlex work records and verbatim inverted-index abstracts; no AI; construct tags are word-boundary matches against the existing verified lexicon, machine · verify.'}
+if snapshot and snapshot['status']=='complete':
+    manifest.update(status='complete',coverageMode='full-public-snapshot',openalexSnapshot=snapshot,
+                    scope=f"All matching Q1/Q2 journal and conference records in the official OpenAlex {snapshot['release']} release; additional observed API and Crossref records retained; source types separate",
+                    selectionNote='Full dated snapshot traversal; live API cursors are preserved separately and are not claimed complete.',
+                    referenceEdges=snapshot['referenceEdges'],referenceTargets=snapshot['referenceTargets'])
 write(OUT / 'manifest.json', manifest)
 manifest['indexChunkSize'] = chunk_size
 if (OUT / 'source-aliases.json').exists(): manifest['sourceAliases'] = 'source-aliases.json'

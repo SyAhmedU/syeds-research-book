@@ -956,7 +956,7 @@ function updateFreshNote(){
     bits.push(`${coverage.registryJournals.toLocaleString()} journals in management registry / export selection · ${coverage.resolved.toLocaleString()} matched to OpenAlex`);
     if(coverage.sourceTypes)bits.push(`${coverage.sourceTypes['conference-series'].toLocaleString()} conference series · ${coverage.sourceTypes['book-series'].toLocaleString()} book series · ${coverage.sourceTypes['trade-publication'].toLocaleString()} trade publications (separate source types)`);
     bits.push(ranking?`${coverage.ranked.toLocaleString()} with ${ranking.year} CiteScore highest-category quartiles · title-matched, verify · not management-category quartiles`:'registry rankings unknown');
-    bits.push(S.managementManifest?`${S.managementManifest.publishedNewPapers.toLocaleString()} additional papers imported · ${S.managementManifest.status==='complete'?'complete':'partial coverage; more pages remain'}`:'full paper/reference import pending');
+    bits.push(S.managementManifest?`${S.managementManifest.publishedNewPapers.toLocaleString()} additional papers imported · ${S.managementManifest.status==='complete'?(S.managementManifest.openalexSnapshot?'complete OpenAlex '+S.managementManifest.openalexSnapshot.release+' release':'complete'):'partial coverage; more pages remain'}`:'full paper/reference import pending');
   }
   if(S.managementError)bits.push('Management journal registry could not load');
   if(S.managementImportError)bits.push('Management import could not fully load; retry the import checkbox');

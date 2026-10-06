@@ -33,75 +33,9 @@ ranked_source_ids = {s.get('sourceId') or 'https://www.scopus.com/sourceid/'+s['
 for source in registry['sources']:
     if source['sourceType'] in ['journal','conference-series']:
         source_issns.setdefault(source.get('sourceId') or 'https://www.scopus.com/sourceid/'+source['scopusSourceId'],set()).update(source['issns'])
-added = []
-for file in manifest['files']:
-    rows = read(DATA / 'management' / file['path'])
-    assert len(rows) == file['count'] <= manifest.get('indexChunkSize',500)
-    for paper in rows:
-        assert paper['id'].lower() not in have, 'duplicate baseline/import identity'
-        have.add(paper['id'].lower())
-        assert paper['sourceType'] == file['sourceType']
-        assert (paper.get('openalexId') or '').startswith('https://openalex.org/W') or paper.get('metadataSource') == 'crossref'
-        assert 'scopusPercentile' not in paper, 'source ranking backfilled onto historical paper'
-    added.extend(rows)
-assert len(added) == manifest['publishedNewPapers']
-if args.ui_only:
-    assert args.url, '--ui-only requires a deployed URL; run full local verification first'
-    abstract_count=manifest['papersWithAbstract']
-    with_abstract=[p for p in added if p['hasAbstract']]
-    pattern='*.json.gz' if manifest.get('compression')=='gzip' else '*.json'
-    abstracts={k:v for path in (DATA / 'management/abstracts').glob(pattern) for k,v in read(path).items()}
-    references={k:v for path in (DATA / 'management/references').glob(pattern) for k,v in read(path).items()}
-    with_references=[p for p in added if references.get(p['id'])]
-else:
-    database = sqlite3.connect(DATA / 'openalex-refresh/management/harvest.sqlite')
-    official_sources = {source['scopusSourceId']: source for source in registry['sources']}
-    for alias in source_aliases['aliases']:
-        source = official_sources[alias['scopusSourceId']]
-        evidence = json.loads(database.execute('SELECT payload FROM crossref_evidence WHERE doi=?',(alias['evidenceDoi'],)).fetchone()[0])
-        assert alias['sourceType'] == source['sourceType'] == 'conference-series'
-        assert alias['canonicalName'] == source['name'] and alias['name'] in evidence['container-title']
-        assert set(source['issns']).intersection(x.replace('-','') for x in evidence['ISSN'])
-    abstract_count = 0
-    with_references = []
-    with_abstract = []
-    shard = lambda key: f'{__import__("functools").reduce(lambda h,c:(h*31+ord(c))&0xffffffff,key,0)%64:02}'
-    pattern = '*.json.gz' if manifest.get('compression')=='gzip' else '*.json'
-    abstracts = {k: v for path in (DATA / 'management/abstracts').glob(pattern) for k, v in read(path).items()}
-    references = {k: v for path in (DATA / 'management/references').glob(pattern) for k, v in read(path).items()}
-    targets = {k: v for path in (DATA / 'management/targets').glob(pattern) for k, v in read(path).items()}
-    expected_targets = {key:json.loads(record) for key,record in database.execute('SELECT works.id,works.record FROM works JOIN (SELECT DISTINCT cited FROM edges) links ON works.id=links.cited')}
-    assert targets.keys() == expected_targets.keys(), 'all resolved referenced identities must remain available'
-    for key, target in targets.items():
-        assert target == {field:expected_targets[key].get(field) for field in ['id','doi','openalexId','title','year','journal','sourceType']}
-    for paper in added:
-        work_key = paper['openalexId'].split('/')[-1] if paper.get('openalexId') else 'doi:'+paper['doi']
-        original, abstract = database.execute('SELECT record,abstract FROM works WHERE id=?', (work_key,)).fetchone()
-        if paper.get('metadataSource') == 'crossref':
-            evidence = json.loads(database.execute('SELECT payload FROM crossref_evidence WHERE doi=?',(paper['doi'],)).fetchone()[0])
-            assert paper['title'] == evidence['title'][0] and paper['doi'] == evidence['DOI'].lower()
-            assert evidence['type'] == paper['type']
-            assert evidence['type'] in ({'journal-article'} if paper['sourceType']=='journal' else {'proceedings-article','journal-article','book-chapter'})
-            assert paper['sourceId'] in ranked_source_ids
-            assert source_issns[paper['sourceId']].intersection(x.replace('-','') for x in evidence.get('ISSN',[]))
-        original = json.loads(original)
-        for field in ['title', 'doi', 'authors', 'year', 'journal', 'sourceId', 'sourceType', 'importRole']:
-            assert paper[field] == original[field], (field, paper['id'])
-        if paper['hasAbstract']:
-            assert abstracts[paper['id']] == abstract
-            with_abstract.append(paper)
-            abstract_count += 1
-        if paper['id'] in references:
-            assert len(references[paper['id']]) == database.execute('SELECT COUNT(*) FROM edges WHERE citing=?', (paper['openalexId'].split('/')[-1],)).fetchone()[0]
-            if references[paper['id']]:
-                with_references.append(paper)
-    assert abstract_count == manifest['papersWithAbstract']
-    if manifest.get('crossref'):
-        assert manifest['crossref']['records'] == sum(p.get('metadataSource')=='crossref' for p in added)
-        assert manifest['crossref']['abstracts'] == sum(p.get('metadataSource')=='crossref' and p['hasAbstract'] for p in added)
-    assert database.execute('SELECT COUNT(*) FROM edges').fetchone()[0] == manifest['referenceEdges']
-    database.close()
-    print(f'PASS provider evidence: {len(added):,} records, {abstract_count:,} abstracts, and reference targets.',flush=True)
+from management_evidence import verify_data
+counts,published_keys,with_abstract,abstracts,with_references,references=verify_data(ROOT,manifest,registry,source_aliases,args.ui_only)
+added_count=counts['papers'];abstract_count=manifest['papersWithAbstract']
 subprocess.run(['git', 'diff', '--quiet', 'HEAD', '--', 'data/papers.index.json', 'data/papers.json', 'data/constructs.json', 'data/memberships.json'], cwd=ROOT, check=True)
 cooc = read(DATA / 'construct-cooccurrence.json')
 memberships = read(DATA / 'construct-memberships.json')
@@ -113,9 +47,9 @@ excluded_names.update(norm(alias['name']) for alias in source_aliases['aliases']
 recent_rows=read(DATA / 'recent.index.json')
 excluded_ids={p['id'].lower() for p in recent_rows if p['id'].lower() in conference_ids or norm(p['journal']) in excluded_names}
 recent_journals = [p for p in recent_rows if p['id'].lower() not in excluded_ids]
-assert memberships['papersScanned'] == len(recent_journals) + sum(p['sourceType'] == 'journal' for p in added)
+assert memberships['papersScanned'] == len(recent_journals) + counts['journal']
 assert (conference_ids|excluded_ids).isdisjoint(memberships['memberships']), 'non-journal records leaked into journal corpus analysis'
-assert any(p['id'] in memberships['memberships'] for p in added), 'import not reflected in construct map'
+assert any(identity in memberships['memberships'] for identity in published_keys), 'import not reflected in construct map'
 assert cooc['N'] == memberships['withConstruct']
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -144,11 +78,11 @@ with sync_playwright() as runtime:
                 print('Import progress:',state,flush=True)
                 assert not state['error'], (state,errors)
                 if time.monotonic()>=deadline: raise
-        assert page.evaluate('S.managementAdded') == len(added)
+        assert page.evaluate('S.managementAdded') == added_count
         print('PASS browser import load and count.',flush=True)
-        assert page.evaluate('libraryPapers().length') == before + len(added)
+        assert page.evaluate('libraryPapers().length') == before + added_count
         assert page.evaluate('new Set(S.papers.map(p=>p.id.toLowerCase())).size===S.papers.length')
-        assert 'partial coverage' in page.locator('#freshNote').inner_text()
+        assert ('complete OpenAlex '+manifest['openalexSnapshot']['release'] if manifest.get('openalexSnapshot') else 'partial coverage') in page.locator('#freshNote').inner_text()
         page.locator('#managementCoverage summary').click()
         assert 'reference links' in page.locator('#managementCoverage').inner_text()
         assert 'Most referenced management journals' in page.locator('#managementCoverage').inner_text()
@@ -194,7 +128,7 @@ with sync_playwright() as runtime:
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         page.screenshot(path=str(ROOT / '_smoke_management_import.png'))
         assert not errors, errors
-        print(f'PASS {"LIVE UI (provider evidence verified locally)" if args.ui_only else "LIVE" if args.url else "LOCAL"}: {len(added):,} additional real records; {abstract_count:,} verbatim abstracts; {manifest["referenceEdges"]:,} source reference edges; tier counts/toggles, source isolation, historical abstracts, references, updated trends/map, mobile, and immutable hand-coded corpus.')
+        print(f'PASS {"LIVE UI (provider evidence verified locally)" if args.ui_only else "LIVE" if args.url else "LOCAL"}: {added_count:,} additional real records; {abstract_count:,} verbatim abstracts; {manifest["referenceEdges"]:,} source reference edges; tier counts/toggles, source isolation, historical abstracts, references, updated trends/map, mobile, and immutable hand-coded corpus.')
     finally:
         browser.close()
         server.shutdown()
