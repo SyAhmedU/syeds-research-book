@@ -1,0 +1,57 @@
+name: Complete dated OpenAlex snapshot
+on:
+  push:
+    branches: [research/openalex-snapshot-run]
+    paths: [snapshot-job.json, snapshot-targets.json.gz, scripts/snapshot_extract.py, .github/workflows/openalex-snapshot.yml]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      phase: ${{ steps.config.outputs.phase }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: snapshot-job.json
+          sparse-checkout-cone-mode: false
+      - id: config
+        run: |
+          python - <<'PY'
+          import json,os
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+              output.write('phase='+json.load(open('snapshot-job.json'))['phase']+'\n')
+          PY
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PHASE: ${{ steps.config.outputs.phase }}
+        run: |
+          gh release view "openalex-20260923-$PHASE" >/dev/null 2>&1 || gh release create "openalex-20260923-$PHASE" --draft --target "$GITHUB_SHA" --title "Internal OpenAlex 2026-09-23 $PHASE evidence" --notes "Temporary real-provider evidence for local verification. Not a published corpus release."
+  extract:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            scripts
+            data/management-journals.json
+            snapshot-job.json
+            snapshot-targets.json.gz
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install pyarrow requests
+      - env:
+          SNAPSHOT_PART: ${{ matrix.part }}
+        run: python -u scripts/snapshot_extract.py
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PHASE: ${{ needs.prepare.outputs.phase }}
+        run: gh release upload "openalex-20260923-$PHASE" "$PHASE"-part-*.tar "$PHASE"-bundles-*.json snapshot-export/"$PHASE"-proof-*.json --clobber
