@@ -120,6 +120,9 @@ else:
                 for member in archive:
                     assert member.isfile() and re.fullmatch(r'[0-9a-f]{64}\.json\.gz',member.name) and member.name in expected
                     destination=imports/member.name;temporary=destination.with_suffix('.tmp')
+                    if destination.exists():
+                        with destination.open('rb') as file:
+                            if hashlib.file_digest(file,'sha256').hexdigest()==expected[member.name]['sha256']:continue
                     with archive.extractfile(member) as source,temporary.open('wb') as output:shutil.copyfileobj(source,output)
                     with temporary.open('rb') as file:assert hashlib.file_digest(file,'sha256').hexdigest()==expected[member.name]['sha256']
                     temporary.replace(destination)

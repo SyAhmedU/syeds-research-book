@@ -130,6 +130,8 @@ chosen_work = {}
 with_abstract = duplicate = invalid = without_doi = 0
 for work_id, text, abstract in db.execute('SELECT id,record,abstract FROM works ORDER BY id'):
     record = json.loads(text)
+    # The raw-file locator stays in staged evidence; it is not a browser field.
+    record.pop('snapshotEvidence',None)
     if not record['journal'] or (record['year'] is not None and record['year'] > datetime.now().year + 1):
         invalid += 1
         continue
