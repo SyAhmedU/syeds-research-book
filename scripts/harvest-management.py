@@ -48,13 +48,13 @@ db.executescript('''
 CREATE TABLE IF NOT EXISTS works(id TEXT PRIMARY KEY, doi TEXT, source_id TEXT, role TEXT, record TEXT, abstract TEXT);
 CREATE INDEX IF NOT EXISTS works_doi ON works(doi);
 CREATE TABLE IF NOT EXISTS edges(citing TEXT, cited TEXT, PRIMARY KEY(citing,cited));
-CREATE INDEX IF NOT EXISTS edges_cited ON edges(cited);
 CREATE TABLE IF NOT EXISTS targets(id TEXT PRIMARY KEY, state TEXT DEFAULT 'pending', source_id TEXT);
 CREATE INDEX IF NOT EXISTS targets_state ON targets(state);
 CREATE TABLE IF NOT EXISTS cursors(queue TEXT, batch INTEGER, ids TEXT, cursor TEXT DEFAULT '*', complete INTEGER DEFAULT 0, total INTEGER, received INTEGER DEFAULT 0, pages INTEGER DEFAULT 0, PRIMARY KEY(queue,batch));
 CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS missing_title_evidence(id TEXT PRIMARY KEY,source_id TEXT,payload TEXT,recorded_at TEXT);
 ''')
+if not args.snapshot:db.execute('CREATE INDEX IF NOT EXISTS edges_cited ON edges(cited)')
 signature = hashlib.sha256(json.dumps([seed_ids, conference_ids]).encode()).hexdigest()
 previous = db.execute("SELECT value FROM metadata WHERE key='seed_signature'").fetchone()
 if previous and previous[0] != signature:

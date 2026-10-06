@@ -238,6 +238,7 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
             parallel('references',pending)
             assert evidence.execute("SELECT COUNT(*) FROM files WHERE phase='references'").fetchone()[0]==len(manifest['files'])
         db.execute("UPDATE targets SET state='not-in-snapshot' WHERE state='pending'");db.commit()
+        db.execute('CREATE INDEX IF NOT EXISTS edges_cited ON edges(cited)');db.commit()
         assert hashlib.sha256(urlopen(MANIFEST,timeout=60).read()).hexdigest()==fingerprint, 'Snapshot manifest changed during traversal; do not publish a mixed release'
         status('complete')
     finally:evidence.close()
