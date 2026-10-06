@@ -110,6 +110,15 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers):
             state='resolved-management-journal' if official['sourceType']=='journal' else 'outside-management-journals'
             db.execute('UPDATE targets SET state=?,source_id=? WHERE id=?',(state,short(source_id or ''),identity))
     def read_file(entry,phase,pending=None):
+        exported=root/'remote'/phase/(hashlib.sha256((fingerprint+phase+entry['url']).encode()).hexdigest()+'.json.gz')
+        if exported.exists():
+            saved=json.loads(gzip.decompress(exported.read_bytes()))
+            assert saved['manifestSha256']==fingerprint and saved['phase']==phase and saved['url']==entry['url']
+            assert saved['scanned']==entry['meta']['record_count']
+            if phase=='sources':
+                for work,official in saved['rows']:
+                    assert official_for(work)==official and not work.get('is_xpac')
+            return entry,saved['scanned'],saved['rows']
         for attempt in range(5):
             try:
                 progress[entry['url']]={'attempt':attempt+1,'step':'footer'}
