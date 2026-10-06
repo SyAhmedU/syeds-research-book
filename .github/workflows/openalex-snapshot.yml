@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       phase: ${{ steps.config.outputs.phase }}
+      parts: ${{ steps.config.outputs.parts }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -20,7 +21,9 @@ jobs:
           python - <<'PY'
           import json,os
           with open(os.environ['GITHUB_OUTPUT'],'a') as output:
-              output.write('phase='+json.load(open('snapshot-job.json'))['phase']+'\n')
+              config=json.load(open('snapshot-job.json'))
+              output.write('phase='+config['phase']+'\n')
+              output.write('parts='+json.dumps(config.get('parts',[0,1,2,3]))+'\n')
           PY
       - env:
           GH_TOKEN: ${{ github.token }}
@@ -34,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [0, 1, 2, 3]
+        part: ${{ fromJSON(needs.prepare.outputs.parts) }}
     steps:
       - uses: actions/checkout@v6
         with:

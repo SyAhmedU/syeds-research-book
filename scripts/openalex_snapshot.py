@@ -19,6 +19,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from snapshot_http import RangeFile
+from snapshot_fields import normalize_row
 
 MANIFEST='https://openalex.s3.amazonaws.com/data/parquet/works/manifest.json'
 FIELDS=['id','doi','display_name','publication_year','publication_date',
@@ -92,6 +93,7 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
             result=db.execute('SELECT record FROM works WHERE id=?',(identity,)).fetchone()
             if result:
                 record=json.loads(result[0]);record.update(addedVia='openalex-snapshot',snapshotRelease=manifest['date'],snapshotEvidence=path)
+                if work.get('abstractUnavailableReason'):record['abstractUnavailableReason']=work['abstractUnavailableReason']
                 db.execute('UPDATE works SET record=? WHERE id=?',(json.dumps(record,ensure_ascii=False),identity))
                 evidence.execute('INSERT OR IGNORE INTO applied VALUES(?)',(identity,))
             return
@@ -157,8 +159,7 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
                         for row in parquet.read_row_group(group,columns=FIELDS,use_threads=False).filter(mask).to_pylist():
                             official=official_for(row)
                             if not official:continue
-                            if isinstance(row.get('abstract_inverted_index'),str):row['abstract_inverted_index']=json.loads(row['abstract_inverted_index'])
-                            row['publication_date']=str(row['publication_date']) if row.get('publication_date') else None
+                            normalize_row(row)
                             group_rows.append((row,official))
                     rows.extend(group_rows)
                     temporary=cache.with_suffix('.tmp');temporary.write_bytes(gzip.compress(json.dumps({'scanned':scan.num_rows,'rows':group_rows},ensure_ascii=False).encode(),mtime=0));temporary.replace(cache)

@@ -12,6 +12,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import pyarrow.fs as fs
 from openalex_snapshot import FIELDS,SCAN
+from snapshot_fields import normalize_row
 
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
@@ -62,8 +63,7 @@ def extract(entry):
                     for row in parquet.read_row_group(group,columns=FIELDS,use_threads=False).filter(mask).to_pylist():
                         official=official_for(row)
                         if not official:continue
-                        if isinstance(row.get('abstract_inverted_index'),str):row['abstract_inverted_index']=json.loads(row['abstract_inverted_index'])
-                        row['publication_date']=str(row['publication_date']) if row.get('publication_date') else None
+                        normalize_row(row)
                         rows.append([row,official])
             assert scanned==entry['meta']['record_count']
             key=hashlib.sha256((fingerprint+phase+entry['url']).encode()).hexdigest()

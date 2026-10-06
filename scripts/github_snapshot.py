@@ -2,7 +2,7 @@
 
 Uses the existing Git credential internally; never prints credentials or signed URLs.
 """
-import argparse,gzip,hashlib,json,re,shutil,subprocess,tarfile
+import argparse,gzip,hashlib,json,re,shutil,subprocess,tarfile,time
 from pathlib import Path
 import requests
 
@@ -20,17 +20,25 @@ def api(path):
     response=requests.get(API+path,headers=headers,timeout=60);response.raise_for_status();return response.json()
 def asset(asset,destination):
     destination.parent.mkdir(parents=True,exist_ok=True)
-    # Strip the repository credential before following an asset-storage redirect.
-    response=requests.get(asset['url'],headers={**headers,'Accept':'application/octet-stream'},allow_redirects=False,stream=True,timeout=60)
-    if response.status_code in [301,302,303,307,308]:
-        location=response.headers['Location'];response.close()
-        response=requests.get(location,stream=True,timeout=60)
-    response.raise_for_status()
     temporary=destination.with_suffix(destination.suffix+'.tmp')
-    with response,temporary.open('wb') as output:
-        for chunk in response.iter_content(1024*1024):output.write(chunk)
-    assert temporary.stat().st_size==asset['size']
-    temporary.replace(destination)
+    for attempt in range(4):
+        try:
+            offset=temporary.stat().st_size if temporary.exists() else 0
+            # Strip the repository credential before following an asset-storage redirect.
+            response=requests.get(asset['url'],headers={**headers,'Accept':'application/octet-stream'},allow_redirects=False,stream=True,timeout=60)
+            if response.status_code in [301,302,303,307,308]:
+                location=response.headers['Location'];response.close()
+                response=requests.get(location,headers={'Range':f'bytes={offset}-'} if offset else {},stream=True,timeout=60)
+            assert response.status_code in [200,206],f'Asset HTTP {response.status_code}'
+            append=response.status_code==206 and offset>0
+            if append:assert response.headers.get('Content-Range')==f"bytes {offset}-{asset['size']-1}/{asset['size']}"
+            with response,temporary.open('ab' if append else 'wb') as output:
+                for chunk in response.iter_content(1024*1024):output.write(chunk)
+            assert temporary.stat().st_size==asset['size']
+            temporary.replace(destination);return
+        except Exception:
+            if attempt==3:raise RuntimeError('Asset transfer failed for '+asset['name']+'; saved bytes can be resumed') from None
+            print('Retrying '+asset['name'],flush=True);time.sleep(2**attempt)
 if args.command=='status':
     runs=api('/actions/runs?branch=research%2Fopenalex-snapshot-run&per_page=1')['workflow_runs']
     for run in runs:
