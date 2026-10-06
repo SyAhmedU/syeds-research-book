@@ -7,6 +7,7 @@ import sqlite3
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from literal_match import literal_pattern
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / 'data'
@@ -41,7 +42,7 @@ for construct in lex['constructs']:
         if len(normalized) >= 4:
             synonyms[normalized].update(construct.get('bookCodes', []))
 synonyms = {term: codes for term, codes in synonyms.items() if codes}
-matcher = re.compile(r'(?<![a-z0-9])(?:' + '|'.join(re.escape(term) for term in sorted(synonyms, key=len, reverse=True)) + r')(?![a-z0-9])')
+matcher = re.compile(r'(?<![a-z0-9])(?:' + literal_pattern(synonyms) + r')(?![a-z0-9])')
 def codes_for(text):
     normalized = re.sub(r'\s+', ' ', text.lower().replace('’', "'").replace('‘', "'").replace('–', '-').replace('—', '-'))
     return sorted({code for match in matcher.finditer(normalized) for code in synonyms[match.group()]})
@@ -73,6 +74,7 @@ def write_shard(path, value):
 
 indices, abstracts, refs, targets = defaultdict(list), defaultdict(dict), defaultdict(dict), defaultdict(dict)
 types, roles, source_counts, by_year = Counter(), Counter(), Counter(), Counter()
+provider_counts, provider_abstracts = Counter(), Counter()
 stored_records = {}
 with_abstract = duplicate = invalid = without_doi = 0
 for work_id, text, abstract in db.execute('SELECT id,record,abstract FROM works ORDER BY id'):
@@ -86,13 +88,16 @@ for work_id, text, abstract in db.execute('SELECT id,record,abstract FROM works 
     if work_id in referenced_ids:
         targets[shard_of(work_id)][work_id] = target
     stored_records[work_id] = record
-    if abstract:
-        abstracts[shard_of(identity)][identity] = abstract
     if identity.lower() in known:
         duplicate += 1
         continue
     known.add(identity.lower())
+    if abstract:
+        abstracts[shard_of(identity)][identity] = abstract
     source_type = record['sourceType']
+    provider = record.get('metadataSource') or 'openalex'
+    provider_counts[provider] += 1
+    provider_abstracts[provider] += bool(abstract)
     indices[source_type].append(record)
     types[source_type] += 1
     roles[record['importRole']] += 1
@@ -157,9 +162,11 @@ manifest = {'version': 1, 'generatedAt': datetime.now(timezone.utc).isoformat(),
             'sourceCounts': dict(source_counts), 'provenance': 'OpenAlex work records and verbatim inverted-index abstracts; no AI; construct tags are word-boundary matches against the existing verified lexicon, machine · verify.'}
 write(OUT / 'manifest.json', manifest)
 manifest['indexChunkSize'] = chunk_size
+if (OUT / 'source-aliases.json').exists(): manifest['sourceAliases'] = 'source-aliases.json'
 if args.gzip: manifest['compression'] = 'gzip'
 if crossref:
-    manifest['crossref'] = crossref
+    manifest['crossref'] = {**crossref, 'stagedRecords': crossref['records'], 'stagedAbstracts': crossref['abstracts'],
+                           'records': provider_counts['crossref'], 'abstracts': provider_abstracts['crossref']}
     manifest['provenance'] = 'OpenAlex records plus Crossref publisher-deposited records matched by exact registry ISSN; original provider abstracts, no AI. Construct tags are machine word-boundary matches; verify.'
     write(OUT / 'manifest.json', manifest)
 write(OUT / 'manifest.json', manifest)

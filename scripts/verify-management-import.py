@@ -4,6 +4,8 @@ import json
 import gzip
 import sqlite3
 import subprocess
+import unicodedata
+from collections import defaultdict
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -21,6 +23,8 @@ manifest = read(DATA / 'management/manifest.json')
 baseline = read(DATA / 'papers.index.json') + read(DATA / 'recent.index.json')
 have = {p['id'].lower() for p in baseline}
 registry = read(DATA / 'management-journals.json')
+source_aliases = read(DATA / 'management' / manifest['sourceAliases']) if manifest.get('sourceAliases') else {'aliases':[],'conferenceDois':[]}
+conference_ids = set(source_aliases['conferenceDois'])
 source_issns = {}
 ranked_source_ids = {s.get('sourceId') or 'https://www.scopus.com/sourceid/'+s['scopusSourceId'] for s in registry['sources'] if s['sourceType'] in ['journal','conference-series'] and s.get('quartile') in ['Q1','Q2']}
 for source in registry['sources']:
@@ -39,6 +43,13 @@ for file in manifest['files']:
     added.extend(rows)
 assert len(added) == manifest['publishedNewPapers']
 database = sqlite3.connect(DATA / 'openalex-refresh/management/harvest.sqlite')
+official_sources = {source['scopusSourceId']: source for source in registry['sources']}
+for alias in source_aliases['aliases']:
+    source = official_sources[alias['scopusSourceId']]
+    evidence = json.loads(database.execute('SELECT payload FROM crossref_evidence WHERE doi=?',(alias['evidenceDoi'],)).fetchone()[0])
+    assert alias['sourceType'] == source['sourceType'] == 'conference-series'
+    assert alias['canonicalName'] == source['name'] and alias['name'] in evidence['container-title']
+    assert set(source['issns']).intersection(x.replace('-','') for x in evidence['ISSN'])
 abstract_count = 0
 with_references = []
 with_abstract = []
@@ -57,7 +68,8 @@ for paper in added:
     if paper.get('metadataSource') == 'crossref':
         evidence = json.loads(database.execute('SELECT payload FROM crossref_evidence WHERE doi=?',(paper['doi'],)).fetchone()[0])
         assert paper['title'] == evidence['title'][0] and paper['doi'] == evidence['DOI'].lower()
-        assert evidence['type'] == ('journal-article' if paper['sourceType']=='journal' else 'proceedings-article')
+        assert evidence['type'] == paper['type']
+        assert evidence['type'] in ({'journal-article'} if paper['sourceType']=='journal' else {'proceedings-article','journal-article','book-chapter'})
         assert paper['sourceId'] in ranked_source_ids
         assert source_issns[paper['sourceId']].intersection(x.replace('-','') for x in evidence.get('ISSN',[]))
     original = json.loads(original)
@@ -77,10 +89,20 @@ if manifest.get('crossref'):
     assert manifest['crossref']['abstracts'] == sum(p.get('metadataSource')=='crossref' and p['hasAbstract'] for p in added)
 assert database.execute('SELECT COUNT(*) FROM edges').fetchone()[0] == manifest['referenceEdges']
 database.close()
+print(f'PASS provider evidence: {len(added):,} records, {abstract_count:,} abstracts, and reference targets.',flush=True)
 subprocess.run(['git', 'diff', '--quiet', 'HEAD', '--', 'data/papers.index.json', 'data/papers.json', 'data/constructs.json', 'data/memberships.json'], cwd=ROOT, check=True)
 cooc = read(DATA / 'construct-cooccurrence.json')
 memberships = read(DATA / 'construct-memberships.json')
-assert memberships['papersScanned'] == len(read(DATA / 'recent.index.json')) + sum(p['sourceType'] == 'journal' for p in added)
+source_types=defaultdict(set)
+norm=lambda name:' '.join(unicodedata.normalize('NFKC',name or '').split()).lower()
+for source in registry['sources']: source_types[norm(source['name'])].add(source['sourceType'])
+excluded_names={name for name,types in source_types.items() if len(types)==1 and 'journal' not in types}
+excluded_names.update(norm(alias['name']) for alias in source_aliases['aliases'] if alias['sourceType']!='journal')
+recent_rows=read(DATA / 'recent.index.json')
+excluded_ids={p['id'].lower() for p in recent_rows if p['id'].lower() in conference_ids or norm(p['journal']) in excluded_names}
+recent_journals = [p for p in recent_rows if p['id'].lower() not in excluded_ids]
+assert memberships['papersScanned'] == len(recent_journals) + sum(p['sourceType'] == 'journal' for p in added)
+assert (conference_ids|excluded_ids).isdisjoint(memberships['memberships']), 'non-journal records leaked into journal corpus analysis'
 assert any(p['id'] in memberships['memberships'] for p in added), 'import not reflected in construct map'
 assert cooc['N'] == memberships['withConstruct']
 
@@ -103,6 +125,7 @@ with sync_playwright() as runtime:
         page.check('#fManagement')
         page.wait_for_function('S.managementLoaded', timeout=180000)
         assert page.evaluate('S.managementAdded') == len(added)
+        print('PASS browser import load and count.',flush=True)
         assert page.evaluate('libraryPapers().length') == before + len(added)
         assert page.evaluate('new Set(S.papers.map(p=>p.id.toLowerCase())).size===S.papers.length')
         assert 'partial coverage' in page.locator('#freshNote').inner_text()
@@ -129,8 +152,11 @@ with sync_playwright() as runtime:
         assert 'metadata' in page.locator('#managementReferences').inner_text()
         page.locator('#mclose').click()
         page.select_option('#fSourceType', 'conference-series')
-        assert page.evaluate('S.filtered.every(p=>sourceTypeOf(p.journal)==="conference-series")')
+        assert page.evaluate('S.filtered.every(p=>paperSourceType(p)==="conference-series")')
+        if conference_ids:
+            assert page.evaluate('S.filtered.filter(p=>S.managementConferenceDois.has(p.id.toLowerCase())).length') == len(conference_ids)
         page.select_option('#fSourceType', 'journal')
+        assert page.evaluate('S.filtered.every(p=>!S.managementConferenceDois?.has(p.id.toLowerCase()))')
         page.locator('[data-view="trends"]').click()
         assert 'imported machine tags' in page.locator('#trendModeNote').inner_text()
         page.locator('[data-view="map"]').click()

@@ -7,6 +7,17 @@ export function appendManagementCorpus(data, papers, abstracts) {
   const filename=path.join(data,'management','manifest.json');
   if(!fs.existsSync(filename))return;
   const manifest=JSON.parse(fs.readFileSync(filename,'utf8'));
+  const norm=name=>String(name||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();
+  const byName=new Map();
+  for(const source of readJson(path.join(data,'management-journals.json')).sources){
+    const key=norm(source.name);if(!byName.has(key))byName.set(key,new Set());byName.get(key).add(source.sourceType);
+  }
+  const excludedNames=new Set([...byName].filter(([,types])=>types.size===1&&!types.has('journal')).map(([name])=>name));
+  const aliases=manifest.sourceAliases?readJson(path.join(data,'management',manifest.sourceAliases)):{conferenceDois:[],aliases:[]};
+  const conferenceDois=new Set(aliases.conferenceDois);
+  for(const alias of aliases.aliases)if(alias.sourceType!=='journal')excludedNames.add(norm(alias.name));
+  const journals=papers.filter(p=>!conferenceDois.has((p.doi||p.id).toLowerCase())&&!excludedNames.has(norm(p.journal)));
+  papers.length=0;for(const paper of journals)papers.push(paper);
   const have=new Set(papers.map(p=>(p.doi||p.id).toLowerCase()));
   for(const file of manifest.files){
     if(file.sourceType!=='journal')continue;

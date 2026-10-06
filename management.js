@@ -12,11 +12,26 @@ async function managementShard(kind,key){
   return managementShardCache.get(path);
 }
 async function managementAbstract(id){const shard=await managementShard('abstracts',id);return shard[id]||'';}
+function applyManagementSourceAliases(){
+  if(!S.sourceTypes||!S.managementSourceAliases)return;
+  S.managementConferenceDois=new Set(S.managementSourceAliases.conferenceDois);
+  S.sourceAliases=new Map();
+  for(const alias of S.managementSourceAliases.aliases){
+    const key=sourceTitleKey(alias.name),existing=S.sourceTypes.get(key);
+    if(existing&&existing!==alias.sourceType)continue;
+    S.sourceTypes.set(key,alias.sourceType);S.sourceAliases.set(key,alias);
+  }
+}
+function canonicalSourceName(name){return S.sourceAliases?.get(sourceTitleKey(name))?.canonicalName||name;}
 function managementCrossrefCoverage(manifest){
   const report=manifest.crossref;if(!report)return '';
   if(report.mode!=='full-cursor')return `Crossref adds ${report.records.toLocaleString()} DOI-deduplicated records from bounded batches in ${report.batches.length} Q1/Q2 journals. `;
   const states=report.sourceStatus||{};
   return `Crossref contributes ${report.records.toLocaleString()} DOI-deduplicated records and ${report.abstracts.toLocaleString()} publisher-deposited abstracts. Full pagination completed for ${(states.complete||0).toLocaleString()} of ${report.batches.length.toLocaleString()} selected sources; ${(states.unavailable||0).toLocaleString()} have no matching Crossref endpoint and ${(states.error||0).toLocaleString()} require review. Journal and conference queues are separate. `;
+}
+function managementReferenceCoverage(manifest){
+  const states=manifest.referenceTargets||{};
+  return `${manifest.referenceEdges.toLocaleString()} observed reference links; ${(states.pending||0).toLocaleString()} identities still queued for metadata lookup. ${(states['not-returned-by-openalex']||0).toLocaleString()} identities were not returned by OpenAlex and ${(states['missing-title-in-openalex']||0).toLocaleString()} returned without a title. ${(states['outside-management-journals']||0).toLocaleString()} targets were classified outside the management-journal scope. ${manifest.citedManagementJournals.toLocaleString()} management journals identified in resolved references.`;
 }
 async function initManagementImport(){
   const checkbox=$('#fManagement'),label=$('#fManagementLbl');
@@ -30,11 +45,15 @@ async function initManagementImport(){
     const response=await fetch('./data/management/manifest.json');
     if(!response.ok){$('#fManagementBox').hidden=true;return;}
     S.managementManifest=await response.json();
+    if(S.managementManifest.sourceAliases){
+      S.managementSourceAliases=await managementJson('./data/management/'+S.managementManifest.sourceAliases);
+      applyManagementSourceAliases();
+    }
     checkbox.disabled=false;
     const manifest=S.managementManifest;
     label.textContent=`+ All-years import (${manifest.publishedNewPapers.toLocaleString()} · ${manifest.status==='complete'?'complete':'partial'})`;
     const panel=$('#managementCoverage');panel.hidden=false;
-    panel.innerHTML=`<summary>Management import coverage · ${manifest.publishedNewPapers.toLocaleString()} additional papers</summary><p>${manifest.receivedJournalWorks.toLocaleString()} OpenAlex Q1/Q2 journal records retrieved from searches returning ${manifest.knownAvailableJournalWorks.toLocaleString()} all-years records. The current snapshot starts with older records; newer years are also covered by the separate recent tier. ${managementCrossrefCoverage(manifest)} ${manifest.papersWithAbstract.toLocaleString()} additional papers have provider-supplied abstracts. ${manifest.papersWithoutDoi.toLocaleString()} have an OpenAlex identity but no DOI.</p><p>${manifest.referenceEdges.toLocaleString()} observed reference links; ${(manifest.referenceTargets.pending||0).toLocaleString()} referenced identities still pending metadata resolution. ${manifest.citedManagementJournals.toLocaleString()} management journals identified in resolved references. Conference records remain a separate source type. Highest-category 2025 rankings describe the source selection, not each historical paper.</p><p>${manifest.status==='complete'?'All current source imports and reference lookups completed.':'Partial snapshot: more records remain. '+(manifest.status==='daily-budget-limited'?'The OpenAlex daily API budget prevents finishing the import today. ':'The import has a saved continuation checkpoint. ')}Construct tags are machine-matched against the existing lexicon; verify before citing.</p><div id="managementCitedJournals"></div>`;
+    panel.innerHTML=`<summary>Management import coverage · ${manifest.publishedNewPapers.toLocaleString()} additional papers</summary><p>${manifest.receivedJournalWorks.toLocaleString()} OpenAlex Q1/Q2 journal records retrieved from searches returning ${manifest.knownAvailableJournalWorks.toLocaleString()} all-years records. The current snapshot starts with older records; newer years are also covered by the separate recent tier. ${managementCrossrefCoverage(manifest)} ${manifest.papersWithAbstract.toLocaleString()} additional papers have provider-supplied abstracts. ${manifest.papersWithoutDoi.toLocaleString()} have an OpenAlex identity but no DOI.</p><p>${managementReferenceCoverage(manifest)} Conference records remain a separate source type. Highest-category 2025 rankings describe the source selection, not each historical paper.</p><p>${manifest.status==='complete'?'All current source imports and reference lookups completed.':'Partial snapshot: more records remain. '+(manifest.status==='daily-budget-limited'?'The OpenAlex snapshot stopped at its daily API allowance. ':'The import has a saved continuation checkpoint. ')}Construct tags are machine-matched against the existing lexicon; verify before citing.</p><div id="managementCitedJournals"></div>`;
     const citedResponse=await fetch('./data/management/cited-journals.json');
     if(citedResponse.ok){
       const cited=await citedResponse.json();

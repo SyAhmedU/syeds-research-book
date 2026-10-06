@@ -768,12 +768,17 @@ function buildConstructSelect(){
 }
 const SOURCE_TYPE_LABELS={'journal':'Journals','conference-series':'Conference series / proceedings','book-series':'Book series','trade-publication':'Trade publications','unclassified':'Unclassified sources'};
 function sourceTypeOf(name){return S.sourceTypes?.get(sourceTitleKey(name))||'unclassified';}
+function paperSourceType(p){
+  if(p._management&&p.sourceType)return p.sourceType;
+  if(S.managementConferenceDois?.has((p.doi||p.id).toLowerCase()))return 'conference-series';
+  return sourceTypeOf(p.journal);
+}
 function sourceTitleKey(name){return String(name||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();}
 function buildJournalSelect(){
   const sel=$('#fJournal');
-  const selected=F.journal||sel.value;
+  const selected=canonicalSourceName(F.journal||sel.value);
   sel.replaceChildren(new Option(F.sourceType?`All ${SOURCE_TYPE_LABELS[F.sourceType].toLowerCase()}`:'All sources',''));
-  const jc=new Map(); libraryPapers().forEach(p=>{if(p.journal)jc.set(p.journal,(jc.get(p.journal)||0)+1);});
+  const jc=new Map(); libraryPapers().forEach(p=>{if(p.journal){const name=canonicalSourceName(p.journal);jc.set(name,(jc.get(name)||0)+1);}});
   for(const j of S.managementSources||S.managementJournals||[])if(!jc.has(j.name))jc.set(j.name,0);
   if(selected&&!jc.has(selected))jc.set(selected,0);
   for(const [type,label] of Object.entries(SOURCE_TYPE_LABELS)){
@@ -809,6 +814,7 @@ async function loadManagementJournals(){
       if(sources.length===1)S.sourceRankings.set(key,sources[0]);
     }
     S.managementCoverage=catalog.coverage;
+    applyManagementSourceAliases();
     S.managementRanking=catalog.ranking;
     buildJournalSelect();applyAndRender();updateFreshNote();
   }catch(error){S.managementError=true;updateFreshNote();}
@@ -1064,8 +1070,8 @@ function applyAndRender(){
   if(F.q)r=r.filter(p=>(F.searchAbs&&p._sa||p._s).includes(F.q));
   if(F.construct)r=r.filter(p=>p.constructCodes.includes(F.construct));
   if(F.constructs&&F.constructs.length)r=r.filter(p=>F.constructs.every(c=>p.constructCodes.includes(c)));
-  if(F.journal)r=r.filter(p=>p.journal===F.journal);
-  if(F.sourceType)r=r.filter(p=>sourceTypeOf(p.journal)===F.sourceType);
+  if(F.journal)r=r.filter(p=>canonicalSourceName(p.journal)===canonicalSourceName(F.journal));
+  if(F.sourceType)r=r.filter(p=>paperSourceType(p)===F.sourceType);
   if(F.author)r=r.filter(p=>p.authors&&p.authors.includes(F.author));
   if(F.yearExact!=null)r=r.filter(p=>p.year===F.yearExact);
   if(F.yMin!=null)r=r.filter(p=>p.year&&p.year>=F.yMin);

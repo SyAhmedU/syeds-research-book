@@ -5,6 +5,7 @@ Conferences use a separate queue. Export to the website with publish-management.
 No paid requests: this script uses the supplied key's available daily budget only.
 """
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -36,7 +37,7 @@ source_map = {key: rows[0] for key, rows in source_map.items() if len(rows) == 1
 seed_ids = sorted({short(s['sourceId']) for s in catalog['journals'] if s['sourceId'] and s['quartile'] in ['Q1', 'Q2']})
 conference_ids = sorted({short(s['sourceId']) for s in catalog['sources'] if s['sourceId'] and s['sourceType'] == 'conference-series' and s['quartile'] in ['Q1', 'Q2']})
 now = lambda: datetime.now(timezone.utc).isoformat()
-db = sqlite3.connect(STAGE / 'harvest.sqlite')
+db = sqlite3.connect(STAGE / 'harvest.sqlite', timeout=60)
 db.execute('PRAGMA journal_mode=WAL')
 db.executescript('''
 CREATE TABLE IF NOT EXISTS works(id TEXT PRIMARY KEY, doi TEXT, source_id TEXT, role TEXT, record TEXT, abstract TEXT);
@@ -46,6 +47,7 @@ CREATE INDEX IF NOT EXISTS edges_cited ON edges(cited);
 CREATE TABLE IF NOT EXISTS targets(id TEXT PRIMARY KEY, state TEXT DEFAULT 'pending', source_id TEXT);
 CREATE TABLE IF NOT EXISTS cursors(queue TEXT, batch INTEGER, ids TEXT, cursor TEXT DEFAULT '*', complete INTEGER DEFAULT 0, total INTEGER, received INTEGER DEFAULT 0, pages INTEGER DEFAULT 0, PRIMARY KEY(queue,batch));
 CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS missing_title_evidence(id TEXT PRIMARY KEY,source_id TEXT,payload TEXT,recorded_at TEXT);
 ''')
 signature = hashlib.sha256(json.dumps([seed_ids, conference_ids]).encode()).hexdigest()
 previous = db.execute("SELECT value FROM metadata WHERE key='seed_signature'").fetchone()
@@ -67,13 +69,14 @@ class DailyLimit(Exception):
 
 def request(params):
     url = 'https://api.openalex.org/works?' + urlencode({'per_page': 100, 'select': FIELDS, **params})
-    headers = {'User-Agent': 'ResearchBook/1.0 (verified-source import)'}
+    headers = {'User-Agent': 'ResearchBook/1.0 (verified-source import)', 'Accept-Encoding': 'gzip'}
     if key:
         headers['Authorization'] = 'Bearer ' + key
     for attempt in range(4):
         try:
             with urlopen(Request(url, headers=headers), timeout=45) as response:
-                return json.load(response), response.headers.get('X-RateLimit-Remaining')
+                stream = gzip.GzipFile(fileobj=response) if response.headers.get('Content-Encoding', '').lower() == 'gzip' else response
+                return json.load(stream), response.headers.get('X-RateLimit-Remaining')
         except HTTPError as error:
             if error.code == 429:
                 raise DailyLimit('OpenAlex rate limit reached; resume after reset or with an authorized free API key') from None
@@ -104,6 +107,9 @@ def store_work(work, role):
         db.execute('UPDATE targets SET state=?,source_id=? WHERE id=?', ('outside-management-journals', source_id, identity))
         return
     if not work.get('display_name'):
+        db.execute('INSERT OR REPLACE INTO missing_title_evidence VALUES(?,?,?,?)',
+                   (identity, source_id, json.dumps(work, ensure_ascii=False), now()))
+        db.execute("UPDATE targets SET state='missing-title-in-openalex',source_id=? WHERE id=?", (source_id, identity))
         return
     doi = (work.get('doi') or '').removeprefix('https://doi.org/').removeprefix('http://doi.org/').lower()
     abstract = abstract_text(work.get('abstract_inverted_index'))

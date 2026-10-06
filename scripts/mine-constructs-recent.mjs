@@ -158,7 +158,7 @@ writeFileSync(
     generatedAt: new Date().toISOString(),
     source: 'recent tier + all-years management journal import titles/abstracts — verbatim frame extraction, no AI; conferences excluded from management journal import',
     papersScanned: papers.length,
-    abstracts: abstracts.size,
+    abstracts: papers.filter(p=>abstracts.has(p.doi||p.id)).length,
     minPapers: MIN_PAPERS,
     method: 'fixed linguistic frames (mediating role of X / effect of X on Y / between X and Y / antecedents of X …); phrases verbatim, frequency-gated; machine-extracted — verify',
     handLinked: linked,
