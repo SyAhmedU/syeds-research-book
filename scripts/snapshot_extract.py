@@ -36,7 +36,11 @@ for source in catalog['sources']:
 ids={k:v[0] for k,v in ids.items() if len(v)==1}
 issns={k:v[0] for k,v in issns.items() if len(v)==1}
 id_values=pa.array(list(ids))
-pending=set(json.loads(gzip.decompress((ROOT/'snapshot-targets.json.gz').read_bytes()))) if phase=='references' else None
+pending=None
+if phase=='references':
+    target_bytes=(ROOT/'snapshot-targets.json.gz').read_bytes()
+    assert hashlib.sha256(target_bytes).hexdigest()==config['targetsSha256'], 'Reference target checkpoint changed'
+    pending=set(json.loads(gzip.decompress(target_bytes)))
 filesystem=fs.S3FileSystem(anonymous=True,region='us-east-1',request_timeout=120,connect_timeout=30)
 def official_for(row):
     source=(row.get('primary_location') or {}).get('source') or {}
