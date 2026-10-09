@@ -7,11 +7,11 @@
 <meta name="description" content="A browsable, filterable corpus of 9,388 papers across 167 management / organizational-behavior constructs — Syed's 24-month systematic-review database." />
 <meta name="theme-color" content="#0d0a15" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23FF9656'/%3E%3Cstop offset='.55' stop-color='%23F14575'/%3E%3Cstop offset='1' stop-color='%239270F4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
-<link rel="canonical" href="https://syahmedu.github.io/syeds-research-book/" />
+<link rel="canonical" href="https://syeds-research-book.vercel.app/" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Syed's Research Book — 9,388-paper OB/management corpus" />
 <meta property="og:description" content="A browsable, filterable corpus of 9,388 hand-coded papers across 167 management / organizational-behavior constructs, with a co-occurrence map, trends, and a 50-year term treemap." />
-<meta property="og:url" content="https://syahmedu.github.io/syeds-research-book/" />
+<meta property="og:url" content="https://syeds-research-book.vercel.app/" />
 <meta property="og:site_name" content="Syed Asrar" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="Syed's Research Book — 9,388-paper OB/management corpus" />
@@ -23,7 +23,7 @@
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "Syed's Research Book",
-  "url": "https://syahmedu.github.io/syeds-research-book/",
+  "url": "https://syeds-research-book.vercel.app/",
   "applicationCategory": "EducationalApplication",
   "operatingSystem": "Web browser",
   "description": "A browsable, filterable corpus of 9,388 hand-coded papers across 167 management / organizational-behavior constructs, with a co-occurrence map, construct trends, and a 50-year term treemap.",
@@ -692,7 +692,7 @@ function applyUrlParams(){
   const j=u.get('journal'); if(j){F.journal=j;$('#fJournal').value=j;}
   const st=u.get('sourceType');if(st&&SOURCE_TYPE_LABELS[st]){F.sourceType=st;$('#fSourceType').value=st;buildJournalSelect();}
   if(u.get('management')==='1'){F.management=true;$('#fManagement').checked=true;}
-  const a=u.get('author'); if(a){F.author=a;$('#fAuthor').value=a;}
+  const a=u.get('author'); if(a){F.author=a;syncAuthorSelect();}
   const y=u.get('year'); if(y&&/^\d{4}$/.test(y)){F.yearExact=+y;$('#fYear').value=y;}
   const ym=u.get('ymin'); if(ym&&/^\d{4}$/.test(ym)){F.yMin=+ym;$('#yMin').value=ym;}
   const yx=u.get('ymax'); if(yx&&/^\d{4}$/.test(yx)){F.yMax=+yx;$('#yMax').value=yx;}
@@ -832,11 +832,22 @@ function refreshLibraryFacets(){
 }
 function buildAuthorSelect(){
   const sel=$('#fAuthor');
-  const ac={}; libraryPapers().forEach(p=>{(p.authors||[]).forEach(a=>{a=(a||'').trim();if(a)ac[a]=(ac[a]||0)+1;});});
-  // authors with 2+ papers, ordered by number of articles (most first), then A–Z; the rest stay searchable
-  Object.entries(ac).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).forEach(([a,n])=>{
-    const o=document.createElement('option');o.value=a;o.textContent=`${a} (${n})`;sel.appendChild(o);
+  const ac=new Map(); libraryPapers().forEach(p=>{(p.authors||[]).forEach(a=>{a=(a||'').trim();if(a)ac.set(a,(ac.get(a)||0)+1);});});
+  // Never mount hundreds of thousands of DOM options for the optional all-years tier.
+  // Only the dropdown is bounded: all authors remain searchable and clickable on papers.
+  const ranked=[...ac].filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  const limit=500,limited=ranked.length>limit;
+  sel.replaceChildren(new Option(limited?'All authors · top 500 listed':'All authors',''));
+  sel.title=limited?`${ranked.length.toLocaleString()} authors have 2+ papers. Top 500 listed; search any name above or click an author on a paper for an exact filter.`:'Authors with 2+ papers; other names remain searchable or clickable on papers.';
+  ranked.slice(0,limit).forEach(([a,n])=>{
+    sel.appendChild(new Option(`${a} (${n})`,a));
   });
+  syncAuthorSelect();
+}
+function syncAuthorSelect(){
+  const sel=$('#fAuthor');
+  if(F.author&&![...sel.options].some(o=>o.value===F.author))sel.appendChild(new Option(`${F.author} · selected`,F.author));
+  sel.value=F.author;
 }
 function buildYearSelect(){
   const sel=$('#fYear');
@@ -1132,7 +1143,7 @@ $('#list').onclick=e=>{
     if(F.starred)applyAndRender();
     return;}
   const au=e.target.closest('[data-author]');
-  if(au){F.author=au.dataset.author;$('#fAuthor').value=au.dataset.author;S.page=0;applyAndRender();window.scrollTo(0,0);return;}
+  if(au){F.author=au.dataset.author;syncAuthorSelect();S.page=0;applyAndRender();window.scrollTo(0,0);return;}
   const jr=e.target.closest('[data-journal]');
   if(jr){F.journal=jr.dataset.journal;$('#fJournal').value=jr.dataset.journal;S.page=0;applyAndRender();window.scrollTo(0,0);return;}
   const chip=e.target.closest('.chip[data-code]');
@@ -1330,7 +1341,7 @@ $('#mcontent').onclick=e=>{
   const xw=e.target.closest('.xw');
   if(xw){openConstructModal(xw.dataset.kind,xw.dataset.key);return;}
   const au=e.target.closest('[data-author]');
-  if(au){closeModal();F.author=au.dataset.author;$('#fAuthor').value=au.dataset.author;S.page=0;applyAndRender();setView('library');return;}
+  if(au){closeModal();F.author=au.dataset.author;syncAuthorSelect();S.page=0;applyAndRender();setView('library');return;}
   const jr=e.target.closest('[data-journal]');
   if(jr){closeModal();F.journal=jr.dataset.journal;$('#fJournal').value=jr.dataset.journal;S.page=0;applyAndRender();setView('library');return;}
   const chip=e.target.closest('.chip[data-code]');if(!chip)return;
@@ -1368,7 +1379,7 @@ $('#ovJournals').onclick=e=>{const d=e.target.closest('[data-journal]');if(!d)re
   F.journal=d.dataset.journal;$('#fJournal').value=d.dataset.journal;S.page=0;applyAndRender();setView('library');};
 /* click a top author → filter the Library by it */
 $('#ovAuthors').onclick=e=>{const d=e.target.closest('[data-author]');if(!d)return;
-  F.author=d.dataset.author;$('#fAuthor').value=d.dataset.author;S.page=0;applyAndRender();setView('library');};
+  F.author=d.dataset.author;syncAuthorSelect();S.page=0;applyAndRender();setView('library');};
 /* click a decade → filter the Library to that 10-year range */
 $('#ovDecade').onclick=e=>{const d=e.target.closest('[data-decade]');if(!d)return;
   const y=+d.dataset.decade;F.yMin=y;F.yMax=y+9;$('#yMin').value=y;$('#yMax').value=y+9;F.yearExact=null;$('#fYear').value='';

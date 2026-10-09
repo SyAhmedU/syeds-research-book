@@ -80,6 +80,8 @@ with sync_playwright() as runtime:
                 if time.monotonic()>=deadline: raise
         assert page.evaluate('S.managementAdded') == added_count
         print('PASS browser import load and count.',flush=True)
+        assert page.locator('#fAuthor option').count() <= 502, 'Author dropdown is not bounded'
+        assert 'top 500 listed' in page.locator('#fAuthor option').first.inner_text()
         assert page.evaluate('libraryPapers().length') == before + added_count
         assert page.evaluate('new Set(S.papers.map(p=>p.id.toLowerCase())).size===S.papers.length')
         assert ('complete OpenAlex '+manifest['openalexSnapshot']['release'] if manifest.get('openalexSnapshot') else 'partial coverage') in page.locator('#freshNote').inner_text()
@@ -116,6 +118,7 @@ with sync_playwright() as runtime:
         page.locator('[data-view="map"]').click()
         page.wait_for_function('CC.loaded')
         assert page.evaluate('CC.N') == cooc['N']
+        print('PASS references, source isolation and maps/trends.',flush=True)
         # Loading the new tier must never change hand-coded map counts.
         assert page.evaluate('S.papers.filter(p=>!p._recent&&!p._management&&!p._live).length') == 9388
         page.locator('[data-view="library"]').click()
@@ -125,10 +128,13 @@ with sync_playwright() as runtime:
         assert page.evaluate('S.filtered.every(p=>!p._management)')
         page.set_viewport_size({'width': 393, 'height': 852})
         page.check('#fManagement')
+        assert page.locator('#fAuthor option').count() <= 502
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         page.screenshot(path=str(ROOT / '_smoke_management_import.png'))
         assert not errors, errors
-        print(f'PASS {"LIVE UI (provider evidence verified locally)" if args.ui_only else "LIVE" if args.url else "LOCAL"}: {added_count:,} additional real records; {abstract_count:,} verbatim abstracts; {manifest["referenceEdges"]:,} source reference edges; tier counts/toggles, source isolation, historical abstracts, references, updated trends/map, mobile, and immutable hand-coded corpus.')
+        location='LIVE' if args.url else 'LOCAL'
+        scope=' UI (provider evidence verified in prior full run)' if args.ui_only else ''
+        print(f'PASS {location}{scope}: {added_count:,} additional real records; {abstract_count:,} verbatim abstracts; {manifest["referenceEdges"]:,} source reference edges; tier counts/toggles, source isolation, historical abstracts, references, updated trends/map, mobile, bounded author selector, and immutable hand-coded corpus.')
     finally:
         browser.close()
         server.shutdown()
