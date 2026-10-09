@@ -62,6 +62,7 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
     exact_issns={k:rows[0] for k,rows in by_issn.items() if len(rows)==1}
     id_values=pa.array(list(by_id))
     started=time.monotonic()
+    last_summary=started
     progress={}
     def official_for(work):
         source=(work.get('primary_location') or {}).get('source') or {}
@@ -69,6 +70,7 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
         matches={exact_issns[i.replace('-','')]['scopusSourceId']:exact_issns[i.replace('-','')] for i in source.get('issn') or [] if i.replace('-','') in exact_issns}
         return next(iter(matches.values())) if len(matches)==1 else None
     def status(phase):
+        nonlocal last_summary
         counts=dict(evidence.execute('SELECT phase,COUNT(*) FROM files GROUP BY phase'))
         payload={'version':1,'mode':'full-public-snapshot','release':manifest['date'],
                  'manifestUrl':MANIFEST,'manifestSha256':fingerprint,'status':phase,
@@ -85,6 +87,7 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
                            appliedSnapshotRecords=evidence.execute('SELECT COUNT(*) FROM applied').fetchone()[0])
         (stage/'openalex-snapshot-checkpoint.json').write_text(json.dumps(payload),encoding='utf-8')
         print(json.dumps(payload),flush=True)
+        last_summary=time.monotonic()
         return payload
     def apply_work(work,official,role,path):
         identity=short(work['id'])
@@ -207,7 +210,13 @@ def run_snapshot(db, store_work, catalog, source_map, stage, workers, sources_on
                             db.execute("UPDATE targets SET state=?,source_id=? WHERE id=? AND state='pending'",(state,short(source_id or ''),identity))
                     db.commit();evidence.commit()
                     evidence.execute('INSERT INTO files VALUES(?,?,?,?)',(phase,entry['url'],scanned,len(rows)))
-                    evidence.commit();done.add(entry['url']);status('harvesting-'+phase)
+                    evidence.commit();done.add(entry['url'])
+                    print(json.dumps({'phase':phase,'files':len(done),'total':len(manifest['files']),'fileMatched':len(rows)}),flush=True)
+                    # Recounting tens of millions of edges/targets after every
+                    # file dominates reference ingestion. SQLite is the durable
+                    # per-file checkpoint; refresh the aggregate summary once a
+                    # minute and always at phase boundaries.
+                    if time.monotonic()-last_summary>=60:status('harvesting-'+phase)
                     entry=next(entries,None)
                     if entry:active[pool.submit(read_file,entry,phase,pending)]=entry
     try:
