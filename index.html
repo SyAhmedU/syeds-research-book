@@ -421,7 +421,7 @@
 .motes-cap{position:relative;z-index:1;margin-top:10px;font-family:var(--mono,'IBM Plex Mono',monospace);font-size:.64rem;letter-spacing:.08em;color:var(--muted,#8a8096)}
 @media print{#corpusMotes,.motes-cap{display:none}}
 </style>
-<link rel="stylesheet" href="product-design.css?v=20260912">
+<link rel="stylesheet" href="product-design.css?v=20261010">
 <!-- SYED-PWA -->
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -461,13 +461,16 @@
            the field's history, drawn from the data itself. -->
       <canvas id="corpusMotes" aria-hidden="true"></canvas>
       <h1>The <em>corpus</em></h1>
-      <p>9,388 unique papers across 167 management &amp; organizational-behavior constructs — every record hand-coded over 24 months, DOI-keyed and Scopus-graded. Nothing here is AI-generated. A badged <b>recent tier</b> of real OpenAlex records (auto-fetched, machine-tagged) extends the library past 2024 to the present — and picking a construct or searching also pulls <b>this month's papers live</b>, marked ⚡.</p>
+      <p>Search 9,388 hand-coded papers across 167 constructs. Expand with the recent and all-years corpus tiers below; machine matches and live records are separately badged for verification.</p>
       <div id="corpusMotesCap" class="motes-cap" hidden></div>
     </div>
     <div class="filters">
-      <input type="text" id="q" placeholder="Search title, author, journal…" autocomplete="off">
-      <select id="fConstruct"><option value="">All constructs</option></select>
-      <select id="fSourceType" title="Source types from the official Scopus registry; unmatched names remain unclassified">
+      <input type="text" id="q" aria-label="Search papers by title, author or journal" placeholder="Search title, author, journal…" autocomplete="off">
+    </div>
+    <details class="refine-panel" id="libraryRefinements"><summary>Refine papers &amp; choose corpus tiers</summary>
+    <div class="filters">
+      <select id="fConstruct" aria-label="Construct"><option value="">All constructs</option></select>
+      <select id="fSourceType" aria-label="Source type" title="Source types from the official Scopus registry; unmatched names remain unclassified">
         <option value="">All source types</option>
         <option value="journal">Journals</option>
         <option value="conference-series">Conference series / proceedings</option>
@@ -475,11 +478,11 @@
         <option value="trade-publication">Trade publications</option>
         <option value="unclassified">Unclassified sources</option>
       </select>
-      <select id="fJournal" title="Sources grouped by official type; counts reflect locally available papers"><option value="">All sources</option></select>
-      <select id="fAuthor" title="Authors with 2+ papers, ordered by number of articles (search finds the rest)"><option value="">All authors</option></select>
-      <select id="fYear" title="Pick a single year"><option value="">All years</option></select>
-      <div class="yr"><input type="number" id="yMin" placeholder="from"> – <input type="number" id="yMax" placeholder="to"></div>
-      <select id="fBand">
+      <select id="fJournal" aria-label="Journal or source" title="Sources grouped by official type; counts reflect locally available papers"><option value="">All sources</option></select>
+      <select id="fAuthor" aria-label="Author" title="Authors with 2+ papers, ordered by number of articles (search finds the rest)"><option value="">All authors</option></select>
+      <select id="fYear" aria-label="Publication year" title="Pick a single year"><option value="">All years</option></select>
+      <div class="yr"><input type="number" id="yMin" aria-label="Earliest publication year" placeholder="from"> – <input type="number" id="yMax" aria-label="Latest publication year" placeholder="to"></div>
+      <select id="fBand" aria-label="Scopus tier">
         <option value="">Any Scopus tier</option>
         <option value="90-99">Top decile (90–99)</option>
         <option value="75-89">75–89</option>
@@ -487,7 +490,7 @@
         <option value="25-49">25–49</option>
         <option value="lt25">Below 25</option>
       </select>
-      <select id="fSort">
+      <select id="fSort" aria-label="Sort papers">
         <option value="year">Newest</option>
         <option value="yearAsc">Oldest</option>
         <option value="cit">Most cited</option>
@@ -500,6 +503,7 @@
       <label class="oa" id="fRecentBox" title="Add recent papers (2024→) auto-fetched from OpenAlex — real records, machine-assigned constructs, badged. Verify before citing; the hand-coded corpus stays the verified set."><input type="checkbox" id="fRecent"> <span id="fRecentLbl">+ Recent 2024→</span></label>
       <label class="oa" id="fManagementBox" title="Load the separate all-years Q1/Q2 source import and management works referenced by those papers. Partial until all cursors finish."><input type="checkbox" id="fManagement"> <span id="fManagementLbl">+ All-years management import</span></label>
     </div>
+    </details>
     <div class="resbar" aria-live="polite">
       <div class="count"><b id="resCount">0</b> papers</div>
       <span id="xfilterNote" class="xfilter" hidden></span>
