@@ -8,6 +8,6 @@ import { isRepoVenue } from './repo-venue.mjs';
 const DATA = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
 const file = join(DATA, 'recent.index.json');
 const all = JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, ''));
-const keep = all.filter((p) => !isRepoVenue(p.journal || ''));
+const keep = all.filter((p) => !isRepoVenue(p.journal || '', p.doi || p.id || ''));
 writeFileSync(file, JSON.stringify(keep));
 console.log(`[purge] ${all.length} → ${keep.length} (dropped ${all.length - keep.length} repository/dataset deposits)`);
