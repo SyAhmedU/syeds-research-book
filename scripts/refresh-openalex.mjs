@@ -65,7 +65,7 @@ function workToRecord(w, constructCode) {
   const doi = (w.doi || '').replace(/^https?:\/\/doi\.org\//i, '').toLowerCase();
   if (!doi) return null;
   const venue = w.primary_location?.source?.display_name || w.host_venue?.display_name || '';
-  if (isRepoVenue(venue)) return null;
+  if (isRepoVenue(venue, doi)) return null;
   // Drop records with obviously-broken year metadata (OpenAlex has stray
   // far-future dates); keep up to next year for legit early-access/forthcoming.
   const yr = w.publication_year;
