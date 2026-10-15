@@ -25,6 +25,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isRepoVenue } from './repo-venue.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA = path.join(__dirname, '..', 'data');
@@ -58,14 +59,13 @@ async function oa(url) {
 
 // Repository hosts are not journals — a "venue" like Zenodo/SSRN/Figshare is a
 // deposit, often a duplicate of a journal version. Keep the tier journal-grade.
-const REPO_VENUE = /zenodo|ssrn|research square|preprints\.org|authorea|biorxiv|medrxiv|arxiv|figshare|researchgate|^osf\b|qeios/i;
 
 // Map an OpenAlex work → an SRB-shaped record (+ separate abstract). Machine-tagged.
 function workToRecord(w, constructCode) {
   const doi = (w.doi || '').replace(/^https?:\/\/doi\.org\//i, '').toLowerCase();
   if (!doi) return null;
   const venue = w.primary_location?.source?.display_name || w.host_venue?.display_name || '';
-  if (REPO_VENUE.test(venue)) return null;
+  if (isRepoVenue(venue)) return null;
   // Drop records with obviously-broken year metadata (OpenAlex has stray
   // far-future dates); keep up to next year for legit early-access/forthcoming.
   const yr = w.publication_year;

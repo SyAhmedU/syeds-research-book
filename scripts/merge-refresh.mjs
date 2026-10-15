@@ -12,6 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isRepoVenue } from './repo-venue.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA = path.join(__dirname, '..', 'data');
@@ -25,7 +26,6 @@ function readJsonSafe(p, fallback) {
 
 // Repository hosts are not journals — Zenodo/SSRN/Figshare entries are deposits,
 // frequently duplicating a journal version. Keep the tier journal-grade.
-const REPO_VENUE = /zenodo|ssrn|research square|preprints\.org|authorea|biorxiv|medrxiv|arxiv|figshare|researchgate|^osf\b|qeios/i;
 
 // Hand-coded DOIs — never duplicate one of Syed's records into the recent tier.
 const handCoded = new Set();
@@ -40,7 +40,7 @@ const abstracts = {};
 for (const rec of readJsonSafe(path.join(DATA, 'recent.index.json'), [])) {
   const key = (rec.doi || rec.id || '').toLowerCase();
   if (!key || handCoded.has(key)) continue;
-  if (REPO_VENUE.test(rec.journal || '')) continue; // purge repository deposits from older runs
+  if (isRepoVenue(rec.journal || '')) continue; // purge repository deposits from older runs
   merged.set(key, { ...rec });
 }
 const PREV_ABSDIR = path.join(DATA, 'recent.abstracts');
@@ -60,7 +60,7 @@ for (const mode of ['construct', 'journal', 'author']) {
     if (handCoded.has(key)) continue;                         // already Syed's
     if (typeof rec.year === 'number' && (rec.year > NEXT_YEAR || rec.year < 1950)) continue; // junk date
     if (!rec.title || !rec.journal) continue;                 // need a real title + venue
-    if (REPO_VENUE.test(rec.journal)) continue;               // repository deposit, not a journal
+    if (isRepoVenue(rec.journal)) continue;               // repository deposit, not a journal
     const prev = merged.get(key);
     if (prev) {
       // Union construct codes (construct mode tags them; journal mode leaves []),
