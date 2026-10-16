@@ -106,7 +106,7 @@ html[data-product-design="2026"] .syed-bar button{min-width:36px;min-height:36px
 }
 @media print{.refine-panel{display:none!important}}
 
-html[data-product-design="2026"] #syed-tour-btn{position:static!important;float:right;margin:16px 18px 24px!important;min-height:44px;box-shadow:none!important;background:var(--product-surface)!important;color:var(--product-ink)!important;border-color:var(--product-line)!important}
+html[data-product-design="2026"] #syed-tour-btn{position:fixed!important;right:18px!important;bottom:14px!important;float:none;margin:0!important;min-height:44px;box-shadow:none!important;background:var(--product-surface)!important;color:var(--product-ink)!important;border-color:var(--product-line)!important}
 
 html[data-product-design="2026"] .hero>h1{background:none!important;color:var(--product-ink)!important;-webkit-text-fill-color:var(--product-ink)!important}
 
