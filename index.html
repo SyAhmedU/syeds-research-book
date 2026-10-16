@@ -540,12 +540,17 @@
 
   <!-- OVERVIEW -->
   <section id="v-overview" class="wrap hidden">
-    <div class="hero"><h1>Overview</h1><p>What's inside the book.</p></div>
-    <div class="stats" id="ovStats"></div>
-    <div class="panel"><h3>Papers by decade</h3><div id="ovDecade"></div></div>
-    <div class="panel"><h3>Scopus percentile bands</h3><div id="ovBand"></div></div>
-    <div class="panel"><h3>Top journals</h3><div class="jlist" id="ovJournals"></div></div>
-    <div class="panel"><h3>Top authors</h3><div class="jlist" id="ovAuthors"></div></div>
+    <div class="hero"><h1>What's inside <em>the book</em></h1><p class="ov-lede" id="ovLede">Counting…</p></div>
+    <div class="ov-prov"><div class="ov-kicker">Where the papers come from</div><div class="ov-ribbon" id="ovRibbon" role="img" aria-label="Papers by tier"></div><div class="ov-ribbon-key" id="ovRibbonKey"></div></div>
+    <div class="ov-lens" id="ovLens"></div>
+    <div class="ov-vitals" id="ovVitals"></div>
+    <div class="panel ov-panel"><div class="ov-head"><div><div class="ov-kicker">The tide</div><h3>Papers, year by year</h3></div><p id="ovTideCap"></p></div><div id="ovTide" class="ov-plot"></div><p class="ov-tip" id="ovTideTip" aria-live="polite"></p></div>
+    <div class="panel ov-panel"><div class="ov-head"><div><div class="ov-kicker">The bedrock</div><h3>Journal quality, decade by decade</h3></div><p>Each column is one decade at full height, split by the Scopus percentile of the journal each paper appeared in. Click a layer to read those papers.</p></div><div id="ovStrata" class="ov-plot"></div><div class="ov-key" id="ovStrataKey"></div></div>
+    <div class="panel ov-panel"><div class="ov-head"><div><div class="ov-kicker">The canopy</div><h3>Where it was published</h3></div><p id="ovCanopyCap"></p></div><div id="ovCanopy" class="ov-plot"></div></div>
+    <div class="ov-two">
+      <div class="panel ov-panel"><div class="ov-head"><div><div class="ov-kicker">The voices</div><h3>Who wrote it</h3></div><p>The 24 most frequent author names; each dot is one of their papers, at its year. Names are as recorded — the same person can appear under two spellings.</p></div><div id="ovVoices" class="ov-plot"></div></div>
+      <div class="panel ov-panel"><div class="ov-head"><div><div class="ov-kicker">The echo</div><h3>How often it was cited</h3></div><p id="ovCitesCap"></p></div><div id="ovCites" class="ov-plot"></div></div>
+    </div>
   </section>
 
   <!-- MAP -->
@@ -762,6 +767,7 @@ function setView(v){
   if(v==='map'){if(!MX._inited){MX._inited=true;mxSetTier('corpus');}else renderMap();}
   if(v==='trends')renderTrends();
   if(v==='termtrends')renderTermTrends();
+  if(v==='overview'&&window.OV)OV.render();
   window.scrollTo(0,0);
 }
 $$('.navbtn').forEach(b=>b.onclick=()=>setView(b.dataset.view));
@@ -1356,44 +1362,7 @@ $('#mcontent').onclick=e=>{
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
 /* ---------- overview ---------- */
-function renderOverview(){
-  const ps=libraryPapers();
-  const withAbs=ps.filter(p=>p.hasAbstract).length, oa=ps.filter(p=>p.openAccess).length;
-  $('#ovStats').innerHTML=[
-    [ps.length.toLocaleString(),'available papers'],[S.constructs.length.toLocaleString(),'hand-coded constructs'],
-    [withAbs.toLocaleString(),'with abstract'],[oa.toLocaleString(),'open access'],
-    [S.yMin+'–'+S.yMax,'year span']
-  ].map(s=>`<div class="stat"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('');
-  // decade
-  const dec={};ps.forEach(p=>{if(p.year){const d=Math.floor(p.year/10)*10;dec[d]=(dec[d]||0)+1;}});
-  const decKeys=Object.keys(dec).map(Number).sort((a,b)=>a-b);const decMax=Math.max(...Object.values(dec));
-  $('#ovDecade').innerHTML=decKeys.map(d=>`<div class="barrow" data-decade="${d}" title="Show ${d}–${d+9} papers"><span>${d}s</span><div class="track"><div class="fill" style="width:${dec[d]/decMax*100}%"></div></div><span class="n">${dec[d]}</span></div>`).join('');
-  // bands  [label, fBand value, predicate]
-  const bands=[['Top decile (90–99)','90-99',p=>p.scopusPercentile>=90],['75–89','75-89',p=>p.scopusPercentile>=75&&p.scopusPercentile<90],['50–74','50-74',p=>p.scopusPercentile>=50&&p.scopusPercentile<75],['25–49','25-49',p=>p.scopusPercentile>=25&&p.scopusPercentile<50],['Below 25','lt25',p=>p.scopusPercentile!=null&&p.scopusPercentile<25]];
-  const bvals=bands.map(b=>ps.filter(b[2]).length);const bmax=Math.max(...bvals);
-  $('#ovBand').innerHTML=bands.map((b,i)=>`<div class="barrow" data-band="${b[1]}" title="Filter to this tier"><span>${b[0]}</span><div class="track"><div class="fill" style="width:${bvals[i]/bmax*100}%"></div></div><span class="n">${bvals[i]}</span></div>`).join('');
-  // journals
-  const jc={};ps.forEach(p=>{if(p.journal)jc[p.journal]=(jc[p.journal]||0)+1;});
-  const top=Object.entries(jc).sort((a,b)=>b[1]-a[1]).slice(0,30);
-  $('#ovJournals').innerHTML=top.map(([j,n])=>`<div data-journal="${esc(j)}" title="Show these papers"><span>${esc(j)}</span><b>${n}</b></div>`).join('');
-  // authors
-  const acc={};ps.forEach(p=>{(p.authors||[]).forEach(a=>{a=(a||'').trim();if(a)acc[a]=(acc[a]||0)+1;});});
-  const topA=Object.entries(acc).sort((a,b)=>b[1]-a[1]).slice(0,30);
-  $('#ovAuthors').innerHTML=topA.map(([a,n])=>`<div data-author="${esc(a)}" title="Show these papers"><span>${esc(a)}</span><b>${n}</b></div>`).join('');
-}
-/* click a top journal → filter the Library by it */
-$('#ovJournals').onclick=e=>{const d=e.target.closest('[data-journal]');if(!d)return;
-  F.journal=d.dataset.journal;$('#fJournal').value=d.dataset.journal;S.page=0;applyAndRender();setView('library');};
-/* click a top author → filter the Library by it */
-$('#ovAuthors').onclick=e=>{const d=e.target.closest('[data-author]');if(!d)return;
-  F.author=d.dataset.author;syncAuthorSelect();S.page=0;applyAndRender();setView('library');};
-/* click a decade → filter the Library to that 10-year range */
-$('#ovDecade').onclick=e=>{const d=e.target.closest('[data-decade]');if(!d)return;
-  const y=+d.dataset.decade;F.yMin=y;F.yMax=y+9;$('#yMin').value=y;$('#yMax').value=y+9;F.yearExact=null;$('#fYear').value='';
-  S.page=0;applyAndRender();setView('library');};
-/* click a Scopus band → filter the Library to that tier */
-$('#ovBand').onclick=e=>{const d=e.target.closest('[data-band]');if(!d)return;
-  F.band=d.dataset.band;$('#fBand').value=d.dataset.band;S.page=0;applyAndRender();setView('library');};
+function renderOverview(){ if(window.OV)OV.render(); }   /* the view lives in overview.js */
 
 /* ---------- co-occurrence map ---------- */
 function coocPairs(){
@@ -2112,6 +2081,8 @@ function ttCsv(){
   const blob=new Blob([rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'}), u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download='term-trends-'+y+'.csv'; a.click(); URL.revokeObjectURL(u);
 }
 </script>
+<link rel="stylesheet" href="overview.css?v=20261016">
+<script src="overview.js?v=20261016"></script>
 <!-- Subtle, professional interaction polish — ADDITIVE only (calm hover lift + press
      feedback). NO design or colour changes; uses the page's own --accent. Fully disabled
      under prefers-reduced-motion. No particle burst or cursor follower. -->
