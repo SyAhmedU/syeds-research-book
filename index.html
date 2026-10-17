@@ -701,6 +701,8 @@ function applyUrlParams(){
   if(![...u.keys()].length) return null;
   const q=u.get('q'); if(q){F.q=q.toLowerCase();$('#q').value=q;}
   const c=u.get('construct'); if(c&&S.byCode[c]){F.construct=c;$('#fConstruct').value=c;}
+  // ?construct=A&with=B → papers hand-coded to both (the hub tree's branches)
+  const w=u.get('with'); if(c&&w&&S.byCode[c]&&S.byCode[w]){F.construct='';$('#fConstruct').value='';F.constructs=[c,w];}
   const j=u.get('journal'); if(j){F.journal=j;$('#fJournal').value=j;}
   const st=u.get('sourceType');if(st&&SOURCE_TYPE_LABELS[st]){F.sourceType=st;$('#fSourceType').value=st;buildJournalSelect();}
   if(u.get('management')==='1'){F.management=true;$('#fManagement').checked=true;}
