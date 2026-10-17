@@ -2,6 +2,10 @@
 
 > Offloaded from the root `CLAUDE.md` to keep that index lean (per the token-discipline rule). This is the canonical detailed reference for this project — read it before editing. When these notes and the code conflict, trust the code and update these notes.
 
+## 2026-10-17 — UI ported from the research branch (data NOT merged)
+
+Master and `research/openalex-snapshot-run` stay **separate hosts on purpose**: a full merge makes the tree ~1.35 GB (master ~578 MB), over the GitHub Pages 1 GB limit. Only the code-only branch commits were cherry-picked (`-x`) onto master: bounded author menu (top 500 + selected, `syncAuthorSelect`), the ↻ Latest data panel (`research-refresh.js`), task-first/mobile/accessible layouts, and the floating Tour pill fix. Overview conflict kept master's landscape `overview.js`. To port future UI work: cherry-pick commits that touch no `data/`/snapshot files; never merge the branch. Smoke: `_mobile-audit/_srbport.mjs <outdir>`.
+
 ## 2026-10-06 — Full Crossref traversal and reference-resolution checkpoint
 
 Crossref cursor traversal finished all **1,137 queues: 1,132 Q1/Q2 journals and 5 separately typed conference series**, with exact registered ISSNs and no record/year cap. General exact-ISSN queries reconcile sources unavailable through the journal endpoint. `audit-crossref-full.py --require-finished` passes with zero count mismatches. **1,558,905 Crossref records** are staged with raw provider evidence. Completion means the available Crossref query results were traversed; it does not establish universal publication or citation coverage.
